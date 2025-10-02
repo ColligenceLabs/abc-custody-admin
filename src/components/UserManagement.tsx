@@ -16,20 +16,20 @@ import {
 import { ServicePlan } from "@/app/page";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
-  User,
+  OrganizationUser,
   UserRole,
   UserStatus,
   ROLE_NAMES,
-} from "@/types/user";
-import { MOCK_USERS } from "@/data/userMockData";
+} from "@/types/organizationUser";
+import { MOCK_ORGANIZATION_USERS } from "@/data/organizationUserMockData";
 import { Modal } from "@/components/common/Modal";
 import {
-  formatUserDisplay,
+  formatOrganizationUserDisplay,
   getRoleName,
   getStatusName,
-  searchUsers,
+  searchOrganizationUsers,
   getUserStatsByRole,
-} from "@/utils/userHelpers";
+} from "@/utils/organizationUserHelpers";
 import {
   getRoleColor
 } from "@/utils/permissionUtils";
@@ -50,9 +50,9 @@ export default function UserManagement({ plan }: UserManagementProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<OrganizationUser | null>(null);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
-  const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
+  const [deactivatingUser, setDeactivatingUser] = useState<OrganizationUser | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessageData, setSuccessMessageData] = useState<{
@@ -120,9 +120,16 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }).format(new Date(timestamp));
   };
 
-  const filteredUsers = MOCK_USERS.filter((user) => {
+  // TODO: OrganizationContext에서 currentOrganization 가져오기
+  // 현재는 ORG001 하드코딩
+  const currentOrganizationId = "ORG001";
+
+  const filteredUsers = MOCK_ORGANIZATION_USERS.filter((user) => {
+    // 현재 조직의 사용자만 표시
+    if (user.organizationId !== currentOrganizationId) return false;
+
     const matchesSearch =
-      searchUsers(searchTerm, [user]).length > 0 || searchTerm === "";
+      searchOrganizationUsers(searchTerm, currentOrganizationId).some(u => u.id === user.id) || searchTerm === "";
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -193,7 +200,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: OrganizationUser) => {
     setEditingUser({
       ...user,
       phone: user.phone || '',
@@ -239,12 +246,12 @@ export default function UserManagement({ plan }: UserManagementProps) {
   };
 
 
-  const handleShowHistory = (user: User) => {
+  const handleShowHistory = (user: OrganizationUser) => {
     setEditingUser(user);
     setShowHistoryModal(true);
   };
 
-  const handleDeactivateUser = (user: User) => {
+  const handleDeactivateUser = (user: OrganizationUser) => {
     // 이미 비활성 상태인 사용자는 처리하지 않음
     if (user.status === 'inactive') {
       return;
@@ -288,7 +295,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }
   };
 
-  const userStats = getUserStatsByRole();
+  const userStats = getUserStatsByRole(currentOrganizationId);
 
   return (
     <div className="space-y-6">

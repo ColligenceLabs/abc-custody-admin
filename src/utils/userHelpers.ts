@@ -1,7 +1,13 @@
+/**
+ * @deprecated Use organizationUserHelpers.ts instead
+ * This file is maintained for backward compatibility only
+ */
+
 import { User, UserRole, ROLE_NAMES, STATUS_NAMES } from '@/types/user';
 import { MOCK_USERS, getUsersByRole, getActiveUsers, getUsersByDepartment } from '@/data/userMockData';
 
 /**
+ * @deprecated Use formatOrganizationUserDisplay from organizationUserHelpers.ts
  * 사용자 표시 형식 포맷팅
  */
 export const formatUserDisplay = (user: User, format: 'name' | 'namePosition' | 'nameEmail' | 'full' = 'namePosition'): string => {

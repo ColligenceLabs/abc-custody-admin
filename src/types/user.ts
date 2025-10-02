@@ -1,6 +1,24 @@
+/**
+ * @deprecated Use OrganizationUser from '@/types/organizationUser' instead.
+ * This type is maintained for backward compatibility only.
+ */
 export type UserRole = 'admin' | 'manager' | 'operator' | 'viewer';
+
+/**
+ * @deprecated Use OrganizationUser from '@/types/organizationUser' instead.
+ * This type is maintained for backward compatibility only.
+ */
 export type UserStatus = 'active' | 'inactive' | 'pending';
 
+/**
+ * @deprecated Use OrganizationUser from '@/types/organizationUser' instead.
+ * This interface is maintained for backward compatibility only.
+ *
+ * For new code:
+ * - Use OrganizationUser for corporate members' employees
+ * - Use IndividualUser for individual members
+ * - Use Member for top-level member information
+ */
 export interface User {
   id: string;
   name: string;
