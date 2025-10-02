@@ -10,7 +10,9 @@ import {
   DevicePhoneMobileIcon,
   EnvelopeIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  UserIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
 import AttemptLimitMessage from '@/components/auth/AttemptLimitMessage'
 import GASetupModal from '@/components/auth/GASetupModal'
@@ -19,6 +21,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { authStep, login, verifyOtp, verifySms, sendSms, resetAuth, completeGASetup } = useAuth()
   const { getRequiredAuthSteps } = useSecurityPolicy()
+  const [memberType, setMemberType] = useState<'individual' | 'corporate'>('individual')
   const [email, setEmail] = useState('ceo@company.com')
   const [otpCode, setOtpCode] = useState('123456')
   const [smsCode, setSmsCode] = useState('987654')
@@ -251,6 +254,44 @@ export default function LoginPage() {
 
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    회원 유형
+                  </label>
+                  <div className="flex gap-4 mb-4">
+                    <label className="flex items-center cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-gray-50 flex-1"
+                      style={{
+                        borderColor: memberType === 'individual' ? '#0ea5e9' : '#e5e7eb',
+                        backgroundColor: memberType === 'individual' ? '#f0f9ff' : 'transparent'
+                      }}>
+                      <input
+                        type="radio"
+                        value="individual"
+                        checked={memberType === 'individual'}
+                        onChange={(e) => setMemberType('individual')}
+                        className="sr-only"
+                      />
+                      <UserIcon className={`w-5 h-5 mr-2 ${memberType === 'individual' ? 'text-primary-600' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${memberType === 'individual' ? 'text-primary-600' : 'text-gray-700'}`}>개인 회원</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-gray-50 flex-1"
+                      style={{
+                        borderColor: memberType === 'corporate' ? '#6366f1' : '#e5e7eb',
+                        backgroundColor: memberType === 'corporate' ? '#eef2ff' : 'transparent'
+                      }}>
+                      <input
+                        type="radio"
+                        value="corporate"
+                        checked={memberType === 'corporate'}
+                        onChange={(e) => setMemberType('corporate')}
+                        className="sr-only"
+                      />
+                      <BuildingOfficeIcon className={`w-5 h-5 mr-2 ${memberType === 'corporate' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                      <span className={`text-sm font-medium ${memberType === 'corporate' ? 'text-indigo-600' : 'text-gray-700'}`}>법인 회원</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     이메일 주소
                   </label>
@@ -325,7 +366,7 @@ export default function LoginPage() {
                   {loading ? '인증 중...' : 'OTP 인증'}
                 </button>
 
-                <div className="flex justify-between items-center mt-4">
+                <div className="text-center mt-4">
                   <button
                     type="button"
                     onClick={resetAuth}
