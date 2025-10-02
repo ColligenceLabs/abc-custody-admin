@@ -7,21 +7,24 @@ import {
   CheckCircleIcon,
   UserGroupIcon,
   UserIcon,
+  EnvelopeIcon,
   DocumentTextIcon,
   CreditCardIcon,
   BanknotesIcon,
   DocumentCheckIcon
 } from '@heroicons/react/24/outline'
 import MemberTypeSelection from '@/components/signup/MemberTypeSelection'
+import EmailVerificationStep from '@/components/signup/EmailVerificationStep'
 import PhoneVerificationStep from '@/components/signup/PhoneVerificationStep'
 import IDVerificationStep from '@/components/signup/IDVerificationStep'
 import BankAccountStep from '@/components/signup/BankAccountStep'
 import FundSourceStep from '@/components/signup/FundSourceStep'
 
-export type SignupStep = 'type' | 'phone' | 'id' | 'bank' | 'fund' | 'completed'
+export type SignupStep = 'type' | 'email' | 'phone' | 'id' | 'bank' | 'fund' | 'completed'
 
 export interface SignupData {
   memberType?: 'individual' | 'corporate'
+  email?: string
   name?: string
   residentNumber?: string
   carrier?: string
@@ -42,6 +45,7 @@ export default function SignupPage() {
 
   const steps = [
     { key: 'type' as SignupStep, label: '회원 유형', icon: UserGroupIcon },
+    { key: 'email' as SignupStep, label: '이메일 인증', icon: EnvelopeIcon },
     { key: 'phone' as SignupStep, label: '본인인증', icon: DocumentTextIcon },
     { key: 'id' as SignupStep, label: '신분증 인증', icon: CreditCardIcon },
     { key: 'bank' as SignupStep, label: '계좌 인증', icon: BanknotesIcon },
@@ -55,7 +59,7 @@ export default function SignupPage() {
   const handleStepComplete = (step: SignupStep, data: Partial<SignupData>) => {
     setSignupData(prev => ({ ...prev, ...data }))
 
-    const stepOrder: SignupStep[] = ['type', 'phone', 'id', 'bank', 'fund', 'completed']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'id', 'bank', 'fund', 'completed']
     const currentIndex = stepOrder.indexOf(step)
     const nextStep = stepOrder[currentIndex + 1]
 
@@ -65,7 +69,7 @@ export default function SignupPage() {
   }
 
   const handleBack = () => {
-    const stepOrder: SignupStep[] = ['type', 'phone', 'id', 'bank', 'fund']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'id', 'bank', 'fund']
     const currentIndex = stepOrder.indexOf(currentStep)
 
     if (currentIndex > 0) {
@@ -140,6 +144,14 @@ export default function SignupPage() {
         {currentStep === 'type' && (
           <MemberTypeSelection
             onComplete={(data) => handleStepComplete('type', data)}
+          />
+        )}
+
+        {currentStep === 'email' && (
+          <EmailVerificationStep
+            initialData={signupData}
+            onComplete={(data) => handleStepComplete('email', data)}
+            onBack={handleBack}
           />
         )}
 
