@@ -33,6 +33,7 @@ export interface User {
   hasGASetup: boolean;          // GA 설정 완료 여부
   gaSetupDate?: string;         // GA 설정 완료 일시
   isFirstLogin: boolean;        // 최초 로그인 여부
+  memberType?: 'individual' | 'corporate';  // 회원 유형
 }
 
 // 5개 권한 카테고리별 권한 정의

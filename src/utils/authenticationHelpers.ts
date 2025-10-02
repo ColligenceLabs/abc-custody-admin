@@ -46,8 +46,9 @@ export const verifyOTP = async (otp: string, sessionId: string): Promise<boolean
   // Mock 검증 (실제로는 서버 API 호출)
   await new Promise(resolve => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
 
-  // 개발용 테스트 OTP: 123456
-  return otp === "123456";
+  // 개발용 테스트 OTP 코드들
+  const validOtpCodes = ["123456", "111111"]; // 법인(123456), 개인(111111)
+  return validOtpCodes.includes(otp);
 };
 
 // SMS 인증번호 발송
@@ -69,8 +70,9 @@ export const verifySMSCode = async (code: string, sessionId: string): Promise<bo
   // Mock 검증 (실제로는 서버 API 호출)
   await new Promise(resolve => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
 
-  // 개발용 테스트 SMS 코드: 987654
-  return code === "987654";
+  // 개발용 테스트 SMS 코드들
+  const validSmsCodes = ["987654", "111111"]; // 법인(987654), 개인(111111)
+  return validSmsCodes.includes(code);
 };
 
 // 인증 단계 업데이트

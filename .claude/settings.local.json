@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: 회원가입 단계 분리 - 이메일 인증과 본인인증 분리\n\n- 이메일 인증 전용 단계 추가 (EmailVerificationStep)\n- 본인인증 단계에서 이메일 로직 제거 (PhoneVerificationStep)\n- 회원가입 플로우: 회원 유형 → 이메일 인증 → 본인인증 → 신분증 → 계좌 → 자금출처\n- 각 단계의 목적 명확화 및 사용자 경험 개선\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: 회원가입 단계 분리 - 이메일 인증과 본인인증 분리\n\n- 이메일 인증 전용 단계 추가 (EmailVerificationStep)\n- 본인인증 단계에서 이메일 로직 제거 (PhoneVerificationStep)\n- 회원가입 플로우: 회원 유형 → 이메일 인증 → 본인인증 → 신분증 → 계좌 → 자금출처\n- 각 단계의 목적 명확화 및 사용자 경험 개선\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(npm run lint:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

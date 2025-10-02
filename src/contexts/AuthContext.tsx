@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation'
 import { User } from '@/types/user'
 import { getUserByEmail } from '@/data/userMockData'
+import { getIndividualUserByEmail } from '@/data/individualUserMockData'
+import { getOrganizationUserByEmail } from '@/data/organizationUserMockData'
 import { verifyOTP, verifySMSCode, sendSMSCode } from '@/utils/authenticationHelpers'
 import { useSecurityPolicy, AuthStepType } from '@/contexts/SecurityPolicyContext'
 
@@ -11,6 +13,7 @@ interface AuthStep {
   step: 'email' | 'otp' | 'sms' | 'ga_setup' | 'completed' | 'blocked'
   email?: string
   user?: User
+  memberType?: 'individual' | 'corporate'  // 회원 유형
   attempts: number
   maxAttempts: number
   blockedUntil?: number
@@ -25,7 +28,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   authStep: AuthStep
-  login: (email: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
+  login: (email: string, memberType: 'individual' | 'corporate') => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   verifySms: (code: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   sendSms: () => Promise<{ success: boolean; message?: string }>
@@ -151,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 세션 체크 로직 제거 - 항상 인증된 상태 유지
   }, [])
 
-  const login = async (email: string): Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }> => {
+  const login = async (email: string, memberType: 'individual' | 'corporate'): Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }> => {
     // 차단 상태 확인
     const blockStatus = checkBlockStatus(email)
 
@@ -188,7 +191,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    const foundUser = getUserByEmail(email)
+    // memberType에 따라 올바른 mock 데이터에서 사용자 조회
+    let foundUser: User | undefined
+    if (memberType === 'individual') {
+      const individualUser = getIndividualUserByEmail(email)
+      if (individualUser) {
+        // IndividualUser를 User 타입으로 변환
+        foundUser = {
+          id: individualUser.id,
+          name: individualUser.name,
+          email: individualUser.email,
+          phone: individualUser.phone,
+          role: 'viewer' as const,
+          status: individualUser.status as any,
+          lastLogin: individualUser.lastLogin,
+          permissions: individualUser.permissions || [],
+          department: '개인',
+          position: '개인 회원',
+          hasGASetup: individualUser.hasGASetup,
+          gaSetupDate: individualUser.gaSetupDate,
+          isFirstLogin: individualUser.isFirstLogin,
+          memberType: 'individual'
+        }
+      }
+    } else {
+      const organizationUser = getOrganizationUserByEmail(email)
+      if (organizationUser) {
+        // OrganizationUser는 이미 User 타입과 호환됨
+        foundUser = { ...organizationUser, memberType: 'corporate' } as User
+      }
+    }
+
     if (!foundUser) {
       const newAttempts = authStep.attempts + 1
       const newTotalAttempts = blockStatus.totalAttempts + 1
@@ -234,11 +267,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (nextStep === 'completed') {
       // 이메일만 필요한 경우 바로 완료
-      setUser(foundUser)
+      const userWithMemberType = { ...foundUser, memberType }
+      setUser(userWithMemberType)
       setIsAuthenticated(true)
       setAuthStep({
         step: 'completed',
-        user: foundUser,
+        user: userWithMemberType,
+        memberType,
         attempts: 0,
         maxAttempts: policy.maxAttempts,
         requiredSteps,
@@ -248,7 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 세션 저장
       const sessionTimeout = getSessionTimeoutMs()
       const sessionData = {
-        user: foundUser,
+        user: userWithMemberType,
         timestamp: Date.now()
       }
 
@@ -263,6 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       step: nextStep as 'otp' | 'sms',
       email,
       user: foundUser,
+      memberType,
       attempts: 0,
       maxAttempts: policy.maxAttempts,
       requiredSteps,
@@ -309,7 +345,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (nextStep === 'completed') {
           // OTP가 마지막 단계인 경우
-          setUser(authStep.user)
+          const userWithMemberType = { ...authStep.user, memberType: authStep.memberType }
+          setUser(userWithMemberType)
           setIsAuthenticated(true)
           setAuthStep(prev => ({
             ...prev,
@@ -321,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // 세션 저장
           const sessionTimeout = getSessionTimeoutMs()
           const sessionData = {
-            user: authStep.user,
+            user: userWithMemberType,
             timestamp: Date.now()
           }
 
@@ -433,11 +470,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // 기존 사용자 - 로그인 성공
-        setUser(authStep.user)
+        const userWithMemberType = { ...authStep.user, memberType: authStep.memberType }
+        setUser(userWithMemberType)
         setIsAuthenticated(true)
         setAuthStep({
           step: 'completed',
-          user: authStep.user,
+          user: userWithMemberType,
           attempts: 0,
           maxAttempts: 5
         })
@@ -445,7 +483,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 세션 저장 (정책 기반 타임아웃)
         const sessionTimeout = getSessionTimeoutMs()
         const sessionData = {
-          user: authStep.user,
+          user: userWithMemberType,
           timestamp: Date.now()
         }
 

@@ -7,6 +7,8 @@ import {
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
+  UserIcon,
+  BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -156,13 +158,32 @@ export default function Header() {
                             </p>
                           </div>
                         </div>
-                        {user?.department && (
-                          <div className="mt-2">
+                        <div className="mt-2 flex items-center gap-2">
+                          {user?.department && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                               {user.department}
                             </span>
-                          </div>
-                        )}
+                          )}
+                          {user?.memberType && (
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              user.memberType === 'individual'
+                                ? 'bg-sky-50 text-sky-600 border border-sky-200'
+                                : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
+                            }`}>
+                              {user.memberType === 'individual' ? (
+                                <>
+                                  <UserIcon className="w-3 h-3 mr-1" />
+                                  개인 회원
+                                </>
+                              ) : (
+                                <>
+                                  <BuildingOfficeIcon className="w-3 h-3 mr-1" />
+                                  법인 회원
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* 메뉴 항목 */}

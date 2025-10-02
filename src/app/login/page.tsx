@@ -17,14 +17,27 @@ import {
 import AttemptLimitMessage from '@/components/auth/AttemptLimitMessage'
 import GASetupModal from '@/components/auth/GASetupModal'
 
+// 더미 계정 정보
+const INDIVIDUAL_ACCOUNT = {
+  email: 'hong@gmail.com',
+  otp: '111111',
+  sms: '111111'
+}
+
+const CORPORATE_ACCOUNT = {
+  email: 'ceo@company.com',
+  otp: '123456',
+  sms: '987654'
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { authStep, login, verifyOtp, verifySms, sendSms, resetAuth, completeGASetup } = useAuth()
   const { getRequiredAuthSteps } = useSecurityPolicy()
   const [memberType, setMemberType] = useState<'individual' | 'corporate'>('individual')
-  const [email, setEmail] = useState('ceo@company.com')
-  const [otpCode, setOtpCode] = useState('123456')
-  const [smsCode, setSmsCode] = useState('987654')
+  const [email, setEmail] = useState(INDIVIDUAL_ACCOUNT.email)
+  const [otpCode, setOtpCode] = useState(INDIVIDUAL_ACCOUNT.otp)
+  const [smsCode, setSmsCode] = useState(INDIVIDUAL_ACCOUNT.sms)
   const [loading, setLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -47,13 +60,27 @@ export default function LoginPage() {
     }
   }, [otpResendCooldown])
 
+  // 회원 유형 변경 핸들러
+  const handleMemberTypeChange = (type: 'individual' | 'corporate') => {
+    setMemberType(type)
+
+    if (type === 'individual') {
+      setEmail(INDIVIDUAL_ACCOUNT.email)
+      setOtpCode(INDIVIDUAL_ACCOUNT.otp)
+      setSmsCode(INDIVIDUAL_ACCOUNT.sms)
+    } else {
+      setEmail(CORPORATE_ACCOUNT.email)
+      setOtpCode(CORPORATE_ACCOUNT.otp)
+      setSmsCode(CORPORATE_ACCOUNT.sms)
+    }
+  }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
 
-    const result = await login(email)
+    const result = await login(email, memberType)
     if (result.success) {
       setMessage({ type: 'success', text: result.message || '' })
     } else {
@@ -267,7 +294,7 @@ export default function LoginPage() {
                         type="radio"
                         value="individual"
                         checked={memberType === 'individual'}
-                        onChange={(e) => setMemberType('individual')}
+                        onChange={(e) => handleMemberTypeChange('individual')}
                         className="sr-only"
                       />
                       <UserIcon className={`w-5 h-5 mr-2 ${memberType === 'individual' ? 'text-primary-600' : 'text-gray-400'}`} />
@@ -282,7 +309,7 @@ export default function LoginPage() {
                         type="radio"
                         value="corporate"
                         checked={memberType === 'corporate'}
-                        onChange={(e) => setMemberType('corporate')}
+                        onChange={(e) => handleMemberTypeChange('corporate')}
                         className="sr-only"
                       />
                       <BuildingOfficeIcon className={`w-5 h-5 mr-2 ${memberType === 'corporate' ? 'text-indigo-600' : 'text-gray-400'}`} />
