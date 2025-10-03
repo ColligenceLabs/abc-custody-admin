@@ -169,14 +169,14 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       name: t('menu.users'),
       icon: UsersIcon,
       path: '/users',
-      available: plan === 'enterprise' || plan === 'premium'
+      available: plan === 'enterprise' && user?.memberType === 'corporate'
     },
     {
       id: 'groups' as DashboardTab,
       name: '그룹 관리',
       icon: UserGroupIcon,
       path: '/groups',
-      available: plan === 'enterprise'
+      available: plan === 'enterprise' && user?.memberType === 'corporate'
     },
     {
       id: 'deposit' as DashboardTab,
@@ -208,10 +208,10 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
     },
     {
       id: 'setting' as DashboardTab,
-      name: '설정 및 구독',
+      name: user?.memberType === 'corporate' ? '설정 및 구독' : '구독 관리',
       icon: WrenchScrewdriverIcon,
       path: '/setting',
-      available: user?.role === 'admin'
+      available: true
     }
   ]
 

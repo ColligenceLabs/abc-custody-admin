@@ -10,6 +10,7 @@ import {
   BellIcon,
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
+import { useAuth } from "@/contexts/AuthContext";
 import SecurityTab from "./security/SecurityTab";
 import AddressManagement from "./security/AddressManagement";
 import AccountManagement from "./security/AccountManagement";
@@ -27,6 +28,7 @@ interface SecuritySettingsProps {
 export default function SecuritySettings({ plan, initialTab, notificationSubtab, policySubtab, addressSubtab }: SecuritySettingsProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
   // 탭 관리 상태
   const [activeTab, setActiveTab] = useState<"security" | "addresses" | "accounts" | "policies" | "notifications">(initialTab || "security");
 
@@ -75,12 +77,12 @@ export default function SecuritySettings({ plan, initialTab, notificationSubtab,
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
           {[
-            { id: "security", name: "보안 설정", icon: ShieldCheckIcon },
-            { id: "addresses", name: "주소 관리", icon: WalletIcon },
-            { id: "accounts", name: "계좌 연동", icon: BuildingLibraryIcon },
-            { id: "policies", name: "정책 관리", icon: CogIcon },
-            { id: "notifications", name: "알림 설정", icon: BellIcon },
-          ].map((tab) => (
+            { id: "security", name: "보안 설정", icon: ShieldCheckIcon, visible: true },
+            { id: "addresses", name: "주소 관리", icon: WalletIcon, visible: true },
+            { id: "accounts", name: "계좌 연동", icon: BuildingLibraryIcon, visible: true },
+            { id: "policies", name: "정책 관리", icon: CogIcon, visible: user?.memberType === 'corporate' },
+            { id: "notifications", name: "알림 설정", icon: BellIcon, visible: user?.memberType === 'corporate' },
+          ].filter(tab => tab.visible).map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as typeof activeTab)}

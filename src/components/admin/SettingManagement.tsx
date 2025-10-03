@@ -8,8 +8,10 @@ import {
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
+import { useAuth } from "@/contexts/AuthContext";
 import CompanySettingsTab from "./CompanySettingsTab";
-import SubscriptionManagementTab from "./SubscriptionManagementTab";
+import CorporateSubscriptionTab from "./CorporateSubscriptionTab";
+import IndividualSubscriptionTab from "./IndividualSubscriptionTab";
 
 interface SettingManagementProps {
   plan: ServicePlan;
@@ -22,6 +24,7 @@ export default function SettingManagement({
 }: SettingManagementProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"company" | "subscription">(
     initialTab || "company"
   );
@@ -44,9 +47,13 @@ export default function SettingManagement({
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">설정 및 구독 관리</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {user?.memberType === 'corporate' ? '설정 및 구독 관리' : '구독 관리'}
+          </h1>
           <p className="text-gray-600 mt-1">
-            회사 정보와 구독 서비스를 관리하세요
+            {user?.memberType === 'corporate'
+              ? '회사 정보와 구독 서비스를 관리하세요'
+              : '구독 서비스를 관리하세요'}
           </p>
         </div>
       </div>
@@ -60,14 +67,16 @@ export default function SettingManagement({
               name: "회사 정보",
               icon: BuildingOfficeIcon,
               description: "브랜딩 및 도메인 설정",
+              visible: user?.memberType === 'corporate',
             },
             {
               id: "subscription",
               name: "구독 관리",
               icon: CreditCardIcon,
               description: "구독 현황 및 결제 내역",
+              visible: true,
             },
-          ].map((tab) => (
+          ].filter(tab => tab.visible).map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as typeof activeTab)}
@@ -87,9 +96,13 @@ export default function SettingManagement({
       {/* 회사 정보 탭 */}
       {activeTab === "company" && <CompanySettingsTab />}
 
-      {/* 구독 관리 탭 */}
+      {/* 구독 관리 탭 - 회원 유형에 따라 분기 */}
       {activeTab === "subscription" && (
-        <SubscriptionManagementTab plan={plan} />
+        user?.memberType === 'corporate' ? (
+          <CorporateSubscriptionTab plan={plan} />
+        ) : (
+          <IndividualSubscriptionTab plan={plan} />
+        )
       )}
     </div>
   );

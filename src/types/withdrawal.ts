@@ -67,6 +67,9 @@ export interface WithdrawalRequest {
   txHash?: string;
   blockConfirmations?: number;
 
+  // 완료 시간
+  completedAt?: string;
+
   // 재신청 관련
   originalRequestId?: string; // 원본 신청 ID (재신청인 경우)
   reapplicationCount?: number; // 재신청 횟수
@@ -88,7 +91,7 @@ export type ServicePlan = "free" | "basic" | "pro" | "premium" | "enterprise" | 
 
 export interface WithdrawalManagementProps {
   plan: ServicePlan;
-  initialTab?: "approval" | "airgap" | "audit" | "rejected";
+  initialTab?: "approval" | "airgap" | "audit" | "rejected" | "requests" | "history";
 }
 
 // 승인 인증 관련 타입

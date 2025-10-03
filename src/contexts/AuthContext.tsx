@@ -107,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastLogin: new Date().toISOString(),
     hasGASetup: true,
     gaSetupDate: '2025-09-10T14:20:00Z',
-    isFirstLogin: false
+    isFirstLogin: false,
+    memberType: 'corporate'
   }
 
   const [user, setUser] = useState<User | null>(dummyUser)
