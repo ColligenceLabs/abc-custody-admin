@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { WithdrawalRequest } from "@/types/withdrawal";
+import { WithdrawalRequest, IndividualWithdrawalRequest } from "@/types/withdrawal";
 import { formatDateTime } from "@/utils/withdrawalHelpers";
 
 interface BlockchainInfoProps {
-  request: WithdrawalRequest;
+  request: WithdrawalRequest | IndividualWithdrawalRequest;
 }
 
 export function BlockchainInfo({ request }: BlockchainInfoProps) {

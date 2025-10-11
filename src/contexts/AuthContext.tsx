@@ -8,6 +8,7 @@ import { getIndividualUserByEmail } from '@/data/individualUserMockData'
 import { getOrganizationUserByEmail } from '@/data/organizationUserMockData'
 import { verifyOTP, verifySMSCode, sendSMSCode } from '@/utils/authenticationHelpers'
 import { useSecurityPolicy, AuthStepType } from '@/contexts/SecurityPolicyContext'
+import { useServicePlan } from '@/contexts/ServicePlanContext'
 
 interface AuthStep {
   step: 'email' | 'otp' | 'sms' | 'ga_setup' | 'completed' | 'blocked'
@@ -92,6 +93,7 @@ const checkBlockStatus = (email: string) => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { policy, getRequiredAuthSteps, getSessionTimeoutMs, isFirstTimeUser } = useSecurityPolicy()
+  const { setSelectedPlan } = useServicePlan()
 
   // UI/UX 기획을 위해 더미 사용자 데이터 설정
   const dummyUser: User = {
@@ -281,6 +283,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentStepIndex: requiredSteps.length
       })
 
+      // ServicePlan 설정
+      setSelectedPlan(memberType === 'individual' ? 'individual' : 'enterprise')
+
       // 세션 저장
       const sessionTimeout = getSessionTimeoutMs()
       const sessionData = {
@@ -355,6 +360,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             attempts: 0,
             currentStepIndex: (prev.requiredSteps?.length || 0)
           }))
+
+          // ServicePlan 설정
+          setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
 
           // 세션 저장
           const sessionTimeout = getSessionTimeoutMs()
@@ -481,6 +489,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           maxAttempts: 5
         })
 
+        // ServicePlan 설정
+        setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
+
         // 세션 저장 (정책 기반 타임아웃)
         const sessionTimeout = getSessionTimeoutMs()
         const sessionData = {
@@ -576,6 +587,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       attempts: 0,
       maxAttempts: 5
     })
+
+    // ServicePlan 설정
+    setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
 
     // 세션 저장
     const sessionTimeout = getSessionTimeoutMs()

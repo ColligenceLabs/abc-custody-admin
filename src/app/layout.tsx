@@ -126,13 +126,13 @@ export default function RootLayout({
             <MetaMaskErrorHandler />
             <LanguageProvider>
               <SecurityPolicyProvider>
-                <AuthProvider>
-                  <CompanyProvider>
-                    <ServicePlanProvider>
+                <ServicePlanProvider>
+                  <AuthProvider>
+                    <CompanyProvider>
                       <SidebarProvider>{children}</SidebarProvider>
-                    </ServicePlanProvider>
-                  </CompanyProvider>
-                </AuthProvider>
+                    </CompanyProvider>
+                  </AuthProvider>
+                </ServicePlanProvider>
               </SecurityPolicyProvider>
             </LanguageProvider>
           </ErrorGuard>

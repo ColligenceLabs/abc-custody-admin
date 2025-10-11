@@ -19,8 +19,10 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { PriorityBadge } from './withdrawal/PriorityBadge'
 import { StatusBadge } from './withdrawal/StatusBadge'
 import { mockWithdrawalRequests } from '@/data/mockWithdrawalData'
+import { mockIndividualWithdrawalRequests } from '@/data/individualWithdrawalMockData'
 import { formatAmount, formatDateTime } from '@/utils/withdrawalHelpers'
 import CryptoIcon from '@/components/ui/CryptoIcon'
+import { IndividualWithdrawalRequest } from '@/types/withdrawal'
 
 interface AssetOverviewProps {
   plan: ServicePlan
@@ -43,6 +45,11 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
 
   // Filter actual withdrawal requests with submitted status (pending approval)
   const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'submitted')
+
+  // Filter individual withdrawal requests with pending or processing status
+  const mockIndividualOngoingWithdrawals = mockIndividualWithdrawalRequests.filter(
+    request => request.status === 'pending' || request.status === 'processing'
+  )
 
   // 시간대별 차트 데이터
   const getChartData = (period: 'hour' | 'day' | 'month') => {
@@ -109,7 +116,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     const now = new Date()
     const date = new Date(timestamp)
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes}분 전`
     } else if (diffInMinutes < 1440) {
@@ -117,6 +124,46 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     } else {
       return `${Math.floor(diffInMinutes / 1440)}일 전`
     }
+  }
+
+  const calculateRemainingTime = (scheduledAt: string) => {
+    const scheduledTime = new Date(scheduledAt)
+    const now = new Date()
+    const diffMs = scheduledTime.getTime() - now.getTime()
+
+    if (diffMs > 0) {
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+
+      if (diffHours >= 24) {
+        return "24시간"
+      } else if (diffHours > 0) {
+        return `${diffHours}시간 ${diffMinutes}분`
+      } else {
+        return `${diffMinutes}분`
+      }
+    }
+    return "처리 대기 중..."
+  }
+
+  const getIndividualProgressStatus = (request: IndividualWithdrawalRequest) => {
+    if (request.status === "pending") {
+      const eta = request.processingScheduledAt
+        ? calculateRemainingTime(request.processingScheduledAt)
+        : "24시간"
+      return `대기 중 (${eta})`
+    } else if (request.status === "processing") {
+      if (request.processingStep === "security_check") {
+        return "보안 검증 중..."
+      } else if (request.processingStep === "blockchain_broadcast") {
+        return "블록체인 전송 중..."
+      } else if (request.processingStep === "confirmation") {
+        const confirmations = request.blockConfirmations || 0
+        return `컨펌 대기 중 (${confirmations}/12)`
+      }
+      return "처리 중..."
+    }
+    return "-"
   }
 
   const getUrgencyColor = (urgency: string) => {
@@ -203,6 +250,111 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
         </div>
 
       </div>
+
+      {/* Individual Ongoing Withdrawals Section - Only show if there are ongoing withdrawals and plan is individual */}
+      {plan === 'individual' && mockIndividualOngoingWithdrawals.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <ClockIcon className="h-5 w-5 text-gray-500 mr-2" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">진행 중인 출금</h3>
+                <p className="text-sm text-gray-600">{mockIndividualOngoingWithdrawals.length}건의 출금이 처리되고 있습니다</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/withdrawal')}
+              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              출금 관리로 이동
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청 ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">출금 내용</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">자산</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기안자</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">진행상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockIndividualOngoingWithdrawals.slice(0, 3).map((request) => (
+                  <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{request.id}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">
+                          {request.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {request.description}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatDateTime(request.initiatedAt)}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <CryptoIcon
+                          symbol={request.currency}
+                          size={32}
+                          className="mr-3 flex-shrink-0"
+                        />
+                        <div className="text-sm">
+                          <p className="font-semibold text-gray-900">
+                            {formatAmount(request.amount, request.currency)}
+                          </p>
+                          <p className="text-gray-500">
+                            {request.currency}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.initiator}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={request.status} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm">
+                        {request.status === "pending" ? (
+                          <div>
+                            <p className="font-medium text-yellow-700">
+                              {getIndividualProgressStatus(request)}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              오출금 방지 기간
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="font-medium text-gray-700">
+                            {getIndividualProgressStatus(request)}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {mockIndividualOngoingWithdrawals.length > 3 && (
+            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+              <span className="text-sm text-gray-600">
+                외 {mockIndividualOngoingWithdrawals.length - 3}건이 더 있습니다
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Withdrawal Approvals Section - Only show if there are pending approvals and plan is enterprise */}
       {plan === 'enterprise' && mockWithdrawalApprovals.length > 0 && (

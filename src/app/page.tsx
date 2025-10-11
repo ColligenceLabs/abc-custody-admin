@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-export type ServicePlan = 'enterprise' | 'premium' | 'free' | null
+export type ServicePlan = 'enterprise' | 'individual' | 'premium' | 'free' | null
 
 export default function HomePage() {
   const router = useRouter()

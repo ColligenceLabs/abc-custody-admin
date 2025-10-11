@@ -190,7 +190,7 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       name: '출금 관리',
       icon: ArrowUpOnSquareIcon,
       path: '/withdrawal',
-      available: plan === 'enterprise'
+      available: plan === 'enterprise' || plan === 'individual'
     },
     {
       id: 'services' as DashboardTab,
