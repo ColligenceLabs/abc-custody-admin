@@ -45,27 +45,33 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
     setMessage(null)
 
     try {
-      // 주민번호에서 생년월일 및 성별 추출
-      // 형식: YYMMDD-G****** (예: 900515-1******)
-      const residentNumber = initialData.residentNumber || ''
-      const parts = residentNumber.split('-')
-      const birthPart = parts[0] || ''
-      const genderPart = parts[1] || ''
+      // 주민번호에서 생년월일 및 성별 추출 (주민번호가 있는 경우만)
+      let birthDate = ''
+      let gender = ''
 
-      const birthYear = birthPart.substring(0, 2)
-      const birthMonth = birthPart.substring(2, 4)
-      const birthDay = birthPart.substring(4, 6)
-      const genderCode = genderPart.substring(0, 1)
+      if (initialData.residentNumber) {
+        const parts = initialData.residentNumber.split('-')
+        const birthPart = parts[0] || ''
+        const genderPart = parts[1] || ''
 
-      // 세기 판단 (1,2: 1900년대, 3,4: 2000년대)
-      const century = ['1', '2'].includes(genderCode) ? '19' : '20'
-      const birthDate = `${century}${birthYear}-${birthMonth}-${birthDay}`
+        const birthYear = birthPart.substring(0, 2)
+        const birthMonth = birthPart.substring(2, 4)
+        const birthDay = birthPart.substring(4, 6)
+        const genderCode = genderPart.substring(0, 1)
 
-      // 성별 판단 (1,3: 남성, 2,4: 여성)
-      const gender = ['1', '3'].includes(genderCode) ? 'male' : 'female'
+        // 세기 판단 (1,2: 1900년대, 3,4: 2000년대)
+        const century = ['1', '2'].includes(genderCode) ? '19' : '20'
+        birthDate = `${century}${birthYear}-${birthMonth}-${birthDay}`
 
-      // 회원가입 데이터 준비 (개인 회원 전용 필드 포함)
-      const newUser = {
+        // 성별 판단 (1,3: 남성, 2,4: 여성)
+        gender = ['1', '3'].includes(genderCode) ? 'male' : 'female'
+      }
+
+      // eKYC 인증 상태 확인
+      const kycSkipped = initialData.kycStatus === 'skipped'
+
+      // 회원가입 데이터 준비 (json-server에 있는 필드만 포함)
+      const newUser: any = {
         name: initialData.name || '신규 사용자',
         email: initialData.email || `${initialData.phone?.replace(/-/g, '')}@temp.com`,
         phone: initialData.phone || '',
@@ -77,30 +83,41 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
         position: '개인 회원',
         hasGASetup: false,
         isFirstLogin: true,
-        // 개인 회원 전용 필드
+        // 개인 회원 전용 필드 (선택적)
         memberType: 'individual' as const,
         individualUserId: `IU${Date.now().toString().slice(-6)}`,
         memberId: `M${Date.now().toString().slice(-6)}`,
-        birthDate: birthDate,
-        gender: gender,
-        residentNumber: initialData.residentNumber || '',
-        identityVerified: true,
-        kycLevel: 'level1' as const,
-        kycVerifiedAt: new Date().toISOString(),
-        walletLimit: {
+      }
+
+      // 주민번호 정보가 있는 경우에만 추가
+      if (birthDate) newUser.birthDate = birthDate
+      if (gender) newUser.gender = gender
+      if (initialData.residentNumber) newUser.residentNumber = initialData.residentNumber
+
+      // KYC 인증 정보 (skip하지 않은 경우에만)
+      if (!kycSkipped) {
+        newUser.identityVerified = true
+        newUser.kycLevel = 'level1'
+        newUser.kycVerifiedAt = new Date().toISOString()
+        newUser.walletLimit = {
           dailyWithdrawal: 10000000,
           monthlyWithdrawal: 50000000,
           singleTransaction: 5000000,
-        },
-        // 계좌 정보
-        bankName: initialData.bankName || '',
-        accountNumber: initialData.accountNumber || '',
-        accountHolder: initialData.accountHolder || initialData.name || '',
-        // 통신사 정보
-        carrier: initialData.carrier || '',
-        // 자금 출처
-        fundSource: fundSource,
-        fundSourceDetail: fundSource === 'other' ? fundSourceDetail : '',
+        }
+      }
+
+      // 계좌 정보 (있는 경우에만)
+      if (initialData.bankName) newUser.bankName = initialData.bankName
+      if (initialData.accountNumber) newUser.accountNumber = initialData.accountNumber
+      if (initialData.accountHolder) newUser.accountHolder = initialData.accountHolder
+
+      // 통신사 정보 (있는 경우에만)
+      if (initialData.carrier) newUser.carrier = initialData.carrier
+
+      // 자금 출처 (필수)
+      newUser.fundSource = fundSource
+      if (fundSource === 'other') {
+        newUser.fundSourceDetail = fundSourceDetail
       }
 
       // API로 사용자 생성

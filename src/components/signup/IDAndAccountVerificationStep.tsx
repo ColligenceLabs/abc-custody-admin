@@ -191,17 +191,24 @@ export default function IDAndAccountVerificationStep({
   }, [currentPhase, idVerified, accountVerified, onComplete]);
 
   const handleMethodSelect = async (method: 'mobile' | 'pc') => {
+    console.log('=== handleMethodSelect 호출 ===');
+    console.log('선택된 방식:', method);
+
     setSelectedMethod(method);
     setMessage(null);
 
     if (method === 'mobile') {
+      console.log('QR 모드로 전환 시작');
       // QR 코드 화면으로 전환
       setCurrentPhase('qr');
       setLoading(true);
+      console.log('currentPhase를 qr로 설정');
     } else if (method === 'pc') {
+      console.log('PC 모드로 전환 시작');
       // 기존 PC 방식으로 전환
       setCurrentPhase('id');
       setLoading(true);
+      console.log('currentPhase를 id로 설정');
     }
   };
 
@@ -241,10 +248,11 @@ export default function IDAndAccountVerificationStep({
         const phoneNumber = (initialData.phone || "").replace(/-/g, "");
 
         // Credential 방식 사용 (iframe에 직접 전달)
+        // customer_id: 12 = Demo 계정 (카메라 촬영 모드 지원)
         const params = {
-          customer_id: 224,
-          id: "8pTkDgU2B9",
-          key: "Z2DrjFtSu81v9$B",
+          customer_id: "12",
+          id: "demoUser",
+          key: "demoUser0000!",
           name: initialData.name || "",
           birthday: birthday,
           phone_number: phoneNumber,
@@ -290,12 +298,32 @@ export default function IDAndAccountVerificationStep({
 
   // QR 코드 iframe 초기화 (모바일 방식)
   useEffect(() => {
-    if (currentPhase !== 'qr' || !iframeRef.current) return;
+    console.log('QR useEffect 실행, currentPhase:', currentPhase, 'iframeRef.current:', iframeRef.current);
 
+    if (currentPhase !== 'qr') {
+      console.log('currentPhase가 qr이 아님, useEffect 종료');
+      return;
+    }
+
+    // iframe이 준비될 때까지 대기하고 초기화
+    if (!iframeRef.current) {
+      console.log('iframe이 아직 준비되지 않음');
+      return;
+    }
+
+    console.log('QR iframe useEffect 시작');
     const iframe = iframeRef.current;
 
+    // 이미 src가 설정되어 있으면 중복 실행 방지
+    if (iframe.src && iframe.src !== 'about:blank' && iframe.src.includes('kyc.useb.co.kr/auth')) {
+      console.log('QR iframe 이미 초기화됨, 중복 실행 방지');
+      return;
+    }
+
     const handleLoad = async () => {
+      console.log('QR iframe onload 이벤트 발생');
       try {
+        // QR 파라미터 생성
         // 주민번호에서 생년월일 추출 (YYYY-MM-DD 형식)
         const residentNumber = initialData.residentNumber || "";
         const parts = residentNumber.split("-");
@@ -307,6 +335,7 @@ export default function IDAndAccountVerificationStep({
         const dd = birthPart.substring(4, 6);
         const genderCode = genderPart.substring(0, 1);
 
+        // 세기 판단 (1,2,9,0: 1900년대 / 3,4,7,8: 2000년대 / 5,6: 1900년대 외국인)
         const century = ["1", "2", "5", "6", "9", "0"].includes(genderCode)
           ? "19"
           : "20";
@@ -315,27 +344,25 @@ export default function IDAndAccountVerificationStep({
         // 전화번호에서 하이픈 제거 (01012345678 형식)
         const phoneNumber = (initialData.phone || "").replace(/-/g, "");
 
-        // QR 파라미터 생성
+        // QR 모드: Demo 샘플과 동일한 credential 사용
+        // customer_id: "5"는 QR 모드 지원
         const qrParams = {
-          customer_id: 224,
-          id: "8pTkDgU2B9",
-          key: "Z2DrjFtSu81v9$B",
+          customer_id: "5",
+          id: "demoUser",
+          key: "demoUser0000!",  // Demo kyc.js 파일에서 확인된 key
           name: initialData.name || "",
           birthday: birthday,
           phone_number: phoneNumber,
           email: initialData.email || "",
-          isWasmOCRMode: "true",
-          isWasmSSAMode: "true",
-          mode: "qr"
         };
 
-        console.log("eKYC QR params:", {
+        console.log("eKYC QR params (필수정보 포함):", {
           customer_id: qrParams.customer_id,
           id: qrParams.id,
           key: "***" + qrParams.key.slice(-3),
           name: qrParams.name,
-          birthday: qrParams.birthday,
-          phone_number: qrParams.phone_number,
+          birthday: birthday.substring(0, 4) + "-**-**",
+          phone_number: phoneNumber ? phoneNumber.substring(0, 3) + "****" + phoneNumber.substring(7) : "",
           email: qrParams.email,
         });
 
@@ -358,8 +385,16 @@ export default function IDAndAccountVerificationStep({
       }
     };
 
+    // onload 핸들러 먼저 등록
     iframe.addEventListener('load', handleLoad);
-    return () => iframe.removeEventListener('load', handleLoad);
+
+    // 그 다음 src 설정 (일반 AUTH URL 사용, QR은 postMessage로 생성)
+    console.log('QR iframe src 설정:', KYC_URL);
+    iframe.src = KYC_URL;
+
+    return () => {
+      iframe.removeEventListener('load', handleLoad);
+    };
   }, [currentPhase, initialData]);
 
   // QR 코드 타임아웃 타이머
@@ -565,20 +600,18 @@ export default function IDAndAccountVerificationStep({
 
         {/* QR 코드 영역 */}
         <div className="flex justify-center mb-6">
-          <div className="p-8 bg-white border-4 border-primary-200 rounded-2xl shadow-lg">
-            {loading ? (
-              <div className="w-64 h-64 flex items-center justify-center">
+          <div className="p-8 bg-white border-4 border-primary-200 rounded-2xl shadow-lg relative">
+            <iframe
+              ref={iframeRef}
+              id="kyc_qr_iframe"
+              className="w-64 h-64"
+              title="eKYC QR 코드"
+              style={{ border: 'none' }}
+            />
+            {loading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90">
                 <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : (
-              <iframe
-                ref={iframeRef}
-                id="kyc_qr_iframe"
-                className="w-64 h-64"
-                src={KYC_QR_URL}
-                title="eKYC QR 코드"
-                style={{ border: 'none' }}
-              />
             )}
           </div>
         </div>
