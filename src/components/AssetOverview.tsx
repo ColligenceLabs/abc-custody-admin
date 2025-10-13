@@ -2,16 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  CurrencyDollarIcon, 
-  EyeIcon, 
+import {
+  CurrencyDollarIcon,
+  EyeIcon,
   EyeSlashIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { ServicePlan } from '@/app/page'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
@@ -210,7 +211,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -245,6 +246,20 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
             </div>
             <div className="p-3 bg-purple-50 rounded-full">
               <ChartBarIcon className="h-6 w-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm font-medium">원화 대출</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {showBalances ? '1,000,000 원' : '***,***,***'}
+              </p>
+            </div>
+            <div className="p-3 bg-orange-50 rounded-full">
+              <BanknotesIcon className="h-6 w-6 text-orange-600" />
             </div>
           </div>
         </div>
