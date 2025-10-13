@@ -194,34 +194,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // memberType에 따라 올바른 mock 데이터에서 사용자 조회
+    // json-server API에서 사용자 조회
     let foundUser: User | undefined
-    if (memberType === 'individual') {
-      const individualUser = getIndividualUserByEmail(email)
-      if (individualUser) {
-        // IndividualUser를 User 타입으로 변환
-        foundUser = {
-          id: individualUser.id,
-          name: individualUser.name,
-          email: individualUser.email,
-          phone: individualUser.phone,
-          role: 'viewer' as const,
-          status: individualUser.status as any,
-          lastLogin: individualUser.lastLogin,
-          permissions: individualUser.permissions || [],
-          department: '개인',
-          position: '개인 회원',
-          hasGASetup: individualUser.hasGASetup,
-          gaSetupDate: individualUser.gaSetupDate,
-          isFirstLogin: individualUser.isFirstLogin,
-          memberType: 'individual'
+    try {
+      const response = await fetch(`http://localhost:3001/users?email=${encodeURIComponent(email)}&memberType=${memberType}`)
+      if (response.ok) {
+        const users: User[] = await response.json()
+        if (users.length > 0) {
+          foundUser = users[0]
         }
       }
-    } else {
-      const organizationUser = getOrganizationUserByEmail(email)
-      if (organizationUser) {
-        // OrganizationUser는 이미 User 타입과 호환됨
-        foundUser = { ...organizationUser, memberType: 'corporate' } as User
+    } catch (error) {
+      console.error('사용자 조회 실패:', error)
+      // API 호출 실패 시 fallback으로 mock 데이터 사용
+      if (memberType === 'individual') {
+        const individualUser = getIndividualUserByEmail(email)
+        if (individualUser) {
+          foundUser = {
+            id: individualUser.id,
+            name: individualUser.name,
+            email: individualUser.email,
+            phone: individualUser.phone,
+            role: 'viewer' as const,
+            status: individualUser.status as any,
+            lastLogin: individualUser.lastLogin,
+            permissions: individualUser.permissions || [],
+            department: '개인',
+            position: '개인 회원',
+            hasGASetup: individualUser.hasGASetup,
+            gaSetupDate: individualUser.gaSetupDate,
+            isFirstLogin: individualUser.isFirstLogin,
+            memberType: 'individual'
+          }
+        }
+      } else {
+        const organizationUser = getOrganizationUserByEmail(email)
+        if (organizationUser) {
+          foundUser = { ...organizationUser, memberType: 'corporate' } as User
+        }
       }
     }
 

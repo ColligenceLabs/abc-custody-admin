@@ -54,25 +54,33 @@ export default function EmailVerificationStep({
     setLoading(true);
     setMessage(null);
 
-    // 시뮬레이션: 이메일 중복 확인 및 인증코드 발송
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // 이메일 중복 확인
+      const { checkEmailDuplicate, sendEmailVerificationCode } = await import('@/lib/api/auth');
+      const isDuplicate = await checkEmailDuplicate(email);
 
-    // 임시: 중복 체크 (실제로는 API 호출)
-    const isDuplicate = email === "test@example.com";
-    if (isDuplicate) {
-      setMessage({ type: "error", text: "이미 사용 중인 이메일 주소입니다." });
+      if (isDuplicate) {
+        setMessage({ type: "error", text: "이미 사용 중인 이메일 주소입니다." });
+        setLoading(false);
+        return;
+      }
+
+      // 인증코드 발송
+      const result = await sendEmailVerificationCode(email);
+
+      if (result.success) {
+        setEmailCodeSent(true);
+        setEmailCooldown(60);
+        setEmailVerificationCode(""); // 재발송 시 입력값 초기화
+        setMessage({ type: "success", text: result.message });
+      } else {
+        setMessage({ type: "error", text: result.message });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "이메일 인증코드 발송에 실패했습니다." });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setEmailCodeSent(true);
-    setEmailCooldown(60);
-    setEmailVerificationCode(""); // 재발송 시 입력값 초기화
-    setLoading(false);
-    setMessage({
-      type: "success",
-      text: "이메일로 인증코드가 발송되었습니다.",
-    });
   };
 
   const handleVerifyEmail = async () => {
@@ -84,36 +92,34 @@ export default function EmailVerificationStep({
     setLoading(true);
     setMessage(null);
 
-    // 시뮬레이션: 이메일 인증코드 검증
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // 이메일 인증코드 검증
+      const { verifyEmailCode } = await import('@/lib/api/auth');
+      const result = await verifyEmailCode(email, emailVerificationCode);
 
-    // 임시 검증 (실제로는 서버에서 처리)
-    const isValid = emailVerificationCode === "123456";
+      if (result.success) {
+        setEmailVerified(true);
+        setMessage({ type: "success", text: result.message });
 
-    if (isValid) {
-      setEmailVerified(true);
-      setMessage({ type: "success", text: "이메일 인증이 완료되었습니다." });
+        // 인증 완료 후 자동으로 다음 단계로 이동
+        setTimeout(() => {
+          onComplete({ email });
+        }, 1000);
+      } else {
+        // 입력 필드 초기화
+        setEmailVerificationCode("");
+        setMessage({ type: "error", text: result.message });
 
-      // 인증 완료 후 자동으로 다음 단계로 이동
-      setTimeout(() => {
-        onComplete({ email });
-      }, 1000);
-    } else {
-      // 입력 필드 초기화
-      setEmailVerificationCode("");
-
-      setMessage({
-        type: "error",
-        text: "인증번호가 올바르지 않습니다.",
-      });
-
-      // 입력 필드에 포커스
-      setTimeout(() => {
-        emailInputRef.current?.focus();
-      }, 100);
+        // 입력 필드에 포커스
+        setTimeout(() => {
+          emailInputRef.current?.focus();
+        }, 100);
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "인증코드 검증에 실패했습니다." });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

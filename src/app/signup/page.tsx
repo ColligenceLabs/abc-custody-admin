@@ -29,8 +29,10 @@ export interface SignupData {
   residentNumber?: string
   carrier?: string
   phone?: string
+  idVerified?: boolean
   idCardImage?: File
   idCardSelfieImage?: File
+  accountVerified?: boolean
   bankName?: string
   accountNumber?: string
   accountHolder?: string

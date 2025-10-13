@@ -89,13 +89,23 @@ export default function PhoneVerificationStep({
     setLoading(true);
     setMessage(null);
 
-    // 시뮬레이션: 실제로는 SMS API 호출
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // SMS 인증코드 발송
+      const { sendPhoneVerificationCode } = await import('@/lib/api/auth');
+      const result = await sendPhoneVerificationCode(phone);
 
-    setCodeSent(true);
-    setCooldown(60);
-    setLoading(false);
-    setMessage({ type: "success", text: "인증번호가 발송되었습니다." });
+      if (result.success) {
+        setCodeSent(true);
+        setCooldown(60);
+        setMessage({ type: "success", text: result.message });
+      } else {
+        setMessage({ type: "error", text: result.message });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "인증번호 발송에 실패했습니다." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerify = async () => {
@@ -107,27 +117,29 @@ export default function PhoneVerificationStep({
     setLoading(true);
     setMessage(null);
 
-    // 시뮬레이션: 실제로는 인증 API 호출
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // 휴대폰 인증코드 검증
+      const { verifyPhoneCode } = await import('@/lib/api/auth');
+      const result = await verifyPhoneCode(phone, verificationCode);
 
-    // 임시 검증 (실제로는 서버에서 처리)
-    const isValid = verificationCode === "123456";
-
-    if (isValid) {
-      setMessage({ type: "success", text: "본인인증이 완료되었습니다." });
-      setTimeout(() => {
-        onComplete({
-          name,
-          residentNumber: `${residentNumber1}-${residentNumber2}******`,
-          carrier,
-          phone,
-        });
-      }, 1000);
-    } else {
-      setMessage({ type: "error", text: "인증번호가 올바르지 않습니다." });
+      if (result.success) {
+        setMessage({ type: "success", text: result.message });
+        setTimeout(() => {
+          onComplete({
+            name,
+            residentNumber: `${residentNumber1}-${residentNumber2}******`,
+            carrier,
+            phone,
+          });
+        }, 1000);
+      } else {
+        setMessage({ type: "error", text: result.message });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "인증번호 검증에 실패했습니다." });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

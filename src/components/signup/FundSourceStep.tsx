@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { DocumentCheckIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { SignupData } from '@/app/signup/page'
+import { createUser } from '@/lib/api/auth'
+import { DEFAULT_PERMISSIONS_BY_ROLE } from '@/types/user'
 
 interface FundSourceStepProps {
   initialData: SignupData
@@ -42,19 +44,83 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
     setLoading(true)
     setMessage(null)
 
-    // 시뮬레이션: 실제로는 자금출처 정보 저장 API 호출
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      // 주민번호에서 생년월일 및 성별 추출
+      // 형식: YYMMDD-G****** (예: 900515-1******)
+      const residentNumber = initialData.residentNumber || ''
+      const parts = residentNumber.split('-')
+      const birthPart = parts[0] || ''
+      const genderPart = parts[1] || ''
 
-    setMessage({ type: 'success', text: '회원가입이 완료되었습니다!' })
+      const birthYear = birthPart.substring(0, 2)
+      const birthMonth = birthPart.substring(2, 4)
+      const birthDay = birthPart.substring(4, 6)
+      const genderCode = genderPart.substring(0, 1)
 
-    setTimeout(() => {
-      onComplete({
-        fundSource,
+      // 세기 판단 (1,2: 1900년대, 3,4: 2000년대)
+      const century = ['1', '2'].includes(genderCode) ? '19' : '20'
+      const birthDate = `${century}${birthYear}-${birthMonth}-${birthDay}`
+
+      // 성별 판단 (1,3: 남성, 2,4: 여성)
+      const gender = ['1', '3'].includes(genderCode) ? 'male' : 'female'
+
+      // 회원가입 데이터 준비 (개인 회원 전용 필드 포함)
+      const newUser = {
+        name: initialData.name || '신규 사용자',
+        email: initialData.email || `${initialData.phone?.replace(/-/g, '')}@temp.com`,
+        phone: initialData.phone || '',
+        role: 'viewer' as const,
+        status: 'active' as const,
+        lastLogin: '',
+        permissions: DEFAULT_PERMISSIONS_BY_ROLE.viewer,
+        department: '개인',
+        position: '개인 회원',
+        hasGASetup: false,
+        isFirstLogin: true,
+        // 개인 회원 전용 필드
+        memberType: 'individual' as const,
+        individualUserId: `IU${Date.now().toString().slice(-6)}`,
+        memberId: `M${Date.now().toString().slice(-6)}`,
+        birthDate: birthDate,
+        gender: gender,
+        residentNumber: initialData.residentNumber || '',
+        identityVerified: true,
+        kycLevel: 'level1' as const,
+        kycVerifiedAt: new Date().toISOString(),
+        walletLimit: {
+          dailyWithdrawal: 10000000,
+          monthlyWithdrawal: 50000000,
+          singleTransaction: 5000000,
+        },
+        // 계좌 정보
+        bankName: initialData.bankName || '',
+        accountNumber: initialData.accountNumber || '',
+        accountHolder: initialData.accountHolder || initialData.name || '',
+        // 통신사 정보
+        carrier: initialData.carrier || '',
+        // 자금 출처
+        fundSource: fundSource,
         fundSourceDetail: fundSource === 'other' ? fundSourceDetail : '',
-      })
-    }, 1000)
+      }
 
-    setLoading(false)
+      // API로 사용자 생성
+      const createdUser = await createUser(newUser)
+      console.log('사용자 생성 완료:', createdUser)
+
+      setMessage({ type: 'success', text: '회원가입이 완료되었습니다!' })
+
+      setTimeout(() => {
+        onComplete({
+          fundSource,
+          fundSourceDetail: fundSource === 'other' ? fundSourceDetail : '',
+        })
+      }, 1000)
+    } catch (error) {
+      console.error('회원가입 실패:', error)
+      setMessage({ type: 'error', text: '회원가입에 실패했습니다. 다시 시도해주세요.' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
