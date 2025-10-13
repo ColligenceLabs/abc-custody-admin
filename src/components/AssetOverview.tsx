@@ -625,7 +625,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">{t('overview.holdings')}</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-b-xl overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>

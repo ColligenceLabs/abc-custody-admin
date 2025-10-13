@@ -29,6 +29,9 @@ import {
   MOCK_AVAILABLE_COLLATERAL,
   MOCK_ACTIVE_BANK_LOANS,
 } from "@/data/mockLendingData";
+import NewStakingModal from "./staking/NewStakingModal";
+import { StakingFormData } from "./staking/types";
+import { MOCK_STAKING_ASSETS } from "@/data/mockStakingData";
 
 interface AdditionalServicesProps {
   plan: ServicePlan;
@@ -92,6 +95,7 @@ export default function AdditionalServices({
   const [repaymentModalOpen, setRepaymentModalOpen] = useState(false);
   const [collateralModalOpen, setCollateralModalOpen] = useState(false);
   const [loanApplicationModalOpen, setLoanApplicationModalOpen] = useState(false);
+  const [stakingModalOpen, setStakingModalOpen] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<BankLoan | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<BankLoanProduct | null>(null);
 
@@ -145,6 +149,7 @@ export default function AdditionalServices({
     setRepaymentModalOpen(false);
     setCollateralModalOpen(false);
     setLoanApplicationModalOpen(false);
+    setStakingModalOpen(false);
     setSelectedLoan(null);
     setSelectedProduct(null);
   };
@@ -154,6 +159,15 @@ export default function AdditionalServices({
     console.log("대출 신청 완료:", product);
     // 실제 대출 신청 API 호출
     alert(`${product.productName} 신청이 완료되었습니다. 심사 결과는 1-2일 내에 안내해드립니다.`);
+  };
+
+  // 스테이킹 신청 핸들러
+  const handleStakingSubmit = (data: StakingFormData) => {
+    console.log("스테이킹 신청:", data);
+    // 실제 스테이킹 API 호출
+    alert(
+      `${data.stakingAmount} ${data.selectedAsset?.symbol} 스테이킹이 신청되었습니다. 처리까지 5-10분 소요됩니다.`
+    );
   };
 
   const stakingPositions: StakingPosition[] = [
@@ -331,7 +345,10 @@ export default function AdditionalServices({
           <h2 className="text-2xl font-bold text-gray-900">스테이킹 서비스</h2>
           <p className="text-gray-600">자산을 스테이킹하여 보상을 받아보세요</p>
         </div>
-        <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+        <button
+          onClick={() => setStakingModalOpen(true)}
+          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
           <PlusIcon className="h-5 w-5 mr-2" />새 스테이킹
         </button>
       </div>
@@ -377,12 +394,12 @@ export default function AdditionalServices({
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
             스테이킹 포지션
           </h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-b-xl overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -439,7 +456,7 @@ export default function AdditionalServices({
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
                     {position.validator}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-green-600 font-semibold">
+                  <td className="px-6 py-4 whitespace-nowrap text-sky-600 font-semibold">
                     {position.apy}%
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
@@ -449,7 +466,7 @@ export default function AdditionalServices({
                     <span
                       className={`px-3 py-1 text-xs font-semibold rounded-full ${
                         position.status === "active"
-                          ? "text-green-600 bg-green-50"
+                          ? "text-sky-600 bg-sky-50"
                           : "text-yellow-600 bg-yellow-50"
                       }`}
                     >
@@ -1438,6 +1455,14 @@ export default function AdditionalServices({
         product={selectedProduct}
         availableCollateral={availableCollateral}
         onSubmit={handleLoanApplicationSubmit}
+      />
+
+      {/* 스테이킹 모달 */}
+      <NewStakingModal
+        isOpen={stakingModalOpen}
+        onClose={() => setStakingModalOpen(false)}
+        onSubmit={handleStakingSubmit}
+        availableAssets={MOCK_STAKING_ASSETS}
       />
     </div>
   );
