@@ -20,6 +20,7 @@ import DepositProgressCard from "./deposit/DepositProgressCard";
 import DepositHistoryTable from "./deposit/DepositHistoryTable";
 import DepositStatistics from "./deposit/DepositStatistics";
 import { Modal } from "@/components/common/Modal";
+import CryptoIcon from "@/components/ui/CryptoIcon";
 
 interface DepositManagementProps {
   plan: ServicePlan;
@@ -30,7 +31,7 @@ interface Asset {
   symbol: string;
   name: string;
   network: string;
-  icon: string;
+  icon?: string; // CryptoIcon 컴포넌트 사용으로 optional
   depositAddress: string;
   qrCode: string;
   isActive: boolean;
@@ -77,7 +78,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       symbol: "BTC",
       name: "Bitcoin",
       network: "Bitcoin",
-      icon: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/btc.png",
       depositAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
       qrCode: "",
       isActive: true,
@@ -87,7 +87,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       symbol: "ETH",
       name: "Ethereum",
       network: "Ethereum",
-      icon: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/eth.png",
       depositAddress: "0x742d35cc6ad4cfc7cc5a0e0e68b4b55a2c7e9f3a",
       qrCode: "",
       isActive: true,
@@ -97,7 +96,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       symbol: "SOL",
       name: "Solana",
       network: "Solana",
-      icon: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/sol.png",
       depositAddress: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
       qrCode: "",
       isActive: true,
@@ -107,7 +105,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       symbol: "USDT",
       name: "Tether",
       network: "Ethereum (ERC-20)",
-      icon: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/usdt.png",
       depositAddress: "0x8ba1f109551bd432803012645hac136c6ad4cfc7",
       qrCode: "",
       isActive: true,
@@ -117,7 +114,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       symbol: "USDC",
       name: "USD Coin",
       network: "Ethereum (ERC-20)",
-      icon: "https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/usdc.png",
       depositAddress: "0x742d35cc6ad4cfc7cc5a0e0e68b4b55a2c7e9f3a",
       qrCode: "",
       isActive: true,
@@ -599,22 +595,10 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
-                          src={asset.icon}
-                          alt={asset.symbol}
-                          className="w-10 h-10 rounded-full mr-3"
-                          onError={(e) => {
-                            (
-                              e.target as HTMLImageElement
-                            ).src = `data:image/svg+xml;base64,${btoa(`
-                              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-                                <circle cx="20" cy="20" r="20" fill="#f3f4f6"/>
-                                <text x="20" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#6b7280">
-                                  ${asset.symbol}
-                                </text>
-                              </svg>
-                            `)}`;
-                          }}
+                        <CryptoIcon
+                          symbol={asset.symbol}
+                          size={40}
+                          className="mr-3"
                         />
                         <div>
                           <div className="text-sm font-semibold text-gray-900">
@@ -797,23 +781,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                           </svg>
                         </div>
                       ) : (
-                        <img
-                          src={`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/${asset.symbol.toLowerCase()}.png`}
-                          alt={asset.symbol}
-                          className="w-8 h-8 rounded-full"
-                          onError={(e) => {
-                            (
-                              e.target as HTMLImageElement
-                            ).src = `data:image/svg+xml;base64,${btoa(`
-                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                                  <circle cx="16" cy="16" r="16" fill="#f3f4f6"/>
-                                  <text x="16" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#6b7280">
-                                    ${asset.symbol}
-                                  </text>
-                                </svg>
-                              `)}`;
-                          }}
-                        />
+                        <CryptoIcon symbol={asset.symbol} size={32} />
                       )}
                       <div
                         className={`text-center transition-all duration-300 ${
