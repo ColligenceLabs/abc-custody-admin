@@ -11,25 +11,18 @@ import {
 import { ServicePlan } from "@/app/page";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { StatusBadge } from "./withdrawal/StatusBadge";
+import { WithdrawalStatus } from "@/types/withdrawal";
+import { getTransactionStatusInfo } from "@/utils/withdrawalHelpers";
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+  mockTransactions,
+} from "@/data/transactionHistoryMockData";
 
 interface TransactionHistoryProps {
   plan: ServicePlan;
-}
-
-type TransactionType = "deposit" | "withdrawal" | "swap" | "borrow" | "staking";
-type TransactionStatus = "completed" | "pending" | "failed";
-
-interface Transaction {
-  id: string;
-  type: TransactionType;
-  asset: string;
-  amount: string;
-  value: number;
-  status: TransactionStatus;
-  timestamp: string;
-  txHash?: string;
-  from?: string;
-  to?: string;
 }
 
 export default function TransactionHistory({ plan }: TransactionHistoryProps) {
@@ -45,66 +38,6 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
   const [itemsPerPage] = useState(10);
   const { t, language } = useLanguage();
 
-  const mockTransactions: Transaction[] = [
-    {
-      id: "1",
-      type: "deposit",
-      asset: "BTC",
-      amount: "0.5",
-      value: 25000000,
-      status: "completed",
-      timestamp: "2025-08-30T10:30:00Z",
-      txHash: "0x1234...5678",
-      from: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-    },
-    {
-      id: "2",
-      type: "withdrawal",
-      asset: "ETH",
-      amount: "2.5",
-      value: 5000000,
-      status: "pending",
-      timestamp: "2025-08-29T09:15:00Z",
-      to: "0x742d35...45454",
-    },
-    {
-      id: "3",
-      type: "swap",
-      asset: "USDC → BTC",
-      amount: "10000 → 0.09",
-      value: 10000000,
-      status: "completed",
-      timestamp: "2025-08-28T16:45:00Z",
-      txHash: "0xabcd5678...ef901234",
-      from: "0x742d35cc6ad4cfc7cc5a0e0e68b4b55a2c7e9f3a",
-      to: "0x8ba1f109551bd432803012645hac136c6ad4cfc7",
-    },
-    {
-      id: "4",
-      type: "borrow",
-      asset: "KRW",
-      amount: "5000",
-      value: 5000000,
-      status: "completed",
-      timestamp: "2025-08-28T14:20:00Z",
-      txHash: "0xdef9abcd...12345678",
-      from: "0x1234567890abcdef1234567890abcdef12345678",
-      to: "0x9876543210fedcba9876543210fedcba98765432",
-    },
-    {
-      id: "5",
-      type: "staking",
-      asset: "ETH",
-      amount: "10",
-      value: 20000000,
-      status: "completed",
-      timestamp: "2025-08-27T11:10:00Z",
-      txHash: "0x9876fedc...ba098765",
-      from: "0xabcdef1234567890abcdef1234567890abcdef12",
-      to: "0x567890abcdef1234567890abcdef1234567890ab",
-    },
-  ];
-
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
       case "deposit":
@@ -113,8 +46,6 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
         return <ArrowUpIcon className="h-5 w-5 text-red-600" />;
       case "swap":
         return <div className="h-5 w-5 bg-blue-600 rounded-full" />;
-      case "borrow":
-        return <div className="h-5 w-5 bg-purple-600 rounded-full" />;
       case "staking":
         return <div className="h-5 w-5 bg-yellow-600 rounded-full" />;
     }
@@ -125,30 +56,21 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
       deposit: "입금",
       withdrawal: "출금",
       swap: "교환",
-      borrow: "차입",
       staking: "스테이킹",
     };
     return typeNames[type] || type;
   };
 
-  const getStatusColor = (status: TransactionStatus) => {
-    switch (status) {
-      case "completed":
-        return "bg-sky-50 text-sky-600";
-      case "pending":
-        return "bg-yellow-50 text-yellow-600";
-      case "failed":
-        return "bg-red-50 text-red-600";
-    }
-  };
-
-  const getStatusName = (status: TransactionStatus) => {
-    const statusNames = {
-      completed: "완료",
-      pending: "대기중",
-      failed: "실패",
+  // TransactionStatus를 WithdrawalStatus로 매핑
+  const mapTransactionStatusToWithdrawalStatus = (
+    status: TransactionStatus
+  ): WithdrawalStatus => {
+    const statusMap: Record<TransactionStatus, WithdrawalStatus> = {
+      completed: "completed",
+      pending: "pending",
+      failed: "rejected",
     };
-    return statusNames[status] || status;
+    return statusMap[status];
   };
 
   const formatCurrency = (value: number) => {
@@ -237,7 +159,6 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
               <option value="deposit">입금</option>
               <option value="withdrawal">출금</option>
               <option value="swap">교환</option>
-              <option value="borrow">차입</option>
               <option value="staking">스테이킹</option>
             </select>
 
@@ -342,13 +263,11 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                        tx.status
-                      )}`}
-                    >
-                      {getStatusName(tx.status)}
-                    </span>
+                    <StatusBadge
+                      status={mapTransactionStatusToWithdrawalStatus(tx.status)}
+                      text={getTransactionStatusInfo(tx.status).name}
+                      hideIcon={true}
+                    />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(tx.timestamp)}
@@ -464,15 +383,15 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
                       </div> */}
                       <div>
                         <div className="flex items-center space-x-2">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                          <StatusBadge
+                            status={mapTransactionStatusToWithdrawalStatus(
                               transaction.status
-                            )}`}
-                          >
-                            {getStatusName(transaction.status)}
-                          </span>
+                            )}
+                            text={getTransactionStatusInfo(transaction.status).name}
+                            hideIcon={true}
+                          />
                         </div>
-                        <h4 className="text-lg font-semibold text-gray-900">
+                        <h4 className="text-lg font-semibold text-gray-900 mt-2">
                           {getTransactionTypeName(transaction.type)} 상세 정보
                         </h4>
                       </div>

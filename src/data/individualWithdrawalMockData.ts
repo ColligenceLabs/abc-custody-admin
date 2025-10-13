@@ -152,7 +152,7 @@ export const mockIndividualWithdrawalRequests: IndividualWithdrawalRequest[] = [
     description: "업비트 거래소 비트코인 입금",
     queuePosition: 1,
     waitingPeriodHours: 24,
-    processingScheduledAt: "2025-10-12T16:20:00Z",
+    processingScheduledAt: "2025-10-14T16:20:00Z",
     cancellable: true,
   },
   {

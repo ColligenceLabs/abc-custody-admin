@@ -9,57 +9,58 @@ import {
   ArchiveBoxIcon,
   StopIcon,
 } from "@heroicons/react/24/outline";
+import { badgeColors } from "./badgeColors";
 
 export const getStatusInfo = (status: WithdrawalStatus) => {
   const statusConfig = {
     draft: {
       name: "임시저장",
-      color: "bg-gray-50 text-gray-600 border-gray-200",
+      color: badgeColors.neutral,
       icon: DocumentTextIcon,
     },
     submitted: {
       name: "결재 승인 대기",
-      color: "bg-blue-50 text-blue-600 border-blue-200",
+      color: badgeColors.high,
       icon: ClockIcon,
     },
     approved: {
       name: "결재 승인",
-      color: "bg-sky-50 text-sky-600 border-sky-200",
+      color: badgeColors.positive,
       icon: CheckCircleIcon,
     },
     pending: {
       name: "출금 대기",
-      color: "bg-yellow-50 text-yellow-600 border-yellow-200",
+      color: badgeColors.warning,
       icon: ClockIcon,
     },
     processing: {
       name: "보안 검증",
-      color: "bg-purple-50 text-purple-600 border-purple-200",
+      color: badgeColors.medium,
       icon: CpuChipIcon,
     },
     completed: {
       name: "전송 완료",
-      color: "bg-sky-50 text-sky-600 border-sky-200",
+      color: badgeColors.positive,
       icon: CheckCircleIcon,
     },
     rejected: {
       name: "반려",
-      color: "bg-red-50 text-red-600 border-red-200",
+      color: badgeColors.danger,
       icon: XCircleIcon,
     },
     archived: {
       name: "처리 완료",
-      color: "bg-gray-50 text-gray-600 border-gray-200",
+      color: badgeColors.neutral,
       icon: ArchiveBoxIcon,
     },
     cancelled: {
       name: "취소",
-      color: "bg-gray-50 text-gray-600 border-gray-200",
+      color: badgeColors.neutral,
       icon: XCircleIcon,
     },
     stopped: {
       name: "출금 정지",
-      color: "bg-red-50 text-red-600 border-red-200",
+      color: badgeColors.danger,
       icon: StopIcon,
     },
   };
@@ -68,10 +69,10 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
 
 export const getPriorityInfo = (priority: string) => {
   const priorityConfig = {
-    low: { name: "낮음", color: "bg-gray-50 text-gray-600" },
-    medium: { name: "보통", color: "bg-purple-50 text-purple-600" },
-    high: { name: "높음", color: "bg-blue-50 text-blue-600" },
-    critical: { name: "긴급", color: "bg-red-50 text-red-600" },
+    low: { name: "낮음", color: badgeColors.neutral },
+    medium: { name: "보통", color: badgeColors.medium },
+    high: { name: "높음", color: badgeColors.high },
+    critical: { name: "긴급", color: badgeColors.highest },
   };
   return (
     priorityConfig[priority as keyof typeof priorityConfig] ||
@@ -103,4 +104,28 @@ export const formatDate = (timestamp: string) => {
     month: "short",
     day: "numeric",
   }).format(new Date(timestamp));
+};
+
+// Transaction 페이지 전용 상태 정보 (색상은 Withdrawal과 동일, 텍스트만 다름)
+type TransactionStatus = "completed" | "pending" | "failed";
+
+export const getTransactionStatusInfo = (status: TransactionStatus) => {
+  const transactionStatusConfig = {
+    completed: {
+      name: "완료",
+      color: badgeColors.positive,
+      icon: CheckCircleIcon,
+    },
+    pending: {
+      name: "대기중",
+      color: badgeColors.warning,
+      icon: ClockIcon,
+    },
+    failed: {
+      name: "실패",
+      color: badgeColors.danger,
+      icon: XCircleIcon,
+    },
+  };
+  return transactionStatusConfig[status] || transactionStatusConfig.pending;
 };
