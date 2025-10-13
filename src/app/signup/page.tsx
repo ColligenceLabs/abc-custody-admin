@@ -11,16 +11,16 @@ import {
   DocumentTextIcon,
   CreditCardIcon,
   BanknotesIcon,
-  DocumentCheckIcon
+  DocumentCheckIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import MemberTypeSelection from '@/components/signup/MemberTypeSelection'
 import EmailVerificationStep from '@/components/signup/EmailVerificationStep'
 import PhoneVerificationStep from '@/components/signup/PhoneVerificationStep'
-import IDVerificationStep from '@/components/signup/IDVerificationStep'
-import BankAccountStep from '@/components/signup/BankAccountStep'
+import IDAndAccountVerificationStep from '@/components/signup/IDAndAccountVerificationStep'
 import FundSourceStep from '@/components/signup/FundSourceStep'
 
-export type SignupStep = 'type' | 'email' | 'phone' | 'id' | 'bank' | 'fund' | 'completed'
+export type SignupStep = 'type' | 'email' | 'phone' | 'kyc' | 'fund' | 'completed'
 
 export interface SignupData {
   memberType?: 'individual' | 'corporate'
@@ -29,6 +29,8 @@ export interface SignupData {
   residentNumber?: string
   carrier?: string
   phone?: string
+  kycStatus?: 'pending' | 'verified' | 'skipped'
+  kycMethod?: 'mobile' | 'pc'
   idVerified?: boolean
   idCardImage?: File
   idCardSelfieImage?: File
@@ -49,8 +51,7 @@ export default function SignupPage() {
     { key: 'type' as SignupStep, label: '회원 유형', icon: UserGroupIcon },
     { key: 'email' as SignupStep, label: '이메일 인증', icon: EnvelopeIcon },
     { key: 'phone' as SignupStep, label: '본인인증', icon: DocumentTextIcon },
-    { key: 'id' as SignupStep, label: '신분증 인증', icon: CreditCardIcon },
-    { key: 'bank' as SignupStep, label: '계좌 인증', icon: BanknotesIcon },
+    { key: 'kyc' as SignupStep, label: 'eKYC 인증', icon: CreditCardIcon },
     { key: 'fund' as SignupStep, label: '자금출처', icon: DocumentCheckIcon },
   ]
 
@@ -61,7 +62,7 @@ export default function SignupPage() {
   const handleStepComplete = (step: SignupStep, data: Partial<SignupData>) => {
     setSignupData(prev => ({ ...prev, ...data }))
 
-    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'id', 'bank', 'fund', 'completed']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'kyc', 'fund', 'completed']
     const currentIndex = stepOrder.indexOf(step)
     const nextStep = stepOrder[currentIndex + 1]
 
@@ -71,7 +72,7 @@ export default function SignupPage() {
   }
 
   const handleBack = () => {
-    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'id', 'bank', 'fund']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'kyc', 'fund']
     const currentIndex = stepOrder.indexOf(currentStep)
 
     if (currentIndex > 0) {
@@ -165,18 +166,10 @@ export default function SignupPage() {
           />
         )}
 
-        {currentStep === 'id' && (
-          <IDVerificationStep
+        {currentStep === 'kyc' && (
+          <IDAndAccountVerificationStep
             initialData={signupData}
-            onComplete={(data) => handleStepComplete('id', data)}
-            onBack={handleBack}
-          />
-        )}
-
-        {currentStep === 'bank' && (
-          <BankAccountStep
-            initialData={signupData}
-            onComplete={(data) => handleStepComplete('bank', data)}
+            onComplete={(data) => handleStepComplete('kyc', data)}
             onBack={handleBack}
           />
         )}
@@ -192,13 +185,36 @@ export default function SignupPage() {
         {currentStep === 'completed' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
             <div className="mx-auto w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircleIcon className="w-10 h-10 text-primary-600" />
+              {signupData.kycStatus === 'skipped' ? (
+                <ExclamationTriangleIcon className="w-10 h-10 text-yellow-600" />
+              ) : (
+                <CheckCircleIcon className="w-10 h-10 text-primary-600" />
+              )}
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">회원가입 완료</h2>
-            <p className="text-gray-600 mb-6">
-              가상자산 커스터디 서비스 회원가입이 완료되었습니다.<br />
-              로그인하여 서비스를 이용해주세요.
-            </p>
+
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+              회원가입 완료
+            </h2>
+
+            {signupData.kycStatus === 'skipped' ? (
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  가상자산 커스터디 서비스 회원가입이 완료되었습니다.
+                </p>
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    eKYC 인증이 완료되지 않았습니다.<br />
+                    로그인 후 인증을 완료하시면 모든 서비스를 이용하실 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                가상자산 커스터디 서비스 회원가입이 완료되었습니다.<br />
+                로그인하여 서비스를 이용해주세요.
+              </p>
+            )}
+
             <button
               onClick={() => router.push('/login')}
               className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
