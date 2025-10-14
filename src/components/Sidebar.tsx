@@ -183,7 +183,7 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       name: '입금 관리',
       icon: ArrowDownOnSquareIcon,
       path: '/deposit',
-      available: plan === 'enterprise'
+      available: plan === 'enterprise' || plan === 'individual'
     },
     {
       id: 'withdrawal' as DashboardTab,
