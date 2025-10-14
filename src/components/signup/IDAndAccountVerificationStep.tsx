@@ -302,10 +302,9 @@ export default function IDAndAccountVerificationStep({
           birthday: birthday,
           phone_number: phoneNumber,
           email: initialData.email || "",
-          // Wasm OCR 강제 사용 (Server OCR 사용 안 함)
-          isWasmOCRMode: "true",
-          // 선택사항: 사본 탐지 활성화 (Wasm OCR 사용 시만 동작)
-          isWasmSSAMode: "true",
+          // Server OCR 사용 (기본값)
+          // isWasmOCRMode 파라미터를 전달하지 않으면 Server OCR이 사용됨
+          // 참고: Wasm OCR 사용 시 postMessage 응답 패턴이 다를 수 있음
         };
 
         console.log("eKYC params (통합 인증):", {
