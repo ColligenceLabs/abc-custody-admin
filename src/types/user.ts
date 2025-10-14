@@ -34,6 +34,8 @@ export interface User {
   gaSetupDate?: string;         // GA 설정 완료 일시
   isFirstLogin: boolean;        // 최초 로그인 여부
   memberType?: 'individual' | 'corporate';  // 회원 유형
+  totpSecret?: string;          // TOTP secret key (base32) - 서버에 저장
+  // 주의: 백업 코드는 보안상 서버에 저장하지 않음 (사용자만 보관)
 }
 
 // 5개 권한 카테고리별 권한 정의

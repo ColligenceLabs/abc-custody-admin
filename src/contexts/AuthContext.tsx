@@ -33,7 +33,7 @@ interface AuthContextType {
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   verifySms: (code: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   sendSms: () => Promise<{ success: boolean; message?: string }>
-  completeGASetup: () => void
+  completeGASetup: (secretKey: string) => Promise<void>
   logout: () => void
   resetAuth: () => void
 }
@@ -353,7 +353,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const isValid = await verifyOTP(otp, 'login-session')
+      // Google Authenticator TOTP 검증
+      let isValid = false
+
+      if (authStep.user.totpSecret) {
+        // 저장된 TOTP secret으로 검증
+        try {
+          const OTPAuth = await import('otpauth')
+          const secret = OTPAuth.Secret.fromBase32(authStep.user.totpSecret)
+          const totp = new OTPAuth.TOTP({
+            issuer: 'CustodyDashboard',
+            label: authStep.user.email,
+            algorithm: 'SHA1',
+            digits: 6,
+            period: 30,
+            secret: secret
+          })
+
+          // TOTP 검증 (±2 윈도우 = ±60초)
+          const delta = totp.validate({
+            token: otp,
+            window: 2
+          })
+
+          isValid = delta !== null
+        } catch (error) {
+          console.error('TOTP 검증 오류:', error)
+          isValid = false
+        }
+      } else {
+        // TOTP secret이 없는 경우 (GA 설정 전) - 기존 mockup 사용
+        isValid = await verifyOTP(otp, 'login-session')
+      }
 
       if (isValid) {
         // 다음 단계 결정
@@ -577,15 +608,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const completeGASetup = () => {
+  const completeGASetup = async (secretKey: string) => {
     if (!authStep.user) return
 
-    // 사용자 GA 설정 상태 업데이트 (실제로는 서버 API 호출)
+    console.log('completeGASetup 호출됨:', {
+      userId: authStep.user.id,
+      email: authStep.user.email,
+      secretKey: secretKey.substring(0, 10) + '...'
+    })
+
+    // 사용자 GA 설정 상태 업데이트 (백업 코드는 저장하지 않음 - 보안상 사용자만 보관)
     const updatedUser = {
       ...authStep.user,
       hasGASetup: true,
       gaSetupDate: new Date().toISOString(),
-      isFirstLogin: false
+      isFirstLogin: false,
+      totpSecret: secretKey
+    }
+
+    // JSON 서버에 사용자 정보 업데이트
+    try {
+      const updateData = {
+        hasGASetup: true,
+        gaSetupDate: updatedUser.gaSetupDate,
+        isFirstLogin: false,
+        totpSecret: secretKey
+      }
+
+      console.log('PATCH 요청 데이터:', {
+        url: `http://localhost:3001/users/${authStep.user.id}`,
+        data: {
+          ...updateData,
+          totpSecret: updateData.totpSecret.substring(0, 10) + '...'
+        }
+      })
+
+      const response = await fetch(`http://localhost:3001/users/${authStep.user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      })
+
+      if (!response.ok) {
+        console.error('GA 설정 상태 저장 실패:', response.status, response.statusText)
+      } else {
+        console.log('GA 설정 상태 저장 성공')
+      }
+    } catch (error) {
+      console.error('GA 설정 상태 저장 오류:', error)
     }
 
     // 로그인 완료 처리

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   QrCodeIcon,
   CheckCircleIcon,
@@ -10,6 +10,8 @@ import {
   XMarkIcon,
   KeyIcon
 } from '@heroicons/react/24/outline'
+import { QRCodeSVG } from 'qrcode.react'
+import * as OTPAuth from 'otpauth'
 import { Modal } from '@/components/common/Modal'
 
 interface AuthenticatorManagementProps {
@@ -30,24 +32,50 @@ export default function AuthenticatorManagement({
   const [isEnabled, setIsEnabled] = useState(initialEnabled)
   const [showSetupModal, setShowSetupModal] = useState(false)
   const [verificationCode, setVerificationCode] = useState('')
-  const [backupCodes, setBackupCodes] = useState<string[]>([
-    'ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345',
-    'PQR678', 'STU901', 'VWX234', 'YZA567', 'BCD890'
-  ])
+  const [backupCodes, setBackupCodes] = useState<string[]>([])
   const [showBackupCodes, setShowBackupCodes] = useState(false)
   const [backupCodesGeneratedAt, setBackupCodesGeneratedAt] = useState<string>('2025-01-15 14:30:00')
   const [isGeneratingCodes, setIsGeneratingCodes] = useState(false)
   const [isNewlyGenerated, setIsNewlyGenerated] = useState(false)
+  const [totp, setTotp] = useState<OTPAuth.TOTP | null>(null)
+  const [secretKey, setSecretKey] = useState('')
 
-  // QR 코드용 시크릿 키 (실제로는 서버에서 생성)
-  const secretKey = 'JBSWY3DPEHPK3PXP'
-  const qrCodeUrl = `otpauth://totp/CustodyDashboard:user@example.com?secret=${secretKey}&issuer=CustodyDashboard`
+  // 설정 모달 열릴 때 시크릿 키 생성
+  useEffect(() => {
+    if (showSetupModal && !totp) {
+      const secret = new OTPAuth.Secret({ size: 20 })
+      const newTotp = new OTPAuth.TOTP({
+        issuer: 'CustodyDashboard',
+        label: 'user@example.com',
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: secret
+      })
+      setTotp(newTotp)
+      setSecretKey(secret.base32)
+    }
+  }, [showSetupModal, totp])
+
+  const qrCodeUrl = totp?.toString() || ''
 
   const generateBackupCodes = () => {
-    const codes = []
+    const codes: string[] = []
+    // 10개의 백업 코드 생성 (각 8자리, 4-4 형식)
     for (let i = 0; i < 10; i++) {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-      codes.push(code)
+      // 암호학적으로 안전한 랜덤 생성
+      const array = new Uint8Array(4)
+      crypto.getRandomValues(array)
+
+      // 16진수로 변환하여 8자리 코드 생성
+      const hex = Array.from(array)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()
+
+      // 4-4 형식으로 포맷팅 (예: ABCD-EFGH)
+      const formatted = `${hex.substring(0, 4)}-${hex.substring(4, 8)}`
+      codes.push(formatted)
     }
     return codes
   }
@@ -62,17 +90,36 @@ export default function AuthenticatorManagement({
       return
     }
 
-    // 실제로는 서버에서 검증
-    if (verificationCode === '123456') {
-      setIsEnabled(true)
-      onStatusChange(true)
-      setShowSetupModal(false)
-      const codes = generateBackupCodes()
-      setBackupCodes(codes)
-      setShowBackupCodes(true)
-      setVerificationCode('')
-    } else {
-      alert('인증번호가 올바르지 않습니다.')
+    if (!totp) {
+      alert('TOTP 인스턴스가 생성되지 않았습니다. 모달을 닫고 다시 열어주세요.')
+      return
+    }
+
+    try {
+      // TOTP 검증 (±2 윈도우 = ±60초)
+      const delta = totp.validate({
+        token: verificationCode,
+        window: 2
+      })
+
+      console.log('TOTP 검증 결과:', delta, '시크릿 키:', secretKey, '입력 코드:', verificationCode)
+      console.log('현재 생성되는 코드:', totp.generate())
+
+      // delta가 null이 아니면 유효한 토큰
+      if (delta !== null) {
+        setIsEnabled(true)
+        onStatusChange(true)
+        setShowSetupModal(false)
+        const codes = generateBackupCodes()
+        setBackupCodes(codes)
+        setShowBackupCodes(true)
+        setVerificationCode('')
+      } else {
+        alert('인증번호가 올바르지 않습니다.')
+      }
+    } catch (error) {
+      console.error('TOTP 검증 오류:', error)
+      alert('인증번호 검증 중 오류가 발생했습니다.')
     }
   }
 
@@ -195,11 +242,16 @@ export default function AuthenticatorManagement({
           <div className="space-y-4">
             <div className="text-center">
               <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(qrCodeUrl)}`}
-                  alt="QR Code"
-                  className="w-44 h-44"
-                />
+                {secretKey ? (
+                  <QRCodeSVG
+                    value={qrCodeUrl}
+                    size={176}
+                    level="M"
+                    includeMargin={true}
+                  />
+                ) : (
+                  <div className="text-sm text-gray-500">QR 코드 생성 중...</div>
+                )}
               </div>
               <p className="text-sm text-gray-600 mb-2">
                 Google Authenticator 앱으로 위 QR 코드를 스캔하세요

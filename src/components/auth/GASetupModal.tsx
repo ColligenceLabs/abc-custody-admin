@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   QrCodeIcon,
   CheckCircleIcon,
@@ -10,6 +10,8 @@ import {
   KeyIcon,
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
+import { QRCodeSVG } from 'qrcode.react'
+import * as OTPAuth from 'otpauth'
 import { Modal } from '@/components/common/Modal'
 
 interface GASetupModalProps {
@@ -18,7 +20,7 @@ interface GASetupModalProps {
     name: string
     email: string
   }
-  onComplete: () => void
+  onComplete: (secretKey: string) => void
 }
 
 export default function GASetupModal({
@@ -30,16 +32,52 @@ export default function GASetupModal({
   const [verificationCode, setVerificationCode] = useState('')
   const [backupCodes, setBackupCodes] = useState<string[]>([])
   const [isVerifying, setIsVerifying] = useState(false)
+  const [totp, setTotp] = useState<OTPAuth.TOTP | null>(null)
+  const [secretKey, setSecretKey] = useState('')
 
-  // QR 코드용 시크릿 키 (실제로는 서버에서 생성)
-  const secretKey = 'JBSWY3DPEHPK3PXP'
-  const qrCodeUrl = `otpauth://totp/CustodyDashboard:${user.email}?secret=${secretKey}&issuer=CustodyDashboard`
+  // 모달이 열릴 때마다 state 초기화 및 시크릿 키 생성
+  useEffect(() => {
+    if (isOpen) {
+      // State 초기화
+      setCurrentStep('setup')
+      setVerificationCode('')
+      setBackupCodes([])
+      setIsVerifying(false)
+
+      // 새로운 TOTP 인스턴스 생성
+      const secret = new OTPAuth.Secret({ size: 20 })
+      const newTotp = new OTPAuth.TOTP({
+        issuer: 'CustodyDashboard',
+        label: user.email,
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: secret
+      })
+      setTotp(newTotp)
+      setSecretKey(secret.base32)
+    }
+  }, [isOpen, user.email])
+
+  const qrCodeUrl = totp?.toString() || ''
 
   const generateBackupCodes = () => {
-    const codes = []
+    const codes: string[] = []
+    // 10개의 백업 코드 생성 (각 8자리, 4-4 형식)
     for (let i = 0; i < 10; i++) {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-      codes.push(code)
+      // 암호학적으로 안전한 랜덤 생성
+      const array = new Uint8Array(4)
+      crypto.getRandomValues(array)
+
+      // 16진수로 변환하여 8자리 코드 생성
+      const hex = Array.from(array)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()
+
+      // 4-4 형식으로 포맷팅 (예: ABCD-EFGH)
+      const formatted = `${hex.substring(0, 4)}-${hex.substring(4, 8)}`
+      codes.push(formatted)
     }
     return codes
   }
@@ -50,24 +88,47 @@ export default function GASetupModal({
       return
     }
 
+    if (!totp) {
+      alert('TOTP 인스턴스가 생성되지 않았습니다. 페이지를 새로고침해주세요.')
+      return
+    }
+
     setIsVerifying(true)
 
-    // 실제로는 서버에서 검증
-    setTimeout(() => {
-      if (verificationCode === '123456') {
+    try {
+      // TOTP 검증 (±2 윈도우 = ±60초)
+      const delta = totp.validate({
+        token: verificationCode,
+        window: 2
+      })
+
+      console.log('TOTP 검증 결과:', delta, '시크릿 키:', secretKey, '입력 코드:', verificationCode)
+      console.log('현재 생성되는 코드:', totp.generate())
+
+      // delta가 null이 아니면 유효한 토큰
+      if (delta !== null) {
         const codes = generateBackupCodes()
         setBackupCodes(codes)
         setCurrentStep('backup')
       } else {
         alert('인증번호가 올바르지 않습니다. 다시 시도해주세요.')
       }
+    } catch (error) {
+      console.error('TOTP 검증 오류:', error)
+      alert('인증번호 검증 중 오류가 발생했습니다.')
+    } finally {
       setIsVerifying(false)
-    }, 1000)
+    }
   }
 
   const handleComplete = () => {
-    // 실제로는 서버에 GA 설정 완료 상태 업데이트
-    onComplete()
+    // TOTP secret만 서버에 저장, 백업 코드는 사용자가 보관 (보안상 이유)
+    console.log('GASetupModal handleComplete 호출:', {
+      secretKey: secretKey.substring(0, 10) + '...',
+      secretKeyLength: secretKey.length,
+      backupCodesCount: backupCodes.length
+    })
+    onComplete(secretKey)
   }
 
   const copySecretKey = () => {
@@ -129,13 +190,18 @@ export default function GASetupModal({
             {/* QR 코드 영역 */}
             <div className="flex justify-center">
               <div className="bg-white p-6 rounded-lg border-2 border-gray-200 shadow-sm">
-                <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <QrCodeIcon className="h-24 w-24 text-gray-400" />
-                  <div className="absolute text-xs text-center text-gray-500 mt-32">
-                    QR 코드<br />
-                    {qrCodeUrl.substring(0, 30)}...
+                {secretKey ? (
+                  <QRCodeSVG
+                    value={qrCodeUrl}
+                    size={192}
+                    level="M"
+                    includeMargin={true}
+                  />
+                ) : (
+                  <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <div className="text-sm text-gray-500">QR 코드 생성 중...</div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -201,7 +267,7 @@ export default function GASetupModal({
                 <div className="flex items-start">
                   <InformationCircleIcon className="h-5 w-5 text-slate-500 mr-2 flex-shrink-0" />
                   <p className="text-sm text-slate-600">
-                    테스트용으로 <code className="font-mono bg-slate-100 px-1 rounded text-slate-700">123456</code>을 입력하세요.
+                    Google Authenticator 앱에 표시된 6자리 숫자를 입력하세요. 코드는 30초마다 변경됩니다.
                   </p>
                 </div>
               </div>
@@ -244,9 +310,12 @@ export default function GASetupModal({
                   <p className="text-sm font-medium text-rose-700 mb-1">
                     중요: 백업 코드 보관
                   </p>
-                  <p className="text-sm text-rose-600">
+                  <p className="text-sm text-rose-600 mb-2">
                     기기를 분실했을 때 이 코드로 계정에 접근할 수 있습니다.
                     안전한 곳에 보관하고 타인과 공유하지 마세요.
+                  </p>
+                  <p className="text-xs text-rose-500 font-medium">
+                    ※ 백업 코드는 서버에 저장되지 않으며, 이 화면을 닫으면 다시 볼 수 없습니다.
                   </p>
                 </div>
               </div>
