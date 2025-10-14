@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // 서버 환경 변수에서 직접 읽기 (NEXT_PUBLIC_ 접두사 없이)
-    const customer_id = Number(process.env.EKYC_CUSTOMER_ID) || 0
-    const id = process.env.EKYC_CLIENT_ID || ''
-    const key = process.env.EKYC_CLIENT_SECRET || ''
-    console.log('>>>>>>>>>', id, key)
+    // 서버 환경 변수에서 직접 읽기
+    const customer_id = Number(process.env.NEXT_PUBLIC_EKYC_CUSTOMER_ID) || 0
+    const id = process.env.NEXT_PUBLIC_EKYC_CLIENT_ID || ''
+    const key = process.env.NEXT_PUBLIC_EKYC_CLIENT_SECRET || ''
+    console.log('!! eKYC info: ', id, key)
 
     if (!customer_id || !id || !key) {
       console.error('eKYC 환경 변수가 설정되지 않았습니다.')

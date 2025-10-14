@@ -108,21 +108,52 @@ export default function IDAndAccountVerificationStep({
         setShowQrTimeoutPrompt(false);
       }
 
-      // leave-room 메시지 로깅 (정상적인 단계 전환일 수 있으므로 에러 처리 하지 않음)
-      if (typeof e.data === "object" && e.data?.data?.action === "leave-room") {
-        console.log("🚪 leave-room 메시지 수신 (정상적인 단계 전환)");
-        console.log("🚪 leave-room 상세:", JSON.stringify(e.data, null, 2));
-        console.log("🚪 이후 메시지 처리를 계속 대기합니다...");
-        // return 하지 않고 계속 진행 - 이후 오는 완료 메시지를 받기 위함
-      }
-
       // eKYC 메시지는 base64 인코딩된 문자열이어야 함
       // MetaMask 같은 브라우저 확장의 메시지는 객체 형태이므로 무시
       if (typeof e.data !== "string") {
-        console.log("⏭️ 문자열이 아닌 데이터 무시 (타입:", typeof e.data, ")");
-        if (typeof e.data === "object") {
-          console.log("⏭️ 객체 데이터 상세:", JSON.stringify(e.data, null, 2));
+        // 브라우저 확장 및 개발 도구 메시지 필터링
+        if (
+          e.data?.target === "metamask-inpage" ||
+          e.data?.target === "metamask-contentscript" ||
+          e.data?.source === "@devtools-page" ||
+          e.data?.name === "next-router" ||
+          e.data?.name === "redux-devtools"
+        ) {
+          // 개발 도구 메시지는 무시 (로그 출력 안 함)
+          return;
         }
+
+        console.log("⏭️ 객체 타입 메시지 수신 - 상세 확인 중...");
+        console.log("📦 객체 키 목록:", Object.keys(e.data || {}));
+
+        // 각 속성 개별 출력
+        if (e.data?.target) {
+          console.log("  - target:", e.data.target);
+        }
+        if (e.data?.data) {
+          console.log("  - data 속성 타입:", typeof e.data.data);
+          console.log("  - data 내용:", e.data.data);
+
+          if (typeof e.data.data === "object") {
+            console.log("  - data 키 목록:", Object.keys(e.data.data));
+
+            // action 체크 (leave-room 등)
+            if (e.data.data?.action) {
+              console.log("  - action:", e.data.data.action);
+              if (e.data.data.action === "leave-room") {
+                console.log("🚪 leave-room 메시지 확인됨 (정상적인 단계 전환)");
+              }
+            }
+          }
+        }
+
+        // JSON 전체 출력 시도
+        try {
+          console.log("📦 JSON 전체 (stringify):", JSON.stringify(e.data, null, 2));
+        } catch (err) {
+          console.error("JSON stringify 실패:", err);
+        }
+
         return;
       }
 
