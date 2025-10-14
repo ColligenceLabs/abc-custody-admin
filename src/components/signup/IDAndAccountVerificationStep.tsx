@@ -108,18 +108,12 @@ export default function IDAndAccountVerificationStep({
         setShowQrTimeoutPrompt(false);
       }
 
-      // leave-room 소켓 메시지 처리 (QR 인증 실패 또는 취소)
+      // leave-room 메시지 로깅 (정상적인 단계 전환일 수 있으므로 에러 처리 하지 않음)
       if (typeof e.data === "object" && e.data?.data?.action === "leave-room") {
-        console.log("🚪 leave-room 메시지 수신 - 인증 실패 또는 취소");
+        console.log("🚪 leave-room 메시지 수신 (정상적인 단계 전환)");
         console.log("🚪 leave-room 상세:", JSON.stringify(e.data, null, 2));
-        alert("인증이 취소되었거나 실패했습니다. 다시 시도해주세요.");
-
-        // 초기 화면으로 되돌리기
-        setCurrentPhase("intro");
-        setIdVerified(false);
-        setAccountVerified(false);
-        setMessage({ type: "error", text: "인증이 취소되었습니다. 인증 방식을 다시 선택해주세요." });
-        return;
+        console.log("🚪 이후 메시지 처리를 계속 대기합니다...");
+        // return 하지 않고 계속 진행 - 이후 오는 완료 메시지를 받기 위함
       }
 
       // eKYC 메시지는 base64 인코딩된 문자열이어야 함
