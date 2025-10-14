@@ -452,21 +452,25 @@ export default function IDAndAccountVerificationStep({
 
         {/* 방식 선택 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* 모바일 촬영 카드 */}
+          {/* 모바일 진행 카드 */}
           <button
             onClick={() => handleMethodSelect('mobile')}
-            className="p-8 border-2 border-primary-200 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-all text-center group"
+            className="relative p-8 border-2 border-primary-200 rounded-xl hover:border-primary-400 hover:bg-primary-50 transition-all text-center group"
           >
+            <span className="absolute top-4 right-4 px-3 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded-full">
+              추천
+            </span>
+
             <div className="w-20 h-20 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center group-hover:bg-primary-200">
               <DevicePhoneMobileIcon className="w-10 h-10 text-primary-600" />
             </div>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              모바일로 촬영
+              모바일로 진행
             </h3>
 
             <p className="text-sm text-gray-600 mb-4">
-              스마트폰으로 직접 촬영하여 업로드
+              스마트폰으로 직접 촬영
             </p>
 
             <div className="space-y-2 text-left">
@@ -483,13 +487,9 @@ export default function IDAndAccountVerificationStep({
                 <span>실시간 얼굴 가이드</span>
               </div>
             </div>
-
-            <span className="inline-block mt-4 px-3 py-1 bg-sky-100 text-sky-700 text-xs font-semibold rounded-full">
-              추천
-            </span>
           </button>
 
-          {/* PC 업로드 카드 */}
+          {/* PC 진행 카드 */}
           <button
             onClick={() => handleMethodSelect('pc')}
             className="p-8 border-2 border-gray-200 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all text-center group"
@@ -499,14 +499,14 @@ export default function IDAndAccountVerificationStep({
             </div>
 
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              PC에서 업로드
+              PC에서 진행
             </h3>
 
             <p className="text-sm text-gray-600 mb-4">
               이미 촬영한 사진을 업로드
             </p>
 
-            <div className="space-y-2 text-left">
+            <div className="space-y-2 text-left mb-4">
               <div className="flex items-start text-xs text-gray-600">
                 <CheckCircleIcon className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
                 <span>기존 사진 활용</span>
@@ -520,6 +520,10 @@ export default function IDAndAccountVerificationStep({
                 <span>파일 선택 가능</span>
               </div>
             </div>
+
+            <p className="text-xs text-gray-500 text-left leading-relaxed mt-4">
+              웹캠이 없는 경우 '모바일로 진행'을 선택하시면 더 편리하게 인증하실 수 있습니다.
+            </p>
           </button>
         </div>
 
@@ -599,12 +603,13 @@ export default function IDAndAccountVerificationStep({
         )}
 
         {/* QR 코드 영역 */}
-        <div className="flex justify-center mb-6">
-          <div className="p-8 bg-white border-4 border-primary-200 rounded-2xl shadow-lg relative">
+        <div className="mb-6">
+          <div className="relative w-full" style={{ height: "900px" }}>
             <iframe
               ref={iframeRef}
               id="kyc_qr_iframe"
-              className="w-64 h-64"
+              className="w-full h-full rounded-lg border-2 border-gray-300 bg-white"
+              allow="camera; microphone; fullscreen"
               title="eKYC QR 코드"
               style={{ border: 'none' }}
             />
