@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/components/common/Modal";
 import { AddressFormData } from "@/types/address";
@@ -11,9 +11,10 @@ interface AddressModalProps {
   onClose: () => void;
   onSubmit: (formData: AddressFormData) => void;
   initialType?: "personal" | "vasp";
+  isSubmitting?: boolean;
 }
 
-export default function AddressModal({ isOpen, onClose, onSubmit, initialType }: AddressModalProps) {
+export default function AddressModal({ isOpen, onClose, onSubmit, initialType, isSubmitting = false }: AddressModalProps) {
   const [formData, setFormData] = useState<AddressFormData>({
     label: "",
     address: "",
@@ -26,12 +27,29 @@ export default function AddressModal({ isOpen, onClose, onSubmit, initialType }:
     selectedVaspId: "",
   });
 
+  // initialType이 변경되면 formData.type 업데이트
+  useEffect(() => {
+    if (initialType) {
+      setFormData(prev => ({ ...prev, type: initialType }));
+    }
+  }, [initialType]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // 필수 필드 검증
-    if (!formData.label || !formData.address || !formData.type) {
-      alert("필수 항목을 모두 입력해주세요.");
+    if (!formData.label.trim()) {
+      alert("라벨을 입력해주세요.");
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      alert("주소를 입력해주세요.");
+      return;
+    }
+
+    if (!formData.type) {
+      alert("주소 타입을 선택해주세요.");
       return;
     }
 
@@ -291,16 +309,25 @@ export default function AddressModal({ isOpen, onClose, onSubmit, initialType }:
           <button
             type="button"
             onClick={handleClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             취소
           </button>
           <button
             type="submit"
             form="address-form"
-            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            추가
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                추가 중...
+              </>
+            ) : (
+              "추가"
+            )}
           </button>
         </div>
       </div>

@@ -8,7 +8,7 @@ import AddressModal from "./address/AddressModal";
 import AddressTable from "./address/AddressTable";
 import PaginationNav from "./address/PaginationNav";
 import SearchInput from "./address/SearchInput";
-import { mockAddresses } from "@/data/mockAddresses";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   validateBlockchainAddress,
   checkDuplicateAddress,
@@ -17,6 +17,11 @@ import {
   getVASPById,
   getDailyLimitStatus
 } from "@/utils/addressHelpers";
+import {
+  getAddresses,
+  createAddress,
+  deleteAddress
+} from "@/utils/addressApi";
 
 interface AddressManagementProps {
   initialTab?: "personal" | "vasp";
@@ -25,6 +30,7 @@ interface AddressManagementProps {
 export default function AddressManagement({ initialTab }: AddressManagementProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, isAuthenticated } = useAuth();
 
   const [addresses, setAddresses] = useState<WhitelistedAddress[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +39,9 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   const [permissionFilter, setPermissionFilter] = useState<"all" | "deposit" | "withdrawal" | "both">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "normal" | "warning" | "danger">("all");
   const [activeTab, setActiveTab] = useState<"personal" | "vasp">(initialTab || "personal");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
   // 페이징 상태 (각 탭별로 독립적)
@@ -58,85 +67,80 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
     }
   }, [initialTab]);
 
-  // 주소 목록 로드
+  // 주소 목록 로드 (API)
   useEffect(() => {
-    const savedAddresses = localStorage.getItem("whitelistedAddresses");
-    if (savedAddresses) {
-      try {
-        const parsedAddresses = JSON.parse(savedAddresses);
-
-        // mock 데이터의 최신 정보로 기존 주소들을 업데이트하되, 사용자가 추가한 주소는 유지
-        const updatedAddresses: WhitelistedAddress[] = [];
-        const existingAddressMap = new Map<string, WhitelistedAddress>(parsedAddresses.map((addr: WhitelistedAddress) => [addr.address, addr]));
-
-        // mock 데이터를 우선적으로 사용하여 최신 정보 적용
-        mockAddresses.forEach(mockAddr => {
-          const existingAddr: WhitelistedAddress | undefined = existingAddressMap.get(mockAddr.address);
-          if (existingAddr) {
-            // 기존 주소가 있으면 mock 데이터의 최신 정보로 업데이트 (사용자 추가 필드는 유지)
-            updatedAddresses.push({
-              ...mockAddr,
-              id: existingAddr.id, // 기존 ID 유지
-              addedAt: existingAddr.addedAt, // 추가 날짜 유지
-              lastUsed: existingAddr.lastUsed, // 마지막 사용 시간 유지
-            });
-            existingAddressMap.delete(mockAddr.address);
-          } else {
-            // 새로운 mock 주소
-            updatedAddresses.push(mockAddr);
-          }
-        });
-
-        // 사용자가 추가한 주소들 (mock에 없는 주소들)
-        existingAddressMap.forEach((userAddr: WhitelistedAddress) => {
-          updatedAddresses.push(userAddr);
-        });
-
-        const finalAddresses = updatedAddresses.map(resetDailyUsageIfNeeded);
-        setAddresses(finalAddresses);
-        localStorage.setItem("whitelistedAddresses", JSON.stringify(finalAddresses));
-      } catch (error) {
-        console.error("주소 목록 로드 실패:", error);
-        // 로컬 스토리지 오류 시 mock data 사용
-        setAddresses(mockAddresses.map(resetDailyUsageIfNeeded));
+    const loadAddresses = async () => {
+      // 로그인하지 않은 경우 로딩 종료
+      if (!isAuthenticated || !user) {
+        setIsLoading(false);
+        setAddresses([]);
+        return;
       }
-    } else {
-      // 저장된 데이터가 없으면 mock data 사용
-      const updatedAddresses = mockAddresses.map(resetDailyUsageIfNeeded);
-      setAddresses(updatedAddresses);
-      localStorage.setItem("whitelistedAddresses", JSON.stringify(updatedAddresses));
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // userId로 주소 목록 조회
+        const data = await getAddresses(user.id);
+
+        // 일일 사용량 리셋이 필요한 주소 처리
+        const updatedAddresses = data.map(resetDailyUsageIfNeeded);
+        setAddresses(updatedAddresses);
+      } catch (err) {
+        console.error("주소 목록 로드 실패:", err);
+        setError("주소 목록을 불러오는 중 오류가 발생했습니다.");
+        setAddresses([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAddresses();
+  }, [user, isAuthenticated]);
+
+  const handleAddAddress = async (formData: AddressFormData) => {
+    // 로그인 체크
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
     }
-  }, []);
 
-  // 주소 목록 저장
-  const saveAddresses = (newAddresses: WhitelistedAddress[]) => {
-    setAddresses(newAddresses);
-    localStorage.setItem("whitelistedAddresses", JSON.stringify(newAddresses));
-  };
+    // 타입 검증
+    if (!formData.type) {
+      alert("주소 타입을 선택해주세요.");
+      return;
+    }
 
-  const handleAddAddress = (formData: AddressFormData) => {
+    // 이미 제출 중이면 중복 방지
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
       // 주소 유효성 검증
       if (!validateBlockchainAddress(formData.address, formData.coin)) {
         alert(`유효하지 않은 ${formData.coin} 주소입니다.`);
+        setIsSubmitting(false);
         return;
       }
 
       // 중복 주소 체크
       if (checkDuplicateAddress(formData.address, addresses)) {
         alert("이미 등록된 주소입니다.");
+        setIsSubmitting(false);
         return;
       }
 
-      const newAddress: WhitelistedAddress = {
-        id: `addr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      const newAddressData = {
+        userId: user.id,
         label: formData.label,
         address: formData.address,
         coin: formData.coin,
         type: formData.type as "personal" | "vasp",
         permissions: formData.permissions,
-        addedAt: new Date().toISOString(),
-        txCount: 0,
         ...(formData.type === "personal" && createPersonalWalletDefaults()),
         ...(formData.type === "vasp" && formData.selectedVaspId ? (() => {
           const selectedVasp = getVASPById(formData.selectedVaspId);
@@ -152,19 +156,39 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
         })() : {})
       };
 
-      const updatedAddresses = [...addresses, newAddress];
-      saveAddresses(updatedAddresses);
+      // API로 주소 추가
+      const createdAddress = await createAddress(newAddressData);
+
+      // 로컬 상태 업데이트
+      setAddresses(prev => [...prev, createdAddress]);
       setIsModalOpen(false);
+      setIsSubmitting(false);
+      alert("주소가 성공적으로 추가되었습니다.");
     } catch (error) {
       console.error("주소 추가 실패:", error);
-      alert("주소 추가 중 오류가 발생했습니다.");
+      setIsSubmitting(false);
+
+      // 에러 타입에 따른 메시지
+      const errorMessage = error instanceof Error
+        ? error.message
+        : "주소 추가 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      alert(errorMessage);
     }
   };
 
-  const handleDeleteAddress = (id: string) => {
+  const handleDeleteAddress = async (id: string) => {
     if (confirm("정말로 이 주소를 삭제하시겠습니까?")) {
-      const updatedAddresses = addresses.filter(addr => addr.id !== id);
-      saveAddresses(updatedAddresses);
+      try {
+        // API로 주소 삭제
+        await deleteAddress(id);
+
+        // 로컬 상태 업데이트 (낙관적 UI 업데이트)
+        setAddresses(prev => prev.filter(addr => addr.id !== id));
+        alert("주소가 성공적으로 삭제되었습니다.");
+      } catch (error) {
+        console.error("주소 삭제 실패:", error);
+        alert("주소 삭제 중 오류가 발생했습니다.");
+      }
     }
   };
 
@@ -265,7 +289,32 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
         </div>
       </div>
 
+      {/* 로딩 상태 */}
+      {isLoading && (
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-primary-600"></div>
+          <p className="mt-4 text-gray-600">주소 목록을 불러오는 중...</p>
+        </div>
+      )}
+
+      {/* 에러 상태 */}
+      {error && !isLoading && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 탭 네비게이션 */}
+      {!isLoading && (
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="border-b border-gray-200">
           <nav className="flex">
@@ -394,6 +443,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
 
 
       </div>
+      )}
 
       {/* 주소 추가 모달 */}
       <AddressModal
@@ -401,6 +451,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
         onClose={closeModal}
         onSubmit={handleAddAddress}
         initialType={modalType}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

@@ -95,26 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { policy, getRequiredAuthSteps, getSessionTimeoutMs, isFirstTimeUser } = useSecurityPolicy()
   const { setSelectedPlan } = useServicePlan()
 
-  // UI/UX 기획을 위해 더미 사용자 데이터 설정
-  const dummyUser: User = {
-    id: 'dummy-user-1',
-    name: '관리자',
-    email: 'admin@company.com',
-    department: 'IT 보안팀',
-    position: '관리자',
-    phone: '010-1234-5678',
-    role: 'admin',
-    status: 'active',
-    permissions: ['permission.all'],
-    lastLogin: new Date().toISOString(),
-    hasGASetup: true,
-    gaSetupDate: '2025-09-10T14:20:00Z',
-    isFirstLogin: false,
-    memberType: 'corporate'
-  }
-
-  const [user, setUser] = useState<User | null>(dummyUser)
-  const [isAuthenticated, setIsAuthenticated] = useState(true) // 항상 인증된 상태
+  const [user, setUser] = useState<User | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authStep, setAuthStep] = useState<AuthStep>({
     step: 'email', // UI/UX 확인을 위해 이메일 단계부터 시작
     attempts: 0,
@@ -152,10 +134,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }))
   }, [policy, getRequiredAuthSteps])
 
-  // UI/UX 기획을 위해 세션 체크 비활성화
+  // 세션 체크 및 복구
   useEffect(() => {
-    // 세션 체크 로직 제거 - 항상 인증된 상태 유지
-  }, [])
+    const checkSession = () => {
+      try {
+        // localStorage에서 세션 정보 확인
+        const sessionData = localStorage.getItem('auth_session')
+        if (sessionData) {
+          const { user: savedUser, timestamp } = JSON.parse(sessionData)
+          const sessionTimeout = getSessionTimeoutMs()
+
+          // 세션이 유효한지 확인
+          if (Date.now() - timestamp < sessionTimeout) {
+            setUser(savedUser)
+            setIsAuthenticated(true)
+
+            // ServicePlan 설정
+            setSelectedPlan(savedUser.memberType === 'individual' ? 'individual' : 'enterprise')
+
+            return
+          }
+        }
+
+        // 세션이 없거나 만료된 경우
+        setUser(null)
+        setIsAuthenticated(false)
+      } catch (error) {
+        console.error('세션 체크 실패:', error)
+        setUser(null)
+        setIsAuthenticated(false)
+      }
+    }
+
+    checkSession()
+  }, [getSessionTimeoutMs, setSelectedPlan])
 
   const login = async (email: string, memberType: 'individual' | 'corporate'): Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }> => {
     // 차단 상태 확인
