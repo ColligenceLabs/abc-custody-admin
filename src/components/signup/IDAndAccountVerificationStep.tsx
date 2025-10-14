@@ -510,12 +510,11 @@ export default function IDAndAccountVerificationStep({
         // 전화번호에서 하이픈 제거 (01012345678 형식)
         const phoneNumber = (initialData.phone || "").replace(/-/g, "");
 
-        // QR 모드: Demo credential 고정 사용
-        // customer_id: "5"는 QR 모드 전용이며 Demo credential과 세트로 사용
+        // QR 모드: 환경변수 credential 사용
         const qrParams = {
-          customer_id: "5",
-          id: "demoUser",
-          key: "demoUser0000!",
+          customer_id: process.env.NEXT_PUBLIC_EKYC_CUSTOMER_ID || "5",
+          id: process.env.NEXT_PUBLIC_EKYC_CLIENT_ID || "demoUser",
+          key: process.env.NEXT_PUBLIC_EKYC_CLIENT_SECRET || "demoUser0000!",
           name: initialData.name || "",
           birthday: birthday,
           phone_number: phoneNumber,
