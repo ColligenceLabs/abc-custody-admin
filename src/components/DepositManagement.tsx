@@ -21,6 +21,10 @@ import DepositHistoryTable from "./deposit/DepositHistoryTable";
 import DepositStatistics from "./deposit/DepositStatistics";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAddresses } from "@/utils/addressApi";
+import { WhitelistedAddress } from "@/types/address";
+import { QRCodeSVG } from "qrcode.react";
 
 interface DepositManagementProps {
   plan: ServicePlan;
@@ -33,7 +37,6 @@ interface Asset {
   network: string;
   icon?: string; // CryptoIcon 컴포넌트 사용으로 optional
   depositAddress: string;
-  qrCode: string;
   isActive: boolean;
   contractAddress?: string; // ERC-20 토큰용 컨트랙트 주소
   priceKRW?: number; // 원화 가격
@@ -65,6 +68,8 @@ interface AssetAddRequest {
 }
 
 export default function DepositManagement({ plan }: DepositManagementProps) {
+  const { user, isAuthenticated } = useAuth();
+
   // 진행 중인 입금 상태
   const [activeDeposits, setActiveDeposits] = useState<DepositTransaction[]>(
     []
@@ -72,53 +77,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   // 입금 히스토리 상태
   const [depositHistory, setDepositHistory] = useState<DepositHistory[]>([]);
 
-  const [assets, setAssets] = useState<Asset[]>([
-    {
-      id: "1",
-      symbol: "BTC",
-      name: "Bitcoin",
-      network: "Bitcoin",
-      depositAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-      qrCode: "",
-      isActive: true,
-    },
-    {
-      id: "2",
-      symbol: "ETH",
-      name: "Ethereum",
-      network: "Ethereum",
-      depositAddress: "0x742d35cc6ad4cfc7cc5a0e0e68b4b55a2c7e9f3a",
-      qrCode: "",
-      isActive: true,
-    },
-    {
-      id: "3",
-      symbol: "SOL",
-      name: "Solana",
-      network: "Solana",
-      depositAddress: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
-      qrCode: "",
-      isActive: true,
-    },
-    {
-      id: "4",
-      symbol: "USDT",
-      name: "Tether",
-      network: "Ethereum (ERC-20)",
-      depositAddress: "0x8ba1f109551bd432803012645hac136c6ad4cfc7",
-      qrCode: "",
-      isActive: true,
-    },
-    {
-      id: "5",
-      symbol: "USDC",
-      name: "USD Coin",
-      network: "Ethereum (ERC-20)",
-      depositAddress: "0x742d35cc6ad4cfc7cc5a0e0e68b4b55a2c7e9f3a",
-      qrCode: "",
-      isActive: true,
-    },
-  ]);
+  const [assets, setAssets] = useState<Asset[]>([]);
 
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
@@ -169,20 +128,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   // Helper functions from the original code
   const generateDepositAddress = (symbol: string): string => {
     return generateFromAddress(symbol);
-  };
-
-  const generateQRCode = (address: string): string => {
-    const svgContent = `
-      <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="#fff"/>
-        <text x="100" y="110" text-anchor="middle" font-family="Arial" font-size="14" fill="#666">QR Code</text>
-        <text x="100" y="125" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">${address.substring(
-          0,
-          10
-        )}...</text>
-      </svg>
-    `;
-    return `data:image/svg+xml;base64,${btoa(svgContent)}`;
   };
 
   const generateFromAddress = (symbol: string): string => {
@@ -257,24 +202,77 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     setAssets(assets.filter((asset) => asset.id !== assetId));
   };
 
-  // Initialize QR codes, prices, and mock deposit data after component mount
-  useEffect(() => {
-    setAssets((prevAssets) =>
-      prevAssets.map((asset) => {
-        const prices = generateMockPrice(asset.symbol);
-        return {
-          ...asset,
-          qrCode: asset.qrCode || generateQRCode(asset.depositAddress),
-          priceKRW: prices.krw,
-          priceUSD: prices.usd,
-        };
-      })
-    );
+  // 심볼에서 자산 이름 가져오기
+  const getAssetName = (symbol: string): string => {
+    const assetNames: Record<string, string> = {
+      BTC: "Bitcoin",
+      ETH: "Ethereum",
+      SOL: "Solana",
+      USDT: "Tether",
+      USDC: "USD Coin",
+      KRW: "Korean Won",
+    };
+    return assetNames[symbol] || symbol;
+  };
 
-    // 초기 Mock 데이터 생성
-    setActiveDeposits(generateMockDeposits(5));
-    setDepositHistory(generateMockDepositHistory(20));
-  }, []);
+  // 심볼에서 네트워크 이름 가져오기
+  const getNetworkName = (symbol: string): string => {
+    const networkNames: Record<string, string> = {
+      BTC: "Bitcoin",
+      ETH: "Ethereum",
+      SOL: "Solana",
+      USDT: "Ethereum (ERC-20)",
+      USDC: "Ethereum (ERC-20)",
+      KRW: "Fiat",
+    };
+    return networkNames[symbol] || "Unknown";
+  };
+
+  // 주소 관리에서 입금 가능한 주소 목록 로드
+  useEffect(() => {
+    const loadDepositAddresses = async () => {
+      if (!isAuthenticated || !user) {
+        setAssets([]);
+        return;
+      }
+
+      try {
+        // 사용자의 주소 목록 가져오기
+        const addresses = await getAddresses(user.id);
+
+        // canDeposit: true인 주소만 필터링하여 Asset 형태로 변환
+        const depositAssets: Asset[] = addresses
+          .filter(addr => addr.permissions.canDeposit)
+          .map(addr => {
+            const prices = generateMockPrice(addr.coin);
+            const assetName = getAssetName(addr.coin);
+            const network = getNetworkName(addr.coin);
+
+            return {
+              id: addr.id,
+              symbol: addr.coin,
+              name: assetName,
+              network: network,
+              depositAddress: addr.address,
+              isActive: true,
+              priceKRW: prices.krw,
+              priceUSD: prices.usd,
+            };
+          });
+
+        setAssets(depositAssets);
+
+        // 초기 Mock 데이터 생성
+        setActiveDeposits(generateMockDeposits(5));
+        setDepositHistory(generateMockDepositHistory(20));
+      } catch (error) {
+        console.error("입금 주소 로드 실패:", error);
+        setAssets([]);
+      }
+    };
+
+    loadDepositAddresses();
+  }, [user, isAuthenticated]);
 
   // 클라이언트 측에서만 localStorage 로드
   useEffect(() => {
@@ -1179,7 +1177,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         depositAddress: generateDepositAddress(
                           assetInfo.symbol
                         ),
-                        qrCode: "",
                         isActive: true,
                       };
                       setAssets([...assets, newAsset]);
@@ -1225,11 +1222,16 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <img
-                src={selectedQR?.qrCode}
-                alt="QR Code"
-                className="w-48 h-48 border border-gray-200 rounded-lg"
-              />
+              <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                {selectedQR?.depositAddress && (
+                  <QRCodeSVG
+                    value={selectedQR.depositAddress}
+                    size={192}
+                    level="H"
+                    includeMargin={false}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="text-center">
