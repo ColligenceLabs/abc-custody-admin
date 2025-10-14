@@ -775,10 +775,10 @@ export default function IDAndAccountVerificationStep({
             </button>
           ) : (
             <button
-              onClick={handleCancel}
-              className="flex-1 px-4 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+              onClick={handleSkipVerification}
+              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
             >
-              인증 취소
+              다음에 하기
             </button>
           )}
         </div>
@@ -816,10 +816,10 @@ export default function IDAndAccountVerificationStep({
           </div>
           {currentPhase !== "complete" && (
             <button
-              onClick={handleCancel}
+              onClick={handleSkipVerification}
               className="text-sm text-gray-600 hover:text-gray-800 underline"
             >
-              취소
+              다음에 하기
             </button>
           )}
         </div>
@@ -881,19 +881,31 @@ export default function IDAndAccountVerificationStep({
         </p>
       </div>
 
-      {/* 수동 완료 버튼 (신분증과 계좌 인증이 모두 완료된 경우) */}
-      {idVerified && accountVerified && currentPhase !== "complete" && (
-        <div className="mt-4">
+      {/* 하단 버튼 */}
+      {currentPhase !== "complete" && (
+        <div className="flex space-x-3 mt-4">
           <button
-            onClick={handleManualComplete}
-            className="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold flex items-center justify-center"
+            onClick={handleBackToMethodSelection}
+            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <CheckCircleIcon className="w-5 h-5 mr-2" />
-            인증 완료 - 다음 단계로
+            방식 다시 선택
           </button>
-          <p className="text-xs text-gray-500 text-center mt-2">
-            신분증 인증과 계좌 인증이 모두 완료되었습니다. 위 버튼을 클릭하여 다음 단계로 진행하세요.
-          </p>
+
+          {idVerified && accountVerified ? (
+            <button
+              onClick={handleManualComplete}
+              className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+            >
+              인증 완료
+            </button>
+          ) : (
+            <button
+              onClick={handleSkipVerification}
+              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            >
+              다음에 하기
+            </button>
+          )}
         </div>
       )}
     </div>
