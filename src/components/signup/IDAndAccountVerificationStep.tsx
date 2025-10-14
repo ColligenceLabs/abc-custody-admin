@@ -95,8 +95,12 @@ export default function IDAndAccountVerificationStep({
       }
 
       console.log("=== 📩 eKYC postMessage 수신 ===");
-      console.log("Raw data:", e.data);
-      console.log("Origin:", e.origin);
+      console.log("⏰ 수신 시각:", new Date().toLocaleTimeString());
+      console.log("🎯 현재 Phase:", currentPhase);
+      console.log("📍 선택된 방식:", selectedMethod);
+      console.log("🔍 Raw data 타입:", typeof e.data);
+      console.log("🔍 Raw data:", e.data);
+      console.log("🌐 Origin:", e.origin);
 
       // postMessage 수신 시 QR 타임아웃 프롬프트 숨김
       if (currentPhase === 'qr') {
@@ -107,6 +111,7 @@ export default function IDAndAccountVerificationStep({
       // leave-room 소켓 메시지 처리 (QR 인증 실패 또는 취소)
       if (typeof e.data === "object" && e.data?.data?.action === "leave-room") {
         console.log("🚪 leave-room 메시지 수신 - 인증 실패 또는 취소");
+        console.log("🚪 leave-room 상세:", JSON.stringify(e.data, null, 2));
         alert("인증이 취소되었거나 실패했습니다. 다시 시도해주세요.");
 
         // 초기 화면으로 되돌리기
@@ -121,17 +126,38 @@ export default function IDAndAccountVerificationStep({
       // MetaMask 같은 브라우저 확장의 메시지는 객체 형태이므로 무시
       if (typeof e.data !== "string") {
         console.log("⏭️ 문자열이 아닌 데이터 무시 (타입:", typeof e.data, ")");
+        if (typeof e.data === "object") {
+          console.log("⏭️ 객체 데이터 상세:", JSON.stringify(e.data, null, 2));
+        }
         return;
       }
 
-      console.log("현재 상태 - idVerified:", idVerified, "accountVerified:", accountVerified);
+      console.log("📊 현재 상태 체크:");
+      console.log("  - idVerified:", idVerified);
+      console.log("  - accountVerified:", accountVerified);
+      console.log("  - currentPhase:", currentPhase);
+      console.log("  - selectedMethod:", selectedMethod);
 
       try {
+        console.log("🔓 Base64 디코딩 시작...");
         const decodedData = decodeURIComponent(atob(e.data));
+        console.log("🔓 디코딩된 원본 문자열:", decodedData);
+
         const json: EKYCResponse = JSON.parse(decodedData);
-        console.log("📦 Decoded JSON:", JSON.stringify(json, null, 2));
-        console.log("Result:", json.result);
-        console.log("Review Result:", json.review_result);
+        console.log("📦 파싱된 JSON 객체:");
+        console.log("  - result:", json.result);
+        console.log("  - message:", json.message);
+        console.log("  - review_result 존재:", !!json.review_result);
+        console.log("  - api_response 존재:", !!json.api_response);
+        console.log("📦 전체 JSON (pretty print):", JSON.stringify(json, null, 2));
+
+        if (json.review_result) {
+          console.log("📋 Review Result 상세:");
+          console.log("  - result_type:", json.review_result.result_type);
+          console.log("  - transaction_id:", json.review_result.transaction_id);
+          console.log("  - module:", json.review_result.module);
+          console.log("  - account:", json.review_result.account);
+        }
 
         // 1차 postMessage: 인증 결과 데이터 (success/failed + review_result)
         if (json.result === "success" && json.review_result) {
@@ -244,7 +270,15 @@ export default function IDAndAccountVerificationStep({
 
           // 2차 postMessage: UI 처리 (complete/close)
         } else if (json.result === "complete") {
-          console.log("🎊 Complete 메시지 처리");
+          console.log("🎊 ========================================");
+          console.log("🎊 Complete 메시지 처리 시작");
+          console.log("🎊 수신 시각:", new Date().toLocaleTimeString());
+          console.log("🎊 현재 Phase:", currentPhase);
+          console.log("🎊 선택된 방식:", selectedMethod);
+          console.log("🎊 idVerified:", idVerified);
+          console.log("🎊 accountVerified:", accountVerified);
+          console.log("🎊 ========================================");
+
           // 전체 인증 완료
           setMessage({
             type: "success",
@@ -263,7 +297,12 @@ export default function IDAndAccountVerificationStep({
             });
           }, 1500);
         } else if (json.result === "close") {
-          console.log("🚪 Close 메시지 처리");
+          console.log("🚪 ========================================");
+          console.log("🚪 Close 메시지 처리 시작");
+          console.log("🚪 수신 시각:", new Date().toLocaleTimeString());
+          console.log("🚪 현재 Phase:", currentPhase);
+          console.log("🚪 ========================================");
+
           // 인증 중단 또는 이탈
           setMessage({ type: "error", text: "eKYC 인증이 중단되었습니다." });
           setCurrentPhase("intro");
@@ -271,10 +310,16 @@ export default function IDAndAccountVerificationStep({
           setIdVerified(false);
           setAccountVerified(false);
         } else {
+          console.log("⚠️ ========================================");
           console.log("⚠️ 알 수 없는 result 타입:", json.result);
+          console.log("⚠️ 전체 JSON:", JSON.stringify(json, null, 2));
+          console.log("⚠️ ========================================");
         }
       } catch (error) {
-        console.error("eKYC 응답 처리 오류:", error);
+        console.error("❌ ========================================");
+        console.error("❌ eKYC 응답 처리 오류:", error);
+        console.error("❌ Raw data:", e.data);
+        console.error("❌ ========================================");
         setMessage({
           type: "error",
           text: "eKYC 응답 처리 중 오류가 발생했습니다.",
