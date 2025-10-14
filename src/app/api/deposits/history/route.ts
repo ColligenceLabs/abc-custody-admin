@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 /**
  * 입금 히스토리 조회 API
  * status가 confirmed 또는 credited인 입금 반환 (페이지네이션 지원)
+ * senderVerified 값으로 자산 반환 여부 판단
  */
 export async function GET(request: NextRequest) {
   try {

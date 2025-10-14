@@ -290,6 +290,9 @@ export default function DepositHistoryTable({
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-56">
                       트랜잭션 해시
                     </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-24">
+                      발신지 검증
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-20">
                       상태
                     </th>
@@ -372,6 +375,17 @@ export default function DepositHistoryTable({
                             )}
                           </button>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {deposit.senderVerified ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-sky-50 text-sky-600 border-sky-200">
+                            적합
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-red-50 text-red-600 border-red-200">
+                            부적합
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <DepositStatusBadge status={deposit.status} size="sm" />

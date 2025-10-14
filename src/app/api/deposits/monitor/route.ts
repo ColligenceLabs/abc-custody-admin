@@ -25,19 +25,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. 사용자의 ETH 입금 주소 조회
-    const addressesRes = await fetch(
-      `${API_URL}/addresses?userId=${userId}&coin=ETH`
+    // 1. 사용자의 ETH 입금 주소 조회 (depositAddresses 테이블 사용)
+    const depositAddressesRes = await fetch(
+      `${API_URL}/depositAddresses?userId=${userId}&coin=ETH&isActive=true`
     );
-    if (!addressesRes.ok) {
-      throw new Error('Failed to fetch addresses');
+    if (!depositAddressesRes.ok) {
+      throw new Error('Failed to fetch deposit addresses');
     }
-    const addresses = await addressesRes.json();
-
-    // 입금 가능한 주소만 필터링
-    const depositAddresses = addresses.filter(
-      (addr: any) => addr.permissions?.canDeposit === true
-    );
+    const depositAddresses = await depositAddressesRes.json();
 
     if (depositAddresses.length === 0) {
       return NextResponse.json({
@@ -69,6 +64,20 @@ export async function POST(request: NextRequest) {
             const existing = await existingRes.json();
 
             if (existing.length === 0 && tx.value !== '0') {
+              // 발신 주소 화이트리스트 검증
+              // json-server는 대소문자를 구분하므로 모든 주소를 가져와서 필터링
+              const whitelistRes = await fetch(
+                `${API_URL}/addresses?userId=${userId}`
+              );
+              const allAddresses = await whitelistRes.json();
+
+              // 화이트리스트에 등록되어 있고 canDeposit=true인지 확인 (대소문자 무시)
+              const isAllowedSender = allAddresses.some(
+                (wAddr: any) =>
+                  wAddr.address.toLowerCase() === tx.fromAddress.toLowerCase() &&
+                  wAddr.permissions?.canDeposit === true
+              );
+
               // 신규 입금 발견 - DB에 저장
               const txBlockNumber = parseInt(tx.blockNumber); // 이미 decimal string
               const confirmations = calculateConfirmations(
@@ -76,6 +85,7 @@ export async function POST(request: NextRequest) {
                 currentBlock
               );
 
+              // 발신자 검증 결과와 무관하게 컨펌 진행
               let status = 'detected';
               if (confirmations >= 1 && confirmations < 12) {
                 status = 'confirming';
@@ -94,14 +104,15 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                   id: `dep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                   userId,
-                  addressId: addr.id,
+                  depositAddressId: addr.id,
                   txHash: tx.transactionHash,
                   asset: 'ETH',
-                  network: 'Sepolia',
+                  network: addr.network || 'Sepolia',
                   amount: ethAmount,
                   fromAddress: tx.fromAddress,
                   toAddress: tx.toAddress,
                   status,
+                  senderVerified: isAllowedSender,
                   currentConfirmations: confirmations,
                   requiredConfirmations: 12,
                   blockHeight: txBlockNumber,
@@ -112,7 +123,9 @@ export async function POST(request: NextRequest) {
                 }),
               });
 
-              console.log(`새 입금 감지: ${tx.transactionHash} (${ethAmount} ETH)`);
+              console.log(
+                `새 입금 감지: ${tx.transactionHash} (${ethAmount} ETH) - 발신자 검증: ${isAllowedSender ? '적합' : '부적합'}`
+              );
             }
           }
         }

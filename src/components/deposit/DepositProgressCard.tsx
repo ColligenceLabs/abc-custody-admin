@@ -152,6 +152,20 @@ export default function DepositProgressCard({
         {/* Expanded Details */}
         {isExpanded && (
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+            {/* 발신지 검증 상태 */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">발신지 검증</span>
+              {deposit.senderVerified ? (
+                <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-sky-50 text-sky-600 border-sky-200">
+                  적합
+                </span>
+              ) : (
+                <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-red-50 text-red-600 border-red-200">
+                  부적합
+                </span>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
                 <div className="text-gray-500 mb-1">발신 주소</div>

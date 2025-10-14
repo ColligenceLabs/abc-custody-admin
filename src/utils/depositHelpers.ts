@@ -148,18 +148,19 @@ export const generateMockDeposits = (count: number = 5): DepositTransaction[] =>
       fromAddress: generateAddress(network, "from"),
       toAddress: generateAddress(network, "to"),
       status,
+      senderVerified: Math.random() > 0.2, // 80% 확률로 검증 통과
       currentConfirmations,
       requiredConfirmations: networkInfo.requiredConfirmations,
       detectedAt: new Date(baseTime).toISOString(),
-      confirmedAt: status === "confirmed" || status === "credited" 
-        ? new Date(baseTime + 10 * 60 * 1000).toISOString() 
+      confirmedAt: status === "confirmed" || status === "credited"
+        ? new Date(baseTime + 10 * 60 * 1000).toISOString()
         : undefined,
-      creditedAt: status === "credited" 
-        ? new Date(baseTime + 20 * 60 * 1000).toISOString() 
+      creditedAt: status === "credited"
+        ? new Date(baseTime + 20 * 60 * 1000).toISOString()
         : undefined,
       estimatedTime: getEstimatedTimeRemaining(
-        currentConfirmations, 
-        networkInfo.requiredConfirmations, 
+        currentConfirmations,
+        networkInfo.requiredConfirmations,
         networkInfo.blockTime
       ),
       blockHeight: Math.floor(Math.random() * 1000000) + 800000,

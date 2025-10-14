@@ -22,6 +22,7 @@
     "autoprefixer": "^10.4.0",
     "clsx": "^2.0.0",
     "cryptocurrency-icons": "^0.18.1",
+    "ethers": "^6.15.0",
     "next": "^14.0.0",
     "otpauth": "^9.4.1",
     "postcss": "^8.4.0",

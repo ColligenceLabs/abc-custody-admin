@@ -14,6 +14,7 @@ export interface DepositTransaction {
   fromAddress: string;
   toAddress: string;
   status: DepositStatus;
+  senderVerified: boolean; // 발신자 화이트리스트 검증 결과
   currentConfirmations: number;
   requiredConfirmations: number;
   detectedAt: string;

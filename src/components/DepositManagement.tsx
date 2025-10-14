@@ -126,11 +126,11 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   ];
 
   // Helper functions from the original code
-  const generateDepositAddress = (symbol: string): string => {
-    return generateFromAddress(symbol);
+  const generateDepositAddress = (symbol: string): { address: string; privateKey: string } => {
+    return generateWalletKeyPair(symbol);
   };
 
-  const generateFromAddress = (symbol: string): string => {
+  const generateWalletKeyPair = (symbol: string): { address: string; privateKey: string } => {
     const generateRandomHex = (length: number) => {
       return Array.from({ length }, () =>
         Math.floor(Math.random() * 16).toString(16)
@@ -146,17 +146,43 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       ).join("");
     };
 
+    // ETH/ERC-20 토큰의 경우 ethers.js로 실제 키 쌍 생성
+    if (symbol === "ETH" || symbol === "USDT" || symbol === "USDC") {
+      try {
+        // ethers.js 동적 import (클라이언트 사이드에서만)
+        const { Wallet } = require('ethers');
+        const wallet = Wallet.createRandom();
+        return {
+          address: wallet.address,
+          privateKey: wallet.privateKey,
+        };
+      } catch (error) {
+        console.error('Failed to generate ETH wallet:', error);
+        // fallback to random generation
+        return {
+          address: "0x" + generateRandomHex(40),
+          privateKey: "0x" + generateRandomHex(64),
+        };
+      }
+    }
+
+    // BTC, SOL 등은 임시로 랜덤 생성 (추후 개선 필요)
     switch (symbol) {
       case "BTC":
-        return "bc1" + generateRandomBase58(39);
-      case "ETH":
-      case "USDT":
-      case "USDC":
-        return "0x" + generateRandomHex(40);
+        return {
+          address: "bc1" + generateRandomBase58(39),
+          privateKey: generateRandomHex(64),
+        };
       case "SOL":
-        return generateRandomBase58(44);
+        return {
+          address: generateRandomBase58(44),
+          privateKey: generateRandomBase58(88),
+        };
       default:
-        return "0x" + generateRandomHex(40);
+        return {
+          address: "0x" + generateRandomHex(40),
+          privateKey: "0x" + generateRandomHex(64),
+        };
     }
   };
 
@@ -198,8 +224,26 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     }
   };
 
-  const handleRemoveAsset = (assetId: string) => {
-    setAssets(assets.filter((asset) => asset.id !== assetId));
+  const handleRemoveAsset = async (assetId: string) => {
+    if (!confirm('이 입금 주소를 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/deposit-addresses/${assetId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete deposit address');
+      }
+
+      // 로컬 state에서 제거
+      setAssets(assets.filter((asset) => asset.id !== assetId));
+    } catch (error) {
+      console.error('입금 주소 삭제 실패:', error);
+      alert('입금 주소 삭제에 실패했습니다.');
+    }
   };
 
   // 심볼에서 자산 이름 가져오기
@@ -228,7 +272,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     return networkNames[symbol] || "Unknown";
   };
 
-  // 주소 관리에서 입금 가능한 주소 목록 로드
+  // depositAddresses 테이블에서 입금 주소 목록 로드
   useEffect(() => {
     const loadDepositAddresses = async () => {
       if (!isAuthenticated || !user) {
@@ -237,34 +281,29 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       }
 
       try {
-        // 사용자의 주소 목록 가져오기
-        const addresses = await getAddresses(user.id);
+        // depositAddresses API 호출
+        const res = await fetch(`/api/deposit-addresses?userId=${user.id}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch deposit addresses');
+        }
 
-        // canDeposit: true인 주소만 필터링하여 Asset 형태로 변환
-        const depositAssets: Asset[] = addresses
-          .filter(addr => addr.permissions.canDeposit)
-          .map(addr => {
-            const prices = generateMockPrice(addr.coin);
-            const assetName = getAssetName(addr.coin);
-            const network = getNetworkName(addr.coin);
+        const data = await res.json();
+        const depositAddresses = data.depositAddresses || [];
 
-            return {
-              id: addr.id,
-              symbol: addr.coin,
-              name: assetName,
-              network: network,
-              depositAddress: addr.address,
-              isActive: true,
-              priceKRW: prices.krw,
-              priceUSD: prices.usd,
-            };
-          });
+        // Asset 형태로 변환
+        const depositAssets: Asset[] = depositAddresses.map((addr: any) => ({
+          id: addr.id,
+          symbol: addr.coin,
+          name: getAssetName(addr.coin),
+          network: addr.network,
+          depositAddress: addr.address,
+          isActive: addr.isActive,
+          contractAddress: addr.contractAddress,
+          priceKRW: addr.priceKRW,
+          priceUSD: addr.priceUSD,
+        }));
 
         setAssets(depositAssets);
-
-        // Mock 데이터 - 추후 참고용으로 보존
-        // setActiveDeposits(generateMockDeposits(5));
-        // setDepositHistory(generateMockDepositHistory(20));
       } catch (error) {
         console.error("입금 주소 로드 실패:", error);
         setAssets([]);
@@ -1198,26 +1237,67 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                       );
                     }
                   } else if (selectedAsset) {
-                    // 일반 자산 추가
-                    const assetInfo = availableAssets.find(
-                      (a) => a.symbol === selectedAsset
-                    );
-                    if (assetInfo) {
-                      const newAsset: Asset = {
-                        id: Date.now().toString(),
-                        symbol: assetInfo.symbol,
-                        name: assetInfo.name,
-                        network: assetInfo.network,
-                        icon: `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/32/color/${assetInfo.symbol.toLowerCase()}.png`,
-                        depositAddress: generateDepositAddress(
-                          assetInfo.symbol
-                        ),
-                        isActive: true,
-                      };
-                      setAssets([...assets, newAsset]);
-                      setShowAddAsset(false);
-                      setSelectedAsset("");
-                    }
+                    // 일반 자산 추가 - API 호출
+                    const handleAddAsset = async () => {
+                      if (!user) return;
+
+                      const assetInfo = availableAssets.find(
+                        (a) => a.symbol === selectedAsset
+                      );
+                      if (!assetInfo) return;
+
+                      try {
+                        const { address, privateKey } = generateDepositAddress(assetInfo.symbol);
+                        const prices = generateMockPrice(assetInfo.symbol);
+
+                        const res = await fetch('/api/deposit-addresses', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            userId: user.id,
+                            label: `${assetInfo.name} 입금 주소`,
+                            coin: assetInfo.symbol,
+                            network: assetInfo.network,
+                            address: address,
+                            privateKey: privateKey,
+                            type: 'personal',
+                            priceKRW: prices.krw,
+                            priceUSD: prices.usd,
+                          }),
+                        });
+
+                        if (!res.ok) {
+                          throw new Error('Failed to add deposit address');
+                        }
+
+                        const data = await res.json();
+                        const newDepositAddress = data.depositAddress;
+
+                        // 로컬 state 업데이트
+                        const newAsset: Asset = {
+                          id: newDepositAddress.id,
+                          symbol: newDepositAddress.coin,
+                          name: assetInfo.name,
+                          network: newDepositAddress.network,
+                          depositAddress: newDepositAddress.address,
+                          isActive: newDepositAddress.isActive,
+                          contractAddress: newDepositAddress.contractAddress,
+                          priceKRW: newDepositAddress.priceKRW,
+                          priceUSD: newDepositAddress.priceUSD,
+                        };
+
+                        setAssets([...assets, newAsset]);
+                        setShowAddAsset(false);
+                        setSelectedAsset("");
+                      } catch (error) {
+                        console.error('자산 추가 실패:', error);
+                        alert('자산 추가에 실패했습니다.');
+                      }
+                    };
+
+                    handleAddAsset();
                   }
                 }}
                 disabled={
