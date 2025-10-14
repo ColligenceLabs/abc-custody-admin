@@ -688,10 +688,10 @@ export default function IDAndAccountVerificationStep({
           </button>
 
           <button
-            onClick={handleCancel}
-            className="flex-1 px-4 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors"
+            onClick={handleSkipVerification}
+            className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
           >
-            인증 취소
+            다음에 하기
           </button>
         </div>
       </div>
@@ -792,6 +792,25 @@ export default function IDAndAccountVerificationStep({
             "모든 인증이 완료되었습니다. 잠시 후 다음 단계로 이동합니다."}
         </p>
       </div>
+
+      {/* 버튼 */}
+      {currentPhase !== "complete" && (
+        <div className="flex space-x-3 mt-4">
+          <button
+            onClick={handleBackToMethodSelection}
+            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            방식 다시 선택
+          </button>
+
+          <button
+            onClick={handleSkipVerification}
+            className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+          >
+            다음에 하기
+          </button>
+        </div>
+      )}
     </div>
   );
 }
