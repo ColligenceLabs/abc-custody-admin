@@ -70,6 +70,8 @@ export default function IDAndAccountVerificationStep({
   const [accountVerified, setAccountVerified] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<'mobile' | 'pc' | null>(null);
   const [qrExpireTime, setQrExpireTime] = useState<number>(600); // 10분 = 600초
+  const [showQrTimeoutPrompt, setShowQrTimeoutPrompt] = useState(false); // QR 타임아웃 프롬프트 표시 여부
+  const [qrWaitingTime, setQrWaitingTime] = useState(0); // QR 대기 시간 (초)
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const KYC_TARGET_ORIGIN = "https://kyc.useb.co.kr";
@@ -80,15 +82,48 @@ export default function IDAndAccountVerificationStep({
     if (currentPhase === "intro") return;
 
     const handleMessage = (e: MessageEvent) => {
-      // 보안: origin 확인
-      if (e.origin !== KYC_TARGET_ORIGIN) {
-        console.log("❌ Origin mismatch:", e.origin, "expected:", KYC_TARGET_ORIGIN);
+      // 보안: origin 확인 (개발 환경 localhost도 허용)
+      const allowedOrigins = [
+        KYC_TARGET_ORIGIN, // https://kyc.useb.co.kr (운영)
+        "http://localhost:3000", // 개발 환경
+        "http://localhost:3001", // 개발 환경 (다른 포트)
+      ];
+
+      if (!allowedOrigins.includes(e.origin)) {
+        console.log("❌ Origin mismatch:", e.origin, "expected:", allowedOrigins);
         return;
       }
 
       console.log("=== 📩 eKYC postMessage 수신 ===");
       console.log("Raw data:", e.data);
       console.log("Origin:", e.origin);
+
+      // postMessage 수신 시 QR 타임아웃 프롬프트 숨김
+      if (currentPhase === 'qr') {
+        console.log("📩 postMessage 수신 - QR 타임아웃 프롬프트 숨김");
+        setShowQrTimeoutPrompt(false);
+      }
+
+      // leave-room 소켓 메시지 처리 (QR 인증 실패 또는 취소)
+      if (typeof e.data === "object" && e.data?.data?.action === "leave-room") {
+        console.log("🚪 leave-room 메시지 수신 - 인증 실패 또는 취소");
+        alert("인증이 취소되었거나 실패했습니다. 다시 시도해주세요.");
+
+        // 초기 화면으로 되돌리기
+        setCurrentPhase("intro");
+        setIdVerified(false);
+        setAccountVerified(false);
+        setMessage({ type: "error", text: "인증이 취소되었습니다. 인증 방식을 다시 선택해주세요." });
+        return;
+      }
+
+      // eKYC 메시지는 base64 인코딩된 문자열이어야 함
+      // MetaMask 같은 브라우저 확장의 메시지는 객체 형태이므로 무시
+      if (typeof e.data !== "string") {
+        console.log("⏭️ 문자열이 아닌 데이터 무시 (타입:", typeof e.data, ")");
+        return;
+      }
+
       console.log("현재 상태 - idVerified:", idVerified, "accountVerified:", accountVerified);
 
       try {
@@ -178,16 +213,32 @@ export default function IDAndAccountVerificationStep({
           }
         } else if (json.result === "failed" && json.review_result) {
           console.log("❌ Failed 메시지 처리");
-          // 자동 거부 (result_type === 2)
-          const phase = json.review_result.module.account_verification
-            ? "계좌"
-            : "신분증";
+
+          const { result_type } = json.review_result;
+          let failMessage = "";
+
+          if (result_type === 2) {
+            // 자동거부
+            failMessage = "인증이 거부되었습니다. 신분증 정보를 확인하고 다시 시도해주세요.";
+          } else if (result_type === 5) {
+            // 수동심사대상
+            failMessage = "추가 검토가 필요합니다. 잠시 후 다시 시도해주세요.";
+          } else {
+            failMessage = "인증에 실패했습니다. 다시 시도해주세요.";
+          }
+
           setMessage({
             type: "error",
-            text: `${phase} 인증이 실패했습니다. 다시 시도해주세요.`,
+            text: failMessage,
           });
+
+          // 사용자에게 명확한 알림
+          alert(failMessage);
+
           console.log(
-            "자동거부 - transaction_id:",
+            "인증 실패 - result_type:",
+            result_type,
+            "transaction_id:",
             json.review_result.transaction_id
           );
 
@@ -302,9 +353,10 @@ export default function IDAndAccountVerificationStep({
           birthday: birthday,
           phone_number: phoneNumber,
           email: initialData.email || "",
-          // Server OCR 사용 (기본값)
-          // isWasmOCRMode 파라미터를 전달하지 않으면 Server OCR이 사용됨
-          // 참고: Wasm OCR 사용 시 postMessage 응답 패턴이 다를 수 있음
+          // Wasm OCR 강제 사용 (PC에서 웹 카메라 활성화를 위해 필요)
+          isWasmOCRMode: "true",
+          // 선택사항: 사본 탐지 활성화 (Wasm OCR 사용 시만 동작)
+          isWasmSSAMode: "true",
         };
 
         console.log("eKYC params (통합 인증):", {
@@ -388,12 +440,12 @@ export default function IDAndAccountVerificationStep({
         // 전화번호에서 하이픈 제거 (01012345678 형식)
         const phoneNumber = (initialData.phone || "").replace(/-/g, "");
 
-        // QR 모드: Demo 샘플과 동일한 credential 사용
-        // customer_id: "5"는 QR 모드 지원
+        // QR 모드: Demo credential 고정 사용
+        // customer_id: "5"는 QR 모드 전용이며 Demo credential과 세트로 사용
         const qrParams = {
           customer_id: "5",
           id: "demoUser",
-          key: "demoUser0000!",  // Demo kyc.js 파일에서 확인된 key
+          key: "demoUser0000!",
           name: initialData.name || "",
           birthday: birthday,
           phone_number: phoneNumber,
@@ -464,6 +516,36 @@ export default function IDAndAccountVerificationStep({
     return () => clearInterval(timer);
   }, [currentPhase]);
 
+  // QR 대기 시간 타이머 (완료 확인 프롬프트용)
+  useEffect(() => {
+    if (currentPhase !== 'qr') {
+      setQrWaitingTime(0);
+      setShowQrTimeoutPrompt(false);
+      return;
+    }
+
+    setQrWaitingTime(0);
+    setShowQrTimeoutPrompt(false);
+
+    console.log("⏱️ QR 대기 시간 타이머 시작 (3분 후 완료 확인 프롬프트 표시)");
+
+    const waitingTimer = setInterval(() => {
+      setQrWaitingTime(prev => {
+        const newTime = prev + 1;
+
+        // 3분(180초) 경과 시 완료 확인 프롬프트 표시
+        if (newTime >= 180 && !showQrTimeoutPrompt) {
+          console.log("⏰ QR 3분 경과 - 완료 확인 프롬프트 표시");
+          setShowQrTimeoutPrompt(true);
+        }
+
+        return newTime;
+      });
+    }, 1000);
+
+    return () => clearInterval(waitingTimer);
+  }, [currentPhase]);
+
   const handleCancel = () => {
     setCurrentPhase("intro");
     setMessage(null);
@@ -507,6 +589,37 @@ export default function IDAndAccountVerificationStep({
         kycMethod: selectedMethod || undefined,
       });
     }, 1500);
+  };
+
+  const handleQrManualComplete = () => {
+    // QR 모드 타임아웃 후 수동 완료
+    console.log("=== QR 수동 완료 버튼 클릭 ===");
+    console.log("대기 시간:", qrWaitingTime, "초");
+
+    setMessage({
+      type: "success",
+      text: "모바일 인증이 완료되었습니다. 다음 단계로 진행합니다.",
+    });
+    setCurrentPhase("complete");
+    setShowQrTimeoutPrompt(false);
+
+    setTimeout(() => {
+      onComplete({
+        idVerified: true,
+        accountVerified: true,
+        kycMethod: 'mobile',
+      });
+    }, 1500);
+  };
+
+  const handleQrRetry = () => {
+    // QR 재시도 - 초기 화면으로 돌아가기
+    console.log("=== QR 재시도 버튼 클릭 ===");
+    setCurrentPhase('intro');
+    setSelectedMethod(null);
+    setMessage(null);
+    setShowQrTimeoutPrompt(false);
+    setQrWaitingTime(0);
   };
 
   // 인증 방식 선택 화면
@@ -750,6 +863,43 @@ export default function IDAndAccountVerificationStep({
             <li>• 인증 중 이 화면을 벗어나지 마세요</li>
           </ul>
         </div>
+
+        {/* 타임아웃 완료 확인 프롬프트 */}
+        {showQrTimeoutPrompt && (
+          <div className="mb-4 p-6 bg-yellow-50 border-2 border-yellow-300 rounded-lg">
+            <div className="text-center mb-4">
+              <ExclamationTriangleIcon className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+              <h4 className="text-base font-semibold text-yellow-900 mb-2">
+                모바일에서 인증을 완료하셨나요?
+              </h4>
+              <p className="text-sm text-yellow-800">
+                모바일에서 모든 인증 단계를 완료했다면 "완료" 버튼을 클릭하세요.
+              </p>
+              <p className="text-xs text-yellow-700 mt-2">
+                아직 진행 중이거나 문제가 있다면 "재시도"를 선택하세요.
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleQrRetry}
+                className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                재시도
+              </button>
+              <button
+                onClick={handleQrManualComplete}
+                className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold"
+              >
+                완료
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 text-center mt-3">
+              대기 시간: {Math.floor(qrWaitingTime / 60)}분 {qrWaitingTime % 60}초
+            </p>
+          </div>
+        )}
 
         {/* 인증 완료 상태 표시 */}
         {(idVerified || accountVerified) && (
