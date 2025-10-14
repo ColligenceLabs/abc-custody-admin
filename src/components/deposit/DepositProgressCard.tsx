@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DepositTransaction } from "@/types/deposit";
 import { getStatusInfo, formatAmount, formatDateTime, getProgressPercentage } from "@/utils/depositHelpers";
+import { getTransactionExplorerUrl } from "@/utils/blockchainExplorer";
 import DepositStatusBadge from "./DepositStatusBadge";
 import { ClockIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
@@ -139,7 +140,7 @@ export default function DepositProgressCard({
               {truncateHash(deposit.txHash)}
             </code>
             <button
-              onClick={() => window.open(`#`, '_blank')}
+              onClick={() => window.open(getTransactionExplorerUrl(deposit.txHash, deposit.network), '_blank')}
               className="p-0.5 text-gray-400 hover:text-gray-600"
               title="블록체인 익스플로러에서 보기"
             >

@@ -262,9 +262,9 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
         setAssets(depositAssets);
 
-        // 초기 Mock 데이터 생성
-        setActiveDeposits(generateMockDeposits(5));
-        setDepositHistory(generateMockDepositHistory(20));
+        // Mock 데이터 - 추후 참고용으로 보존
+        // setActiveDeposits(generateMockDeposits(5));
+        // setDepositHistory(generateMockDepositHistory(20));
       } catch (error) {
         console.error("입금 주소 로드 실패:", error);
         setAssets([]);
@@ -413,63 +413,98 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     updateDepositAddressMaxChars();
   }, []);
 
-  // 실시간 업데이트 시뮬레이션
+  // Mock 실시간 업데이트 시뮬레이션 - 추후 참고용으로 보존
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setActiveDeposits((prevDeposits) =>
+  //       prevDeposits.map((deposit) => {
+  //         if (
+  //           deposit.status === "confirming" &&
+  //           deposit.currentConfirmations < deposit.requiredConfirmations
+  //         ) {
+  //           const newConfirmations = Math.min(
+  //             deposit.currentConfirmations + Math.floor(Math.random() * 2) + 1,
+  //             deposit.requiredConfirmations + 2
+  //           );
+  //           let newStatus = deposit.status as any;
+  //           if (newConfirmations >= deposit.requiredConfirmations) {
+  //             newStatus = Math.random() > 0.1 ? "confirmed" : "credited";
+  //           }
+  //           return {
+  //             ...deposit,
+  //             currentConfirmations: newConfirmations,
+  //             status: newStatus as any,
+  //             confirmedAt:
+  //               newStatus === "confirmed" || newStatus === "credited"
+  //                 ? new Date().toISOString()
+  //                 : deposit.confirmedAt,
+  //             creditedAt:
+  //               newStatus === "credited"
+  //                 ? new Date().toISOString()
+  //                 : deposit.creditedAt,
+  //           };
+  //         }
+  //         if (deposit.status === "confirmed" && Math.random() < 0.3) {
+  //           return {
+  //             ...deposit,
+  //             status: "credited" as any,
+  //             creditedAt: new Date().toISOString(),
+  //           };
+  //         }
+  //         return deposit;
+  //       })
+  //     );
+  //     if (Math.random() < 0.05) {
+  //       const newDeposit = generateMockDeposits(1)[0];
+  //       setActiveDeposits((prev) => [newDeposit, ...prev.slice(0, 9)]);
+  //     }
+  //   }, 5000);
+  //   return () => clearInterval(interval);
+  // }, []);
+
+  // 실제 입금 모니터링 API 호출 (2분 주기 polling)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveDeposits((prevDeposits) =>
-        prevDeposits.map((deposit) => {
-          // 진행 중인 상태만 업데이트
-          if (
-            deposit.status === "confirming" &&
-            deposit.currentConfirmations < deposit.requiredConfirmations
-          ) {
-            const newConfirmations = Math.min(
-              deposit.currentConfirmations + Math.floor(Math.random() * 2) + 1,
-              deposit.requiredConfirmations + 2
-            );
-
-            let newStatus = deposit.status as any;
-            if (newConfirmations >= deposit.requiredConfirmations) {
-              newStatus = Math.random() > 0.1 ? "confirmed" : "credited";
-            }
-
-            return {
-              ...deposit,
-              currentConfirmations: newConfirmations,
-              status: newStatus as any,
-              confirmedAt:
-                newStatus === "confirmed" || newStatus === "credited"
-                  ? new Date().toISOString()
-                  : deposit.confirmedAt,
-              creditedAt:
-                newStatus === "credited"
-                  ? new Date().toISOString()
-                  : deposit.creditedAt,
-            };
-          }
-
-          // confirmed 상태를 credited로 전환
-          if (deposit.status === "confirmed" && Math.random() < 0.3) {
-            return {
-              ...deposit,
-              status: "credited" as any,
-              creditedAt: new Date().toISOString(),
-            };
-          }
-
-          return deposit;
-        })
-      );
-
-      // 새로운 입금 감지 시뮬레이션 (5% 확률)
-      if (Math.random() < 0.05) {
-        const newDeposit = generateMockDeposits(1)[0];
-        setActiveDeposits((prev) => [newDeposit, ...prev.slice(0, 9)]); // 최대 10개 유지
+    const fetchDeposits = async () => {
+      if (!isAuthenticated || !user) {
+        return;
       }
-    }, 5000); // 5초마다 업데이트
+
+      try {
+        // 1. 모니터링 API 호출 (신규 입금 감지 + 확인 수 업데이트)
+        await fetch('/api/deposits/monitor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+
+        // 2. 진행 중인 입금 조회
+        const activeRes = await fetch(`/api/deposits/active?userId=${user.id}`);
+        if (activeRes.ok) {
+          const activeData = await activeRes.json();
+          setActiveDeposits(activeData);
+        }
+
+        // 3. 입금 히스토리 조회
+        const historyRes = await fetch(`/api/deposits/history?userId=${user.id}&page=1&limit=20`);
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setDepositHistory(historyData.deposits || []);
+        }
+      } catch (error) {
+        console.error('입금 모니터링 실패:', error);
+      }
+    };
+
+    // 초기 로드
+    fetchDeposits();
+
+    // 2분마다 polling (rate limit 고려)
+    const interval = setInterval(fetchDeposits, 120000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user, isAuthenticated]);
 
   // 컨트랙트 주소 변경 감지 및 가격 피드 조회
   useEffect(() => {
