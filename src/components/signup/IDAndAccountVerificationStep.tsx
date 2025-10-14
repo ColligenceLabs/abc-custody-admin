@@ -81,20 +81,31 @@ export default function IDAndAccountVerificationStep({
 
     const handleMessage = (e: MessageEvent) => {
       // 보안: origin 확인
-      if (e.origin !== KYC_TARGET_ORIGIN) return;
+      if (e.origin !== KYC_TARGET_ORIGIN) {
+        console.log("❌ Origin mismatch:", e.origin, "expected:", KYC_TARGET_ORIGIN);
+        return;
+      }
 
-      console.log("eKYC response", e.data);
-      console.log("origin :", e.origin);
+      console.log("=== 📩 eKYC postMessage 수신 ===");
+      console.log("Raw data:", e.data);
+      console.log("Origin:", e.origin);
+      console.log("현재 상태 - idVerified:", idVerified, "accountVerified:", accountVerified);
 
       try {
         const decodedData = decodeURIComponent(atob(e.data));
         const json: EKYCResponse = JSON.parse(decodedData);
-        console.log("decoded json", json);
+        console.log("📦 Decoded JSON:", JSON.stringify(json, null, 2));
+        console.log("Result:", json.result);
+        console.log("Review Result:", json.review_result);
 
         // 1차 postMessage: 인증 결과 데이터 (success/failed + review_result)
         if (json.result === "success" && json.review_result) {
+          console.log("✅ Success 메시지 처리 시작");
           const { result_type, transaction_id, module, account } =
             json.review_result;
+
+          console.log("Module 상태:", module);
+          console.log("Account 상태:", account);
 
           // 신분증 인증 완료 확인
           if (
@@ -102,6 +113,7 @@ export default function IDAndAccountVerificationStep({
             module.face_authentication &&
             !idVerified
           ) {
+            console.log("🆔 신분증 인증 완료 조건 충족");
             setIdVerified(true);
             setCurrentPhase("account");
             setMessage({
@@ -109,6 +121,8 @@ export default function IDAndAccountVerificationStep({
               text: "신분증 인증이 완료되었습니다. 계좌 인증을 진행합니다.",
             });
             console.log("신분증 인증 완료 - transaction_id:", transaction_id);
+          } else {
+            console.log("⏭️ 신분증 인증 조건 미충족 - id_card_verification:", module.id_card_verification, "face_authentication:", module.face_authentication, "idVerified:", idVerified);
           }
 
           // 계좌 인증 완료 확인
@@ -117,6 +131,7 @@ export default function IDAndAccountVerificationStep({
             account?.verified &&
             !accountVerified
           ) {
+            console.log("💳 계좌 인증 완료 조건 충족");
             setAccountVerified(true);
 
             if (result_type === 1) {
@@ -139,7 +154,7 @@ export default function IDAndAccountVerificationStep({
 
             // 신분증과 계좌 인증이 모두 완료되면 자동으로 다음 단계로 진행
             if (idVerified) {
-              console.log("=== 모든 인증 완료, 자동으로 다음 단계 진행 ===");
+              console.log("🎉 === 모든 인증 완료, 자동으로 다음 단계 진행 ===");
               setMessage({
                 type: "success",
                 text: "eKYC 인증이 모두 완료되었습니다!",
@@ -148,15 +163,21 @@ export default function IDAndAccountVerificationStep({
               setCurrentPhase("complete");
 
               setTimeout(() => {
+                console.log("⏰ onComplete 호출");
                 onComplete({
                   idVerified: true,
                   accountVerified: true,
                   kycMethod: selectedMethod || undefined,
                 });
               }, 1500);
+            } else {
+              console.log("⚠️ 계좌 인증 완료했으나 신분증 인증 미완료 - idVerified:", idVerified);
             }
+          } else {
+            console.log("⏭️ 계좌 인증 조건 미충족 - account_verification:", module.account_verification, "verified:", account?.verified, "accountVerified:", accountVerified);
           }
         } else if (json.result === "failed" && json.review_result) {
+          console.log("❌ Failed 메시지 처리");
           // 자동 거부 (result_type === 2)
           const phase = json.review_result.module.account_verification
             ? "계좌"
@@ -172,6 +193,7 @@ export default function IDAndAccountVerificationStep({
 
           // 2차 postMessage: UI 처리 (complete/close)
         } else if (json.result === "complete") {
+          console.log("🎊 Complete 메시지 처리");
           // 전체 인증 완료
           setMessage({
             type: "success",
@@ -182,6 +204,7 @@ export default function IDAndAccountVerificationStep({
 
           // 인증 완료 후 다음 단계로 이동
           setTimeout(() => {
+            console.log("⏰ onComplete 호출 (complete 메시지)");
             onComplete({
               idVerified: true,
               accountVerified: true,
@@ -189,12 +212,15 @@ export default function IDAndAccountVerificationStep({
             });
           }, 1500);
         } else if (json.result === "close") {
+          console.log("🚪 Close 메시지 처리");
           // 인증 중단 또는 이탈
           setMessage({ type: "error", text: "eKYC 인증이 중단되었습니다." });
           setCurrentPhase("intro");
           setLoading(false);
           setIdVerified(false);
           setAccountVerified(false);
+        } else {
+          console.log("⚠️ 알 수 없는 result 타입:", json.result);
         }
       } catch (error) {
         console.error("eKYC 응답 처리 오류:", error);
