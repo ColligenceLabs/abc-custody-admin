@@ -26,7 +26,7 @@ const DEFAULT_SECURITY_POLICY: SecurityPolicy = {
   authenticatorRequired: true,
   smsRequired: true,
   ipWhitelistEnabled: false,
-  sessionTimeout: 30, // 30분
+  sessionTimeout: 20, // 20분 (활동 기반)
   maxAttempts: 5
 }
 

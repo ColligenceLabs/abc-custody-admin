@@ -299,6 +299,9 @@ export default function DepositHistoryTable({
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-20">
                       확인수
                     </th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
+                      Vault 전송
+                    </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase w-24">
                       작업
                     </th>
@@ -392,6 +395,23 @@ export default function DepositHistoryTable({
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {deposit.currentConfirmations}/{deposit.requiredConfirmations}
+                      </td>
+                      <td className="px-6 py-4">
+                        {deposit.vaultTransferred ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-sky-50 text-sky-600 border-sky-200">
+                            전송 완료
+                          </span>
+                        ) : deposit.latestVaultTransfer ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-yellow-50 text-yellow-600 border-yellow-200">
+                            {deposit.latestVaultTransfer.status === 'pending' ? '전송 대기' :
+                             deposit.latestVaultTransfer.status === 'sent' ? '전송 중' :
+                             deposit.latestVaultTransfer.status === 'failed' ? '전송 실패' : '처리 중'}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full border bg-gray-50 text-gray-600 border-gray-200">
+                            전송 전
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <button

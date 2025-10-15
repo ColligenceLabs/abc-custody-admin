@@ -1,9 +1,25 @@
-export type DepositStatus = 
+export type DepositStatus =
   | "detected"      // 블록체인에서 감지됨
   | "confirming"    // 컨펌 진행 중
   | "confirmed"     // 컨펌 완료
   | "credited"      // 입금 처리 완료
   | "failed";       // 실패
+
+export type VaultTransferStatus =
+  | "pending"       // 전송 대기
+  | "sent"          // 전송 완료
+  | "confirmed"     // 컨펌 완료
+  | "failed";       // 실패
+
+export interface VaultTransfer {
+  id: string;
+  status: VaultTransferStatus;
+  txHash: string | null;
+  feeAmount: string | null;
+  feeRate: string | null;
+  transferredAt: string | null;
+  confirmedAt: string | null;
+}
 
 export interface DepositTransaction {
   id: string;
@@ -29,6 +45,8 @@ export interface DepositTransaction {
 export interface DepositHistory extends DepositTransaction {
   valueInKRW?: number;
   valueInUSD?: number;
+  vaultTransferred?: boolean;
+  latestVaultTransfer?: VaultTransfer | null;
 }
 
 export interface DepositStatistics {

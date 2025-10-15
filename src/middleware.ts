@@ -22,13 +22,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // 세션 유효성 검증 (간단한 체크)
+  // 세션 유효성 검증 (활동 기반 타임아웃)
   try {
     const sessionData = JSON.parse(authSession.value)
-    const sessionTimeout = 24 * 60 * 60 * 1000 // 24시간 (기본값)
+    // 기본 타임아웃: 20분 (SecurityPolicyContext와 동기화)
+    // AuthContext에서 사용자 활동 시 timestamp가 자동 갱신됨
+    const sessionTimeout = 20 * 60 * 1000 // 20분 (활동 기반)
 
     if (Date.now() - sessionData.timestamp > sessionTimeout) {
-      // 세션 만료
+      // 세션 만료 (마지막 활동으로부터 20분 경과)
       const response = NextResponse.redirect(new URL('/login', request.url))
       response.cookies.delete('auth_session')
       return response

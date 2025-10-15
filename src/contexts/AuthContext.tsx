@@ -629,6 +629,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login')
   }
 
+  // 세션 timestamp 갱신 (활동 기반 세션 유지)
+  const updateSessionTimestamp = useCallback(() => {
+    const token = localStorage.getItem('token')
+    const sessionData = localStorage.getItem('auth_session')
+
+    if (sessionData && token && isAuthenticated) {
+      try {
+        const session = JSON.parse(sessionData)
+        const updatedSession = {
+          ...session,
+          timestamp: Date.now() // 현재 시각으로 갱신
+        }
+
+        localStorage.setItem('auth_session', JSON.stringify(updatedSession))
+
+        const sessionTimeout = getSessionTimeoutMs()
+        document.cookie = `auth_session=${JSON.stringify(updatedSession)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+      } catch (error) {
+        console.error('세션 갱신 실패:', error)
+      }
+    }
+  }, [getSessionTimeoutMs, isAuthenticated])
+
   const resetAuth = () => {
     const requiredSteps = getRequiredAuthSteps()
     setAuthStep({
@@ -763,6 +786,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 대시보드로 이동
     router.push('/overview')
   }
+
+  // 사용자 활동 감지 및 세션 갱신 (throttle 적용)
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    let throttleTimer: NodeJS.Timeout | null = null
+    const THROTTLE_INTERVAL = 60000 // 1분마다만 갱신 (과도한 갱신 방지)
+
+    const handleActivity = () => {
+      if (!throttleTimer) {
+        updateSessionTimestamp()
+        throttleTimer = setTimeout(() => {
+          throttleTimer = null
+        }, THROTTLE_INTERVAL)
+      }
+    }
+
+    // 사용자 활동 이벤트 감지
+    window.addEventListener('mousemove', handleActivity)
+    window.addEventListener('keydown', handleActivity)
+    window.addEventListener('click', handleActivity)
+    window.addEventListener('scroll', handleActivity)
+
+    return () => {
+      window.removeEventListener('mousemove', handleActivity)
+      window.removeEventListener('keydown', handleActivity)
+      window.removeEventListener('click', handleActivity)
+      window.removeEventListener('scroll', handleActivity)
+      if (throttleTimer) clearTimeout(throttleTimer)
+    }
+  }, [isAuthenticated, updateSessionTimestamp])
 
   return (
     <AuthContext.Provider
