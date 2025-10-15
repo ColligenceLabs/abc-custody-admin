@@ -106,6 +106,13 @@ export const getNetworkInfo = (network: string) => {
         requiredConfirmations: 12,
         explorerUrl: "https://etherscan.io/tx/"
       };
+    case "holesky":
+      return {
+        name: "Holesky",
+        blockTime: 1,
+        requiredConfirmations: 12,
+        explorerUrl: "https://holesky.etherscan.io/tx/"
+      };
     case "solana":
       return {
         name: "Solana",

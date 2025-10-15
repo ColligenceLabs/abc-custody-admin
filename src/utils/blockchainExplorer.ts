@@ -4,7 +4,7 @@
  */
 
 type BlockchainEnv = 'testnet' | 'mainnet';
-type NetworkType = 'Ethereum' | 'Bitcoin' | 'Solana' | 'Sepolia';
+type NetworkType = 'Ethereum' | 'Bitcoin' | 'Solana' | 'Holesky';
 
 interface ExplorerConfig {
   baseUrl: string;
@@ -28,21 +28,21 @@ const EXPLORER_CONFIGS: Record<NetworkType, Record<BlockchainEnv, ExplorerConfig
       blockPath: '/block',
     },
     testnet: {
-      baseUrl: 'https://sepolia.etherscan.io',
+      baseUrl: 'https://holesky.etherscan.io',
       txPath: '/tx',
       addressPath: '/address',
       blockPath: '/block',
     },
   },
-  Sepolia: {
+  Holesky: {
     mainnet: {
-      baseUrl: 'https://etherscan.io', // Sepolia는 testnet이지만 fallback
+      baseUrl: 'https://etherscan.io', // Holesky는 testnet이지만 fallback
       txPath: '/tx',
       addressPath: '/address',
       blockPath: '/block',
     },
     testnet: {
-      baseUrl: 'https://sepolia.etherscan.io',
+      baseUrl: 'https://holesky.etherscan.io',
       txPath: '/tx',
       addressPath: '/address',
       blockPath: '/block',
@@ -87,8 +87,8 @@ const getExplorerConfig = (network: string): ExplorerConfig => {
   // 네트워크 이름 정규화
   let normalizedNetwork: NetworkType;
 
-  if (network.toLowerCase().includes('sepolia')) {
-    normalizedNetwork = 'Sepolia';
+  if (network.toLowerCase().includes('holesky')) {
+    normalizedNetwork = 'Holesky';
   } else if (network.toLowerCase().includes('ethereum') || network.toLowerCase().includes('eth')) {
     normalizedNetwork = 'Ethereum';
   } else if (network.toLowerCase().includes('bitcoin') || network.toLowerCase().includes('btc')) {
@@ -106,7 +106,7 @@ const getExplorerConfig = (network: string): ExplorerConfig => {
 /**
  * 트랜잭션 Explorer URL 생성
  * @param txHash - 트랜잭션 해시
- * @param network - 네트워크 이름 (예: "Ethereum", "Sepolia", "Bitcoin")
+ * @param network - 네트워크 이름 (예: "Ethereum", "Holesky", "Bitcoin")
  * @returns Explorer URL
  */
 export const getTransactionExplorerUrl = (txHash: string, network: string): string => {
@@ -165,14 +165,14 @@ export const getCurrentBlockchainEnv = (): BlockchainEnv => {
 /**
  * 네트워크 표시 이름 가져오기 (환경 포함)
  * @param network - 네트워크 이름
- * @returns 표시 이름 (예: "Ethereum Mainnet", "Sepolia Testnet")
+ * @returns 표시 이름 (예: "Ethereum Mainnet", "Holesky Testnet")
  */
 export const getNetworkDisplayName = (network: string): string => {
   const env = getBlockchainEnv();
   const envName = env === 'mainnet' ? 'Mainnet' : 'Testnet';
 
-  if (network.toLowerCase().includes('sepolia')) {
-    return `Sepolia ${envName}`;
+  if (network.toLowerCase().includes('holesky')) {
+    return `Holesky ${envName}`;
   } else if (network.toLowerCase().includes('ethereum') || network.toLowerCase().includes('eth')) {
     return `Ethereum ${envName}`;
   } else if (network.toLowerCase().includes('bitcoin') || network.toLowerCase().includes('btc')) {
