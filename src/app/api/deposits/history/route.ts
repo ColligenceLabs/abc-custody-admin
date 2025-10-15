@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 /**
  * 입금 히스토리 조회 API
@@ -21,28 +21,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // json-server 페이지네이션: _page, _limit
-    // 정렬: _sort, _order
+    // 백엔드 API 호출
     const res = await fetch(
-      `${API_URL}/deposits?userId=${userId}&status=confirmed&status=credited&_sort=confirmedAt&_order=desc&_page=${page}&_limit=${limit}`
+      `${API_URL}/api/deposits?userId=${userId}&page=${page}&limit=${limit}`
     );
 
     if (!res.ok) {
       throw new Error('Failed to fetch deposit history');
     }
 
-    const deposits = await res.json();
+    const data = await res.json();
 
-    // json-server는 Link 헤더로 페이지네이션 정보 제공
-    const totalCount = res.headers.get('X-Total-Count');
+    // 백엔드에서 페이지네이션 정보를 포함한 응답 반환
+    // confirmed 또는 credited 상태만 필터링
+    const filteredDeposits = Array.isArray(data)
+      ? data.filter((d: any) => d.status === 'confirmed' || d.status === 'credited')
+      : data.deposits?.filter((d: any) => d.status === 'confirmed' || d.status === 'credited') || [];
 
     return NextResponse.json({
-      deposits,
-      pagination: {
+      deposits: filteredDeposits,
+      pagination: data.pagination || {
         page,
         limit,
-        totalCount: totalCount ? parseInt(totalCount) : deposits.length,
-        totalPages: totalCount ? Math.ceil(parseInt(totalCount) / limit) : 1,
+        totalCount: filteredDeposits.length,
+        totalPages: Math.ceil(filteredDeposits.length / limit),
       },
     });
   } catch (error) {

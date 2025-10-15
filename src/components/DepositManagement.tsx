@@ -26,6 +26,8 @@ import { getAddresses } from "@/utils/addressApi";
 import { WhitelistedAddress } from "@/types/address";
 import { QRCodeSVG } from "qrcode.react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 interface DepositManagementProps {
   plan: ServicePlan;
 }
@@ -126,65 +128,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   ];
 
   // Helper functions from the original code
-  const generateDepositAddress = (symbol: string): { address: string; privateKey: string } => {
-    return generateWalletKeyPair(symbol);
-  };
-
-  const generateWalletKeyPair = (symbol: string): { address: string; privateKey: string } => {
-    const generateRandomHex = (length: number) => {
-      return Array.from({ length }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join("");
-    };
-
-    const generateRandomBase58 = (length: number) => {
-      const chars =
-        "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-      return Array.from(
-        { length },
-        () => chars[Math.floor(Math.random() * chars.length)]
-      ).join("");
-    };
-
-    // ETH/ERC-20 토큰의 경우 ethers.js로 실제 키 쌍 생성
-    if (symbol === "ETH" || symbol === "USDT" || symbol === "USDC") {
-      try {
-        // ethers.js 동적 import (클라이언트 사이드에서만)
-        const { Wallet } = require('ethers');
-        const wallet = Wallet.createRandom();
-        return {
-          address: wallet.address,
-          privateKey: wallet.privateKey,
-        };
-      } catch (error) {
-        console.error('Failed to generate ETH wallet:', error);
-        // fallback to random generation
-        return {
-          address: "0x" + generateRandomHex(40),
-          privateKey: "0x" + generateRandomHex(64),
-        };
-      }
-    }
-
-    // BTC, SOL 등은 임시로 랜덤 생성 (추후 개선 필요)
-    switch (symbol) {
-      case "BTC":
-        return {
-          address: "bc1" + generateRandomBase58(39),
-          privateKey: generateRandomHex(64),
-        };
-      case "SOL":
-        return {
-          address: generateRandomBase58(44),
-          privateKey: generateRandomBase58(88),
-        };
-      default:
-        return {
-          address: "0x" + generateRandomHex(40),
-          privateKey: "0x" + generateRandomHex(64),
-        };
-    }
-  };
 
   const generateMockPrice = (symbol: string): { krw: number; usd: number } => {
     const mockPrices: { [key: string]: { krw: number; usd: number } } = {
@@ -230,8 +173,14 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     }
 
     try {
-      const res = await fetch(`/api/deposit-addresses/${assetId}`, {
+      // JWT 토큰 가져오기
+      const token = localStorage.getItem('token');
+
+      const res = await fetch(`${API_BASE_URL}/api/depositAddresses/${assetId}`, {
         method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
       });
 
       if (!res.ok) {
@@ -282,13 +231,13 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
       try {
         // depositAddresses API 호출
-        const res = await fetch(`/api/deposit-addresses?userId=${user.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/depositAddresses?userId=${user.id}`);
         if (!res.ok) {
           throw new Error('Failed to fetch deposit addresses');
         }
 
         const data = await res.json();
-        const depositAddresses = data.depositAddresses || [];
+        const depositAddresses = Array.isArray(data) ? data : (data.depositAddresses || []);
 
         // Asset 형태로 변환
         const depositAssets: Asset[] = depositAddresses.map((addr: any) => ({
@@ -501,7 +450,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   //   return () => clearInterval(interval);
   // }, []);
 
-  // 실제 입금 모니터링 API 호출 (2분 주기 polling)
+  // 진행 중인 입금 및 히스토리 조회 (30초 주기 polling)
   useEffect(() => {
     const fetchDeposits = async () => {
       if (!isAuthenticated || !user) {
@@ -509,38 +458,29 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       }
 
       try {
-        // 1. 모니터링 API 호출 (신규 입금 감지 + 확인 수 업데이트)
-        await fetch('/api/deposits/monitor', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
-        });
-
-        // 2. 진행 중인 입금 조회
-        const activeRes = await fetch(`/api/deposits/active?userId=${user.id}`);
+        // 1. 진행 중인 입금 조회 (백엔드 크롤러가 자동으로 모니터링)
+        const activeRes = await fetch(`${API_BASE_URL}/api/deposits/active?userId=${user.id}`);
         if (activeRes.ok) {
           const activeData = await activeRes.json();
           setActiveDeposits(activeData);
         }
 
-        // 3. 입금 히스토리 조회
-        const historyRes = await fetch(`/api/deposits/history?userId=${user.id}&page=1&limit=20`);
+        // 2. 입금 히스토리 조회
+        const historyRes = await fetch(`${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=1&limit=20`);
         if (historyRes.ok) {
           const historyData = await historyRes.json();
           setDepositHistory(historyData.deposits || []);
         }
       } catch (error) {
-        console.error('입금 모니터링 실패:', error);
+        console.error('입금 데이터 조회 실패:', error);
       }
     };
 
     // 초기 로드
     fetchDeposits();
 
-    // 2분마다 polling (rate limit 고려)
-    const interval = setInterval(fetchDeposits, 120000);
+    // 30초마다 polling (백엔드 크롤러가 3분마다 실행되므로 30초면 충분)
+    const interval = setInterval(fetchDeposits, 30000);
 
     return () => clearInterval(interval);
   }, [user, isAuthenticated]);
@@ -807,11 +747,16 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                   showCustomERC20 ? "grid-cols-6" : "grid-cols-3"
                 }`}
               >
-                {filteredAvailableAssets.map((asset) => (
+                {filteredAvailableAssets.map((asset) => {
+                  // 이미 추가된 자산인지 확인
+                  const isAlreadyAdded = assets.some(a => a.symbol === asset.symbol && a.isActive);
+
+                  return (
                   <button
                     key={asset.symbol}
                     type="button"
                     onClick={() => {
+                      if (isAlreadyAdded) return; // 이미 추가된 자산은 클릭 방지
                       setSelectedAsset(asset.symbol);
                       setShowCustomERC20(asset.symbol === "CUSTOM_ERC20");
                       if (asset.symbol !== "CUSTOM_ERC20") {
@@ -829,10 +774,13 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         setIsCheckingPriceFeed(false);
                       }
                     }}
-                    className={`p-3 border-2 rounded-lg transition-all duration-200 hover:shadow-md ${
-                      selectedAsset === asset.symbol
-                        ? "border-primary-500 bg-primary-50 text-primary-700"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                    disabled={isAlreadyAdded}
+                    className={`p-3 border-2 rounded-lg transition-all duration-200 relative ${
+                      isAlreadyAdded
+                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : selectedAsset === asset.symbol
+                        ? "border-primary-500 bg-primary-50 text-primary-700 hover:shadow-md"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-md"
                     }`}
                   >
                     <div className="flex flex-col items-center space-y-1.5">
@@ -875,9 +823,15 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                             : asset.name}
                         </div>
                       </div>
+                      {isAlreadyAdded && (
+                        <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
+                          추가됨
+                        </div>
+                      )}
                     </div>
                   </button>
-                ))}
+                );
+                })}
               </div>
             </div>
 
@@ -1247,21 +1201,22 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                       if (!assetInfo) return;
 
                       try {
-                        const { address, privateKey } = generateDepositAddress(assetInfo.symbol);
                         const prices = generateMockPrice(assetInfo.symbol);
 
-                        const res = await fetch('/api/deposit-addresses', {
+                        // JWT 토큰 가져오기
+                        const token = localStorage.getItem('token');
+
+                        const res = await fetch(`${API_BASE_URL}/api/depositAddresses`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
+                            ...(token && { 'Authorization': `Bearer ${token}` }),
                           },
                           body: JSON.stringify({
                             userId: user.id,
                             label: `${assetInfo.name} 입금 주소`,
                             coin: assetInfo.symbol,
                             network: assetInfo.network,
-                            address: address,
-                            privateKey: privateKey,
                             type: 'personal',
                             priceKRW: prices.krw,
                             priceUSD: prices.usd,
@@ -1269,11 +1224,16 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         });
 
                         if (!res.ok) {
-                          throw new Error('Failed to add deposit address');
+                          const errorData = await res.json();
+                          if (res.status === 409) {
+                            alert(errorData.message || `${assetInfo.symbol} 자산은 이미 추가되었습니다.`);
+                          } else {
+                            throw new Error(errorData.message || 'Failed to add deposit address');
+                          }
+                          return;
                         }
 
-                        const data = await res.json();
-                        const newDepositAddress = data.depositAddress;
+                        const newDepositAddress = await res.json();
 
                         // 로컬 state 업데이트
                         const newAsset: Asset = {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 /**
  * 진행 중인 입금 조회 API
@@ -18,19 +18,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // json-server에서 여러 status 필터링은 OR 조건으로 동작
-    // status=detected&status=confirming 형태로 조회
+    // 백엔드 API 호출
     const res = await fetch(
-      `${API_URL}/deposits?userId=${userId}&status=detected&status=confirming&_sort=detectedAt&_order=desc`
+      `${API_URL}/api/deposits?userId=${userId}`
     );
 
     if (!res.ok) {
       throw new Error('Failed to fetch active deposits');
     }
 
-    const deposits = await res.json();
+    const data = await res.json();
 
-    return NextResponse.json(deposits);
+    // detected 또는 confirming 상태만 필터링
+    const activeDeposits = Array.isArray(data)
+      ? data.filter((d: any) => d.status === 'detected' || d.status === 'confirming')
+      : data.deposits?.filter((d: any) => d.status === 'detected' || d.status === 'confirming') || [];
+
+    return NextResponse.json(activeDeposits);
   } catch (error) {
     console.error('진행 중인 입금 조회 오류:', error);
     return NextResponse.json(
