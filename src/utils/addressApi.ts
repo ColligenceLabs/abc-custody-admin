@@ -1,7 +1,7 @@
 import { WhitelistedAddress } from "@/types/address";
 
-// json-server API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// 새 백엔드 API 기본 URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 /**
  * 주소 목록 조회
@@ -19,7 +19,7 @@ export async function getAddresses(
     if (type) params.append("type", type);
 
     const queryString = params.toString();
-    const url = `${API_BASE_URL}/addresses${queryString ? `?${queryString}` : ""}`;
+    const url = `${API_BASE_URL}/api/addresses${queryString ? `?${queryString}` : ""}`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -55,7 +55,7 @@ export async function getAddressById(
   id: string
 ): Promise<WhitelistedAddress | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/addresses/${id}`);
+    const response = await fetch(`${API_BASE_URL}/api/addresses/${id}`);
     if (!response.ok) {
       if (response.status === 404) return null;
       throw new Error(`주소 조회 실패: ${response.status}`);
@@ -79,17 +79,19 @@ export async function createAddress(
   }
 ): Promise<WhitelistedAddress> {
   try {
+    // JWT 토큰 가져오기
+    const token = localStorage.getItem('token');
+
     const newAddress = {
       ...address,
-      id: `addr_${address.type}_${Date.now()}`,
-      addedAt: new Date().toISOString(),
-      txCount: 0,
+      // 백엔드에서 id, addedAt, txCount를 자동 생성하므로 제거
     };
 
-    const response = await fetch(`${API_BASE_URL}/addresses`, {
+    const response = await fetch(`${API_BASE_URL}/api/addresses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` }),
       },
       body: JSON.stringify(newAddress),
     });
@@ -116,10 +118,14 @@ export async function updateAddress(
   updates: Partial<WhitelistedAddress>
 ): Promise<WhitelistedAddress> {
   try {
-    const response = await fetch(`${API_BASE_URL}/addresses/${id}`, {
+    // JWT 토큰 가져오기
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(`${API_BASE_URL}/api/addresses/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` }),
       },
       body: JSON.stringify(updates),
     });
@@ -142,8 +148,14 @@ export async function updateAddress(
  */
 export async function deleteAddress(id: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/addresses/${id}`, {
+    // JWT 토큰 가져오기
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(`${API_BASE_URL}/api/addresses/${id}`, {
       method: "DELETE",
+      headers: {
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      },
     });
 
     if (!response.ok) {
@@ -170,30 +182,27 @@ export async function updateDailyUsage(
   withdrawalAmount?: number
 ): Promise<WhitelistedAddress> {
   try {
-    // 현재 주소 정보 조회
-    const address = await getAddressById(id);
-    if (!address) {
-      throw new Error(`주소를 찾을 수 없습니다 (ID: ${id})`);
+    // JWT 토큰 가져오기
+    const token = localStorage.getItem('token');
+
+    // 백엔드 API에 직접 요청 (백엔드에서 자동 리셋 처리)
+    const response = await fetch(`${API_BASE_URL}/api/addresses/${id}/daily-usage`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      },
+      body: JSON.stringify({
+        depositAmount,
+        withdrawalAmount,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`일일 사용량 업데이트 실패: ${response.status}`);
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const currentUsage = address.dailyUsage;
-
-    // 날짜가 바뀌었으면 리셋
-    const shouldReset = !currentUsage || currentUsage.date !== today;
-
-    const newUsage = {
-      date: today,
-      depositAmount: shouldReset
-        ? depositAmount || 0
-        : (currentUsage?.depositAmount || 0) + (depositAmount || 0),
-      withdrawalAmount: shouldReset
-        ? withdrawalAmount || 0
-        : (currentUsage?.withdrawalAmount || 0) + (withdrawalAmount || 0),
-      lastResetAt: shouldReset ? new Date().toISOString() : currentUsage!.lastResetAt,
-    };
-
-    return updateAddress(id, { dailyUsage: newUsage });
+    return response.json();
   } catch (error) {
     console.error(`일일 사용량 업데이트 에러 (ID: ${id}):`, error);
     throw error;

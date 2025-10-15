@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 /**
  * DELETE /api/deposit-addresses/[id]
@@ -20,8 +20,11 @@ export async function DELETE(
       );
     }
 
+    // JWT 토큰 가져오기
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+
     // 입금 주소 존재 확인
-    const checkRes = await fetch(`${API_URL}/depositAddresses/${id}`);
+    const checkRes = await fetch(`${API_URL}/api/depositAddresses/${id}`);
     if (!checkRes.ok) {
       return NextResponse.json(
         { error: 'Deposit address not found' },
@@ -30,10 +33,11 @@ export async function DELETE(
     }
 
     // Soft delete: isActive를 false로 업데이트
-    const res = await fetch(`${API_URL}/depositAddresses/${id}`, {
+    const res = await fetch(`${API_URL}/api/depositAddresses/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
       },
       body: JSON.stringify({
         isActive: false,

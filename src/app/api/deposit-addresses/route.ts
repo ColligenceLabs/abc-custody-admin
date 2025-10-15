@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 interface DepositAddress {
   id: string;
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     const res = await fetch(
-      `${API_URL}/depositAddresses?userId=${userId}&isActive=true&_sort=addedAt&_order=desc`
+      `${API_URL}/api/depositAddresses?userId=${userId}&isActive=true`
     );
 
     if (!res.ok) {
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/deposit-addresses
- * 새로운 입금 주소 등록
+ * 새로운 입금 주소 등록 (백엔드에서 지갑 생성)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -68,8 +68,6 @@ export async function POST(request: NextRequest) {
       label,
       coin,
       network,
-      address,
-      privateKey,
       type = 'personal',
       contractAddress = null,
       priceKRW,
@@ -77,62 +75,49 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // 필수 필드 검증
-    if (!userId || !label || !coin || !network || !address) {
+    if (!userId || !coin || !network) {
       return NextResponse.json(
-        { error: 'Required fields: userId, label, coin, network, address' },
+        { error: 'Required fields: userId, coin, network' },
         { status: 400 }
       );
     }
 
-    // 중복 주소 확인
-    const existingRes = await fetch(
-      `${API_URL}/depositAddresses?userId=${userId}&address=${address}`
-    );
-    const existing = await existingRes.json();
+    // JWT 토큰 가져오기
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
-    if (existing.length > 0) {
-      return NextResponse.json(
-        { error: 'Address already exists' },
-        { status: 409 }
-      );
-    }
-
-    // 새 입금 주소 생성
-    const newDepositAddress: DepositAddress = {
-      id: `dep_addr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId,
-      label,
-      coin,
-      network,
-      address,
-      privateKey,
-      type,
-      isActive: true,
-      addedAt: new Date().toISOString(),
-      contractAddress,
-      priceKRW,
-      priceUSD,
-    };
-
-    // DB에 저장
-    const res = await fetch(`${API_URL}/depositAddresses`, {
+    // 백엔드로 요청 (백엔드에서 지갑 생성 및 중복 검증)
+    const res = await fetch(`${API_URL}/api/depositAddresses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
       },
-      body: JSON.stringify(newDepositAddress),
+      body: JSON.stringify({
+        userId,
+        label,
+        coin,
+        network,
+        type,
+        contractAddress,
+        priceKRW,
+        priceUSD,
+      }),
     });
 
     if (!res.ok) {
-      throw new Error('Failed to create deposit address');
+      const errorData = await res.json();
+      return NextResponse.json(
+        {
+          error: errorData.error || 'Failed to create deposit address',
+          message: errorData.message,
+        },
+        { status: res.status }
+      );
     }
 
     const depositAddress = await res.json();
 
-    return NextResponse.json({
-      success: true,
-      depositAddress,
-    });
+    return NextResponse.json(depositAddress);
   } catch (error) {
     console.error('입금 주소 등록 실패:', error);
     return NextResponse.json(
