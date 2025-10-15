@@ -86,7 +86,6 @@ export default function IDAndAccountVerificationStep({
       const allowedOrigins = [
         KYC_TARGET_ORIGIN, // https://kyc.useb.co.kr (운영)
         "http://localhost:3000", // 개발 환경
-        "http://localhost:3001", // 개발 환경 (다른 포트)
       ];
 
       if (!allowedOrigins.includes(e.origin)) {

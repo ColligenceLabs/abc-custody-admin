@@ -35,7 +35,7 @@ export default function LoginPage() {
   useEffect(() => {
     const loadDefaultEmail = async () => {
       try {
-        const users = await fetch('http://localhost:3001/users').then(res => res.json())
+        const users = await fetch('http://localhost:4000/api/users').then(res => res.json())
 
         if (memberType === 'individual') {
           const individualUser = users.find((u: any) => u.memberType === 'individual')

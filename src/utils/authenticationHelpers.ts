@@ -5,6 +5,13 @@ import {
   UserAuthInfo
 } from "@/types/withdrawal";
 
+/**
+ * ============================================================
+ * 이 파일의 OTP/SMS 검증 함수들은 출금 승인 등 다른 기능에서 사용됩니다.
+ * 로그인 OTP 검증은 백엔드 API (/api/auth/verify-otp)를 사용합니다.
+ * ============================================================
+ */
+
 // Mock 사용자 인증 정보 (실제로는 API에서 가져옴)
 export const mockCurrentUserAuth: UserAuthInfo = {
   userId: "admin-001",

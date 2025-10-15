@@ -7,6 +7,14 @@ import { getUserByEmail } from '@/data/userMockData'
 import { getIndividualUserByEmail } from '@/data/individualUserMockData'
 import { getOrganizationUserByEmail } from '@/data/organizationUserMockData'
 import { verifyOTP, verifySMSCode, sendSMSCode } from '@/utils/authenticationHelpers'
+import {
+  verifyEmail as verifyEmailAPI,
+  verifyOtpBackend,
+  getCurrentUserWithToken,
+  sendEmailPin,
+  verifyEmailPinLogin,
+  verifyEmailPinSignup
+} from '@/lib/api/auth'
 import { useSecurityPolicy, AuthStepType } from '@/contexts/SecurityPolicyContext'
 import { useServicePlan } from '@/contexts/ServicePlanContext'
 
@@ -36,6 +44,8 @@ interface AuthContextType {
   completeGASetup: (secretKey: string) => Promise<void>
   logout: () => void
   resetAuth: () => void
+  sendEmailPinCode: (email: string) => Promise<{ success: boolean; message?: string; expiresIn?: number }>
+  verifyEmailPin: (email: string, pinCode: string, memberType: 'individual' | 'corporate', isSignup?: boolean) => Promise<{ success: boolean; message?: string; user?: any }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -134,25 +144,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }))
   }, [policy, getRequiredAuthSteps])
 
-  // 세션 체크 및 복구
+  // 세션 체크 및 복구 (JWT 토큰 기반)
   useEffect(() => {
-    const checkSession = () => {
+    const checkSession = async () => {
       try {
-        // localStorage에서 세션 정보 확인
+        // localStorage에서 토큰 확인
+        const token = localStorage.getItem('token')
         const sessionData = localStorage.getItem('auth_session')
-        if (sessionData) {
-          const { user: savedUser, timestamp } = JSON.parse(sessionData)
+
+        if (token && sessionData) {
+          const { user: savedUser, timestamp, token: savedToken } = JSON.parse(sessionData)
           const sessionTimeout = getSessionTimeoutMs()
 
           // 세션이 유효한지 확인
           if (Date.now() - timestamp < sessionTimeout) {
-            setUser(savedUser)
-            setIsAuthenticated(true)
-
-            // ServicePlan 설정
-            setSelectedPlan(savedUser.memberType === 'individual' ? 'individual' : 'enterprise')
-
-            return
+            // JWT 토큰으로 사용자 정보 재확인 (선택적)
+            try {
+              const verifiedUser = await getCurrentUserWithToken(token)
+              setUser(verifiedUser)
+              setIsAuthenticated(true)
+              setSelectedPlan(verifiedUser.memberType === 'individual' ? 'individual' : 'enterprise')
+              return
+            } catch (error: any) {
+              // 토큰이 만료되었거나 유효하지 않음
+              if (error.message === 'UNAUTHORIZED') {
+                console.log('토큰이 만료되었습니다. 다시 로그인하세요.')
+                localStorage.removeItem('token')
+                localStorage.removeItem('auth_session')
+                localStorage.removeItem('user')
+              } else {
+                // 네트워크 오류 등 - 저장된 세션 사용
+                setUser(savedUser)
+                setIsAuthenticated(true)
+                setSelectedPlan(savedUser.memberType === 'individual' ? 'individual' : 'enterprise')
+                return
+              }
+            }
           }
         }
 
@@ -206,15 +233,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // json-server API에서 사용자 조회
+    // 백엔드 API에서 사용자 조회
     let foundUser: User | undefined
     try {
-      const response = await fetch(`http://localhost:3001/users?email=${encodeURIComponent(email)}&memberType=${memberType}`)
-      if (response.ok) {
-        const users: User[] = await response.json()
-        if (users.length > 0) {
-          foundUser = users[0]
-        }
+      const result = await verifyEmailAPI(email, memberType)
+      if (result.success && result.user) {
+        foundUser = {
+          ...result.user,
+          role: 'viewer' as const,
+          status: 'active' as any,
+          lastLogin: new Date().toISOString(),
+          permissions: [],
+          department: memberType === 'individual' ? '개인' : '법인',
+          position: memberType === 'individual' ? '개인 회원' : '법인 회원',
+          hasGASetup: result.user.hasGASetup,
+          isFirstLogin: result.user.isFirstLogin,
+          memberType
+        } as User
       }
     } catch (error) {
       console.error('사용자 조회 실패:', error)
@@ -365,51 +400,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // Google Authenticator TOTP 검증
-      let isValid = false
+      // 백엔드 API로 OTP 검증
+      const result = await verifyOtpBackend(
+        authStep.email || authStep.user.email,
+        authStep.memberType!,
+        otp
+      )
 
-      if (authStep.user.totpSecret) {
-        // 저장된 TOTP secret으로 검증
-        try {
-          const OTPAuth = await import('otpauth')
-          const secret = OTPAuth.Secret.fromBase32(authStep.user.totpSecret)
-          const totp = new OTPAuth.TOTP({
-            issuer: 'CustodyDashboard',
-            label: authStep.user.email,
-            algorithm: 'SHA1',
-            digits: 6,
-            period: 30,
-            secret: secret
-          })
-
-          // TOTP 검증 (±2 윈도우 = ±60초)
-          const delta = totp.validate({
-            token: otp,
-            window: 2
-          })
-
-          isValid = delta !== null
-        } catch (error) {
-          console.error('TOTP 검증 오류:', error)
-          isValid = false
-        }
-      } else {
-        // TOTP secret이 없는 경우 (GA 설정 전) - 기존 mockup 사용
-        isValid = await verifyOTP(otp, 'login-session')
-      }
-
-      if (isValid) {
+      if (result.success && result.token) {
+        // JWT 토큰 저장
+        localStorage.setItem('token', result.token)
+        localStorage.setItem('user', JSON.stringify(result.user))
         // 다음 단계 결정
         const nextStep = getNextStep(authStep.currentStepIndex || 0, authStep.requiredSteps || [])
 
         if (nextStep === 'completed') {
-          // OTP가 마지막 단계인 경우
-          const userWithMemberType = { ...authStep.user, memberType: authStep.memberType }
+          // OTP가 마지막 단계인 경우 - 로그인 완료
+          const userWithMemberType = { ...result.user!, memberType: authStep.memberType }
           setUser(userWithMemberType)
           setIsAuthenticated(true)
           setAuthStep(prev => ({
             ...prev,
             step: 'completed',
+            user: userWithMemberType,
             attempts: 0,
             currentStepIndex: (prev.requiredSteps?.length || 0)
           }))
@@ -417,11 +430,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // ServicePlan 설정
           setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
 
-          // 세션 저장
+          // 세션 저장 (JWT 토큰 기반)
           const sessionTimeout = getSessionTimeoutMs()
           const sessionData = {
             user: userWithMemberType,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            token: result.token
           }
 
           localStorage.setItem('auth_session', JSON.stringify(sessionData))
@@ -441,6 +455,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const stepMessage = nextStep === 'sms' ? 'SMS 인증 코드를 발송했습니다.' : '다음 단계로 진행합니다.'
         return { success: true, message: stepMessage }
       } else {
+        // 백엔드에서 OTP 검증 실패
         const newAttempts = authStep.attempts + 1
         setAuthStep(prev => ({ ...prev, attempts: newAttempts }))
 
@@ -465,10 +480,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        return { success: false, message: '올바르지 않은 OTP 코드입니다.' }
+        return { success: false, message: result.message || '올바르지 않은 OTP 코드입니다.' }
       }
-    } catch (error) {
-      return { success: false, message: 'OTP 인증 중 오류가 발생했습니다.' }
+    } catch (error: any) {
+      console.error('OTP 검증 오류:', error)
+      return { success: false, message: error.message || 'OTP 인증 중 오류가 발생했습니다.' }
     }
   }
 
@@ -601,6 +617,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       attempts: 0,
       maxAttempts: 5
     })
+
+    // JWT 토큰 및 세션 정보 삭제
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     localStorage.removeItem('auth_session')
 
     // 쿠키도 삭제
@@ -618,6 +638,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requiredSteps,
       currentStepIndex: 0
     })
+  }
+
+  const sendEmailPinCode = async (email: string): Promise<{ success: boolean; message?: string; expiresIn?: number }> => {
+    try {
+      const result = await sendEmailPin(email)
+      return result
+    } catch (error: any) {
+      console.error('이메일 PIN 전송 오류:', error)
+      return {
+        success: false,
+        message: error.message || 'PIN 코드 전송 중 오류가 발생했습니다.'
+      }
+    }
+  }
+
+  const verifyEmailPin = async (
+    email: string,
+    pinCode: string,
+    memberType: 'individual' | 'corporate',
+    isSignup: boolean = false
+  ): Promise<{ success: boolean; message?: string; user?: any }> => {
+    try {
+      if (isSignup) {
+        // 회원가입용 - PIN만 검증
+        const result = await verifyEmailPinSignup(email, pinCode)
+        return {
+          success: result.success,
+          message: result.message
+        }
+      } else {
+        // 로그인용 - PIN 검증 + 계정 확인
+        const result = await verifyEmailPinLogin(email, pinCode, memberType)
+        return {
+          success: result.success,
+          message: result.message,
+          user: result.user
+        }
+      }
+    } catch (error: any) {
+      console.error('이메일 PIN 검증 오류:', error)
+      return {
+        success: false,
+        message: error.message || 'PIN 코드 검증 중 오류가 발생했습니다.'
+      }
+    }
   }
 
   const completeGASetup = async (secretKey: string) => {
@@ -638,7 +703,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       totpSecret: secretKey
     }
 
-    // JSON 서버에 사용자 정보 업데이트
+    // 백엔드 API로 사용자 정보 업데이트
     try {
       const updateData = {
         hasGASetup: true,
@@ -648,14 +713,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('PATCH 요청 데이터:', {
-        url: `http://localhost:3001/users/${authStep.user.id}`,
+        url: `http://localhost:4000/api/users/${authStep.user.id}`,
         data: {
           ...updateData,
           totpSecret: updateData.totpSecret.substring(0, 10) + '...'
         }
       })
 
-      const response = await fetch(`http://localhost:3001/users/${authStep.user.id}`, {
+      const response = await fetch(`http://localhost:4000/api/users/${authStep.user.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -711,7 +776,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendSms,
         completeGASetup,
         logout,
-        resetAuth
+        resetAuth,
+        sendEmailPinCode,
+        verifyEmailPin
       }}
     >
       {children}
