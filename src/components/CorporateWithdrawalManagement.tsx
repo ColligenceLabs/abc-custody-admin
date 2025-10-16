@@ -48,7 +48,7 @@ import AirgapTab from "./withdrawal/AirgapTab";
 import ApprovalTab from "./withdrawal/ApprovalTab";
 import ApprovalAuthModal from "./withdrawal/ApprovalAuthModal";
 import { networkAssets } from "@/data/mockWithdrawalData";
-import { getCorporateWithdrawals, createWithdrawal } from "@/lib/api/withdrawal";
+import { getCorporateWithdrawals, createWithdrawal, getWithdrawalById } from "@/lib/api/withdrawal";
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 

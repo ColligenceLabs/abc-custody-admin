@@ -27,7 +27,7 @@ import { CancelWithdrawalModal } from "./withdrawal/CancelWithdrawalModal";
 import { ProcessingTableRow } from "./withdrawal/ProcessingTableRow";
 import { BlockchainInfo } from "./withdrawal/BlockchainInfo";
 import { individualNetworkAssets } from "@/data/individualWithdrawalMockData";
-import { getIndividualWithdrawals, createWithdrawal } from "@/lib/api/withdrawal";
+import { getIndividualWithdrawals, createWithdrawal, getWithdrawalById } from "@/lib/api/withdrawal";
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 
@@ -44,6 +44,8 @@ export default function IndividualWithdrawalManagement({
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null
   );
+  const [selectedRequestDetail, setSelectedRequestDetail] = useState<IndividualWithdrawalRequest | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const { t } = useLanguage();
   const { user } = useAuth();
 
@@ -138,6 +140,32 @@ export default function IndividualWithdrawalManagement({
 
     fetchAddresses();
   }, [user?.id]);
+
+  // 출금 상세 정보 가져오기
+  useEffect(() => {
+    const fetchWithdrawalDetail = async () => {
+      if (!selectedRequestId) {
+        setSelectedRequestDetail(null);
+        return;
+      }
+
+      try {
+        setLoadingDetail(true);
+        const detail = await getWithdrawalById(selectedRequestId);
+        console.log('상세 조회 API 응답:', detail);
+        setSelectedRequestDetail(detail as unknown as IndividualWithdrawalRequest);
+      } catch (err) {
+        console.error('출금 상세 조회 실패:', err);
+        // 실패 시 목록 데이터 사용
+        const fallback = withdrawals.find((r) => r.id === selectedRequestId);
+        setSelectedRequestDetail(fallback || null);
+      } finally {
+        setLoadingDetail(false);
+      }
+    };
+
+    fetchWithdrawalDetail();
+  }, [selectedRequestId, withdrawals]);
 
   const mockRequests = withdrawals;
 
@@ -652,10 +680,13 @@ export default function IndividualWithdrawalManagement({
       {/* 상세 정보 패널 */}
       {activeTab === "requests" && selectedRequestId && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {(() => {
-            const request = activeRequests.find(
-              (r) => r.id === selectedRequestId
-            );
+          {loadingDetail ? (
+            <div className="p-6 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <p className="mt-2 text-sm text-gray-500">상세 정보를 불러오는 중...</p>
+            </div>
+          ) : selectedRequestDetail ? (() => {
+            const request = selectedRequestDetail;
             if (!request) return null;
 
             // 남은 시간 계산
@@ -891,7 +922,11 @@ export default function IndividualWithdrawalManagement({
                 </div>
               </div>
             );
-          })()}
+          })() : (
+            <div className="p-6 text-center">
+              <p className="text-sm text-gray-500">출금 상세 정보를 불러올 수 없습니다.</p>
+            </div>
+          )}
         </div>
       )}
 
