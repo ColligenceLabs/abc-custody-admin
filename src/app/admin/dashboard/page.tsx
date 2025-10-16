@@ -1,0 +1,90 @@
+/**
+ * Admin Dashboard Page
+ *
+ * 커스터디 관리자 대시보드 메인 페이지
+ */
+
+'use client';
+
+import { Metadata } from 'next';
+import { Users, DollarSign, Activity, Clock, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { StatsCard } from './components/StatsCard';
+import { AssetDistributionChart } from './components/AssetDistributionChart';
+import { WalletStatusCard } from './components/WalletStatusCard';
+import { RecentTransactionsTable } from './components/RecentTransactionsTable';
+import { AlertsPanel } from './components/AlertsPanel';
+import { QuickActions } from './components/QuickActions';
+import { useDashboardData } from './hooks/useDashboardData';
+
+export default function AdminDashboardPage() {
+  const { stats, assetDistribution, walletStatus, recentTransactions, alerts } =
+    useDashboardData();
+
+  return (
+    <div className="space-y-6">
+      {/* 페이지 헤더 */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          대시보드
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          커스터디 서비스 현황을 확인하세요
+        </p>
+      </div>
+
+      {/* 통계 카드 6개 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <StatsCard
+          title="전체 회원사"
+          value={stats.totalMembers}
+          icon={Users}
+        />
+        <StatsCard
+          title="총 자산 가치"
+          value={stats.totalAssetValue}
+          icon={DollarSign}
+          color="text-green-600 dark:text-green-400"
+        />
+        <StatsCard
+          title="오늘 거래"
+          value={stats.todayTransactions}
+          icon={Activity}
+          color="text-blue-600 dark:text-blue-400"
+        />
+        <StatsCard
+          title="보류중 거래"
+          value={stats.pendingTransactions}
+          icon={Clock}
+          color="text-amber-600 dark:text-amber-400"
+        />
+        <StatsCard
+          title="24시간 입금"
+          value={stats.deposits24h}
+          icon={ArrowDownToLine}
+          color="text-green-600 dark:text-green-400"
+        />
+        <StatsCard
+          title="24시간 출금"
+          value={stats.withdrawals24h}
+          icon={ArrowUpFromLine}
+          color="text-blue-600 dark:text-blue-400"
+        />
+      </div>
+
+      {/* 2열 레이아웃: 자산 분포 + 지갑 상태 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AssetDistributionChart data={assetDistribution} />
+        <WalletStatusCard status={walletStatus} />
+      </div>
+
+      {/* 2열 레이아웃: 최근 거래 + 알림 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RecentTransactionsTable transactions={recentTransactions} />
+        <AlertsPanel alerts={alerts} />
+      </div>
+
+      {/* 빠른 액션 버튼 */}
+      <QuickActions />
+    </div>
+  );
+}

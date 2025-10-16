@@ -1,0 +1,423 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+// import { useAdminPermissions } from '@/hooks/useAdminPermissions';
+import { AdminResource, AdminAction } from '@/types/admin';
+
+import {
+  LayoutDashboard,
+  Building2,
+  ArrowDownUp,
+  ArrowUp,
+  ArrowDown,
+  Vault,
+  Shield,
+  FileText,
+  Settings,
+  UserPlus,
+  Users,
+  ChevronDown,
+  ChevronRight,
+  Badge as BadgeIcon,
+  QrCode,
+  Activity,
+  TrendingUp,
+  FileSignature,
+  CheckSquare,
+} from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+
+interface AdminMenuItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<any>;
+  requiredPermissions: {
+    resource: AdminResource;
+    action: AdminAction;
+  }[];
+  children?: AdminMenuItem[];
+  badge?: {
+    count: number;
+    variant: 'default' | 'secondary' | 'destructive' | 'outline';
+  };
+}
+
+const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
+  {
+    id: 'dashboard',
+    label: '대시보드',
+    href: '/admin/dashboard',
+    icon: LayoutDashboard,
+    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+  },
+  {
+    id: 'members',
+    label: '회원사 관리',
+    href: '/admin/members',
+    icon: Building2,
+    requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'members-onboarding',
+        label: '온보딩 관리',
+        href: '/admin/members/onboarding',
+        icon: UserPlus,
+        requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.APPROVE }],
+      },
+      {
+        id: 'members-list',
+        label: '회원사 목록',
+        href: '/admin/members/list',
+        icon: Users,
+        requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.READ }],
+      },
+    ],
+  },
+  {
+    id: 'deposits',
+    label: '입금 관리',
+    href: '/admin/deposits',
+    icon: ArrowDown,
+    requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'deposits-monitoring',
+        label: '입금 모니터링',
+        href: '/admin/deposits/monitoring',
+        icon: ArrowDown,
+        requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.READ }],
+      },
+      {
+        id: 'deposits-address-verification',
+        label: '주소 검증',
+        href: '/admin/deposits/address-verification',
+        icon: BadgeIcon,
+        requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.READ }],
+      },
+      {
+        id: 'deposits-aml',
+        label: 'AML 검토',
+        href: '/admin/deposits/aml-screening',
+        icon: Shield,
+        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+      },
+      {
+        id: 'deposits-travel-rule',
+        label: 'Travel Rule 검증',
+        href: '/admin/deposits/travel-rule',
+        icon: FileText,
+        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+      },
+      {
+        id: 'deposits-returns',
+        label: '환불 처리',
+        href: '/admin/deposits/returns',
+        icon: ArrowDownUp,
+        requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.UPDATE }],
+      },
+    ],
+  },
+  // {
+  //   id: 'withdrawals',
+  //   label: '출금 관리',
+  //   href: '/admin/withdrawals',
+  //   icon: ArrowUp,
+  //   requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
+  //   badge: { count: 8, variant: 'default' },
+  //   children: [
+  //     {
+  //       id: 'withdrawals-queue',
+  //       label: '출금 대기열',
+  //       href: '/admin/withdrawals/queue',
+  //       icon: ArrowUp,
+  //       requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.UPDATE }],
+  //       badge: { count: 8, variant: 'default' },
+  //     },
+  //     {
+  //       id: 'withdrawals-aml',
+  //       label: 'AML 검토',
+  //       href: '/admin/withdrawals/aml',
+  //       icon: Shield,
+  //       requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.APPROVE }],
+  //     },
+  //     {
+  //       id: 'withdrawals-airgap',
+  //       label: 'Air-gap 서명',
+  //       href: '/admin/withdrawals/airgap',
+  //       icon: QrCode,
+  //       requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.APPROVE }],
+  //       badge: { count: 2, variant: 'secondary' },
+  //     },
+  //     {
+  //       id: 'withdrawals-execution',
+  //       label: '출금 실행',
+  //       href: '/admin/withdrawals/execution',
+  //       icon: Activity,
+  //       requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
+  //     },
+  //   ],
+  // },
+  {
+    id: 'withdrawal-v2',
+    label: '출금 관리',
+    href: '/admin/withdrawal-v2',
+    icon: ArrowUp,
+    requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
+    children: [
+      // {
+      //   id: 'withdrawal-v2-dashboard',
+      //   label: '통합 대시보드',
+      //   href: '/admin/withdrawal-v2/dashboard',
+      //   icon: LayoutDashboard,
+      //   requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
+      // },
+      {
+        id: 'withdrawal-v2-requests',
+        label: '출금 요청 관리',
+        href: '/admin/withdrawal-v2/requests',
+        icon: CheckSquare,
+        requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.UPDATE }],
+      },
+      // {
+      //   id: 'withdrawal-v2-vault-check',
+      //   label: '볼트 체크 & 리밸런싱',
+      //   href: '/admin/withdrawal-v2/vault-check',
+      //   icon: ArrowDownUp,
+      //   requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
+      // },
+      // {
+      //   id: 'withdrawal-v2-signing',
+      //   label: '통합 서명 센터',
+      //   href: '/admin/withdrawal-v2/signing',
+      //   icon: FileSignature,
+      //   requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.APPROVE }],
+      // },
+    ],
+  },
+  {
+    id: 'vault',
+    label: '볼트 관리',
+    href: '/admin/vault',
+    icon: Vault,
+    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'vault-monitoring',
+        label: '모니터링',
+        href: '/admin/vault/monitoring',
+        icon: LayoutDashboard,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'vault-rebalancing',
+        label: '리밸런싱',
+        href: '/admin/vault/rebalancing',
+        icon: ArrowDownUp,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
+      },
+    ],
+  },
+  {
+    id: 'compliance',
+    label: '컴플라이언스',
+    href: '/admin/compliance',
+    icon: Shield,
+    requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'compliance-reports',
+        label: '규제 보고서',
+        href: '/admin/compliance/reports',
+        icon: FileText,
+        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+      },
+      {
+        id: 'compliance-policies',
+        label: 'AML 정책',
+        href: '/admin/compliance/policies',
+        icon: Settings,
+        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.UPDATE }],
+      },
+    ],
+  },
+  {
+    id: 'reports',
+    label: '보고서',
+    href: '/admin/reports',
+    icon: FileText,
+    requiredPermissions: [{ resource: AdminResource.REPORTS, action: AdminAction.READ }],
+  },
+];
+
+interface AdminSidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export function AdminSidebar({ collapsed = false, onToggleCollapse }: AdminSidebarProps) {
+  const pathname = usePathname();
+  // const { hasPermission, hasAnyPermission } = useAdminPermissions();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const hasRequiredPermissions = (requiredPermissions: { resource: AdminResource; action: AdminAction }[]) => {
+    // return hasAnyPermission(requiredPermissions);
+    return true; // 임시로 모든 권한 허용
+  };
+
+  const isActive = (href: string) => {
+    if (href === '/admin/dashboard') {
+      return pathname === '/admin/dashboard' || pathname === '/admin';
+    }
+    return pathname.startsWith(href);
+  };
+
+  const renderMenuItem = (item: AdminMenuItem, isChild = false) => {
+    // Check permissions
+    if (!hasRequiredPermissions(item.requiredPermissions)) {
+      return null;
+    }
+
+    const active = isActive(item.href);
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedItems.includes(item.id);
+
+    // Filter children based on permissions
+    const visibleChildren = item.children?.filter(child =>
+      hasRequiredPermissions(child.requiredPermissions)
+    ) || [];
+
+    const menuContent = (
+      <div
+        className={cn(
+          'flex items-center justify-between w-full px-3 py-2 rounded-lg transition-all duration-200',
+          active
+            ? 'text-sapphire-600 font-semibold dark:text-sapphire-400'
+            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 hover:text-gray-900 dark:hover:bg-gray-800/60 dark:hover:text-white',
+          isChild ? (active ? 'ml-4 text-sm text-sapphire-600 font-semibold dark:text-sapphire-400' : 'ml-4 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/40') : '',
+          collapsed && 'justify-center px-2'
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <item.icon
+            className={cn(
+              'flex-shrink-0',
+              collapsed ? 'h-5 w-5' : 'h-4 w-4'
+            )}
+          />
+          {!collapsed && (
+            <span className="font-medium truncate">
+              {item.label}
+            </span>
+          )}
+        </div>
+
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            {item.badge && (
+              <Badge
+                variant={item.badge.variant}
+                className="text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center"
+              >
+                {item.badge.count > 99 ? '99+' : item.badge.count}
+              </Badge>
+            )}
+
+            {hasChildren && visibleChildren.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleExpanded(item.id);
+                }}
+                className={cn(
+                  'p-1 rounded transition-transform duration-200',
+                  'hover:bg-gray-200 dark:hover:bg-gray-700'
+                )}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div key={item.id} className="w-full">
+        {hasChildren && visibleChildren.length > 0 ? (
+          <div>
+            <div
+              className="cursor-pointer"
+              onClick={() => toggleExpanded(item.id)}
+            >
+              {menuContent}
+            </div>
+
+            {!collapsed && isExpanded && (
+              <div className="mt-1 space-y-1 pl-2">
+                {visibleChildren.map(child => renderMenuItem(child, true))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href={item.href} className="block">
+            {menuContent}
+          </Link>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <aside
+      className={cn(
+        'bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-all duration-300',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo Section */}
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-r from-sapphire-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <Vault className="h-5 w-5 text-white" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Custody Admin
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                관리 시스템
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Menu */}
+      <nav className="p-4 flex-1 overflow-y-auto">
+        <div className="space-y-2">
+          {ADMIN_MENU_ITEMS.map(item => renderMenuItem(item))}
+        </div>
+      </nav>
+
+    </aside>
+  );
+}
