@@ -539,6 +539,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAuthStep({
             step: 'ga_setup',
             user: authStep.user,
+            memberType: authStep.memberType,
             attempts: 0,
             maxAttempts: 5,
             isFirstTimeUser: true
@@ -711,9 +712,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeGASetup = async (secretKey: string) => {
     if (!authStep.user) return
 
+    // memberType 결정 (authStep 또는 user 객체에서)
+    const memberType = authStep.memberType || (authStep.user as any).memberType || 'individual'
+
     console.log('completeGASetup 호출됨:', {
       userId: authStep.user.id,
       email: authStep.user.email,
+      memberType,
       secretKey: secretKey.substring(0, 10) + '...'
     })
 
@@ -727,7 +732,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           userId: authStep.user.id,
           secretKey,
-          memberType: authStep.memberType
+          memberType
         })
       })
 
@@ -750,7 +755,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = {
         ...authStep.user,
         ...data.user,
-        memberType: authStep.memberType
+        memberType
       }
 
       // 로그인 완료 처리
@@ -764,7 +769,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       // ServicePlan 설정
-      setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
+      setSelectedPlan(memberType === 'individual' ? 'individual' : 'enterprise')
 
       // 세션 저장 (JWT 토큰 포함)
       const sessionTimeout = getSessionTimeoutMs()
