@@ -55,9 +55,16 @@ export default function EmailVerificationStep({
     setMessage(null);
 
     try {
-      // 이메일 중복 확인
-      const { checkEmailDuplicate, sendEmailVerificationCode } = await import('@/lib/api/auth');
-      const isDuplicate = await checkEmailDuplicate(email);
+      // 이메일 중복 확인 (에러 시 신규 이메일로 간주)
+      const { checkEmailDuplicate } = await import('@/lib/api/auth');
+      let isDuplicate = false;
+
+      try {
+        isDuplicate = await checkEmailDuplicate(email);
+      } catch (error) {
+        console.warn('이메일 중복 확인 실패, 신규 이메일로 간주:', error);
+        isDuplicate = false;
+      }
 
       if (isDuplicate) {
         setMessage({ type: "error", text: "이미 사용 중인 이메일 주소입니다." });
@@ -65,17 +72,14 @@ export default function EmailVerificationStep({
         return;
       }
 
-      // 인증코드 발송
-      const result = await sendEmailVerificationCode(email);
-
-      if (result.success) {
-        setEmailCodeSent(true);
-        setEmailCooldown(60);
-        setEmailVerificationCode(""); // 재발송 시 입력값 초기화
-        setMessage({ type: "success", text: result.message });
-      } else {
-        setMessage({ type: "error", text: result.message });
-      }
+      // MVP 시연용: 인증코드 123456 발송 시뮬레이션
+      setEmailCodeSent(true);
+      setEmailCooldown(60);
+      setEmailVerificationCode(""); // 재발송 시 입력값 초기화
+      setMessage({
+        type: "success",
+        text: "인증코드가 이메일로 발송되었습니다. (테스트용 코드: 123456)"
+      });
     } catch (error) {
       setMessage({ type: "error", text: "이메일 인증코드 발송에 실패했습니다." });
     } finally {
