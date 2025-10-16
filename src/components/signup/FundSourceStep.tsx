@@ -54,17 +54,27 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
         const birthPart = parts[0] || ''
         const genderPart = parts[1] || ''
 
-        const birthYear = birthPart.substring(0, 2)
-        const birthMonth = birthPart.substring(2, 4)
-        const birthDay = birthPart.substring(4, 6)
-        const genderCode = genderPart.substring(0, 1)
+        if (birthPart.length === 6 && genderPart.length >= 1) {
+          const birthYear = birthPart.substring(0, 2)
+          const birthMonth = birthPart.substring(2, 4)
+          const birthDay = birthPart.substring(4, 6)
+          const genderCode = genderPart.substring(0, 1)
 
-        // 세기 판단 (1,2: 1900년대, 3,4: 2000년대)
-        const century = ['1', '2'].includes(genderCode) ? '19' : '20'
-        birthDate = `${century}${birthYear}-${birthMonth}-${birthDay}`
+          // 세기 판단 (1,2: 1900년대, 3,4: 2000년대)
+          const century = ['1', '2'].includes(genderCode) ? '19' : '20'
+          const fullBirthDate = `${century}${birthYear}-${birthMonth}-${birthDay}`
 
-        // 성별 판단 (1,3: 남성, 2,4: 여성)
-        gender = ['1', '3'].includes(genderCode) ? 'male' : 'female'
+          // 유효한 날짜인지 검증
+          const dateObj = new Date(fullBirthDate)
+          if (!isNaN(dateObj.getTime()) && fullBirthDate === dateObj.toISOString().split('T')[0]) {
+            birthDate = fullBirthDate
+          }
+
+          // 성별 판단 (1,3: 남성, 2,4: 여성)
+          if (['1', '2', '3', '4'].includes(genderCode)) {
+            gender = ['1', '3'].includes(genderCode) ? 'male' : 'female'
+          }
+        }
       }
 
       // eKYC 인증 상태 확인
@@ -77,7 +87,6 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
         phone: initialData.phone || '',
         role: 'viewer' as const,
         status: 'active' as const,
-        lastLogin: '',
         permissions: DEFAULT_PERMISSIONS_BY_ROLE.viewer,
         department: '개인',
         position: '개인 회원',

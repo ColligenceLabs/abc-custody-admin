@@ -102,7 +102,7 @@ export async function updateLastLogin(userId: string): Promise<User> {
  * 회원가입 - 새 사용자 생성
  */
 export async function createUser(userData: Omit<User, 'id'>): Promise<User> {
-  const response = await fetch(`${API_URL}/users`, {
+  const response = await fetch(`${API_URL}/api/auth/signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -111,10 +111,12 @@ export async function createUser(userData: Omit<User, 'id'>): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error('회원가입에 실패했습니다.');
+    const errorData = await response.json();
+    throw new Error(errorData.message || '회원가입에 실패했습니다.');
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.user;
 }
 
 /**
