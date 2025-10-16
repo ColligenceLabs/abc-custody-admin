@@ -36,6 +36,7 @@ interface AuthStep {
 interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
+  isLoading: boolean
   authStep: AuthStep
   login: (email: string, memberType: 'individual' | 'corporate') => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
   verifyOtp: (otp: string) => Promise<{ success: boolean; message?: string; isBlocked?: boolean; blockedUntil?: number; blockReason?: string }>
@@ -107,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [authStep, setAuthStep] = useState<AuthStep>({
     step: 'email', // UI/UX 확인을 위해 이메일 단계부터 시작
     attempts: 0,
@@ -147,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 세션 체크 및 복구 (JWT 토큰 기반)
   useEffect(() => {
     const checkSession = async () => {
+      setIsLoading(true)
       try {
         // localStorage에서 토큰 확인
         const token = localStorage.getItem('token')
@@ -164,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(verifiedUser)
               setIsAuthenticated(true)
               setSelectedPlan(verifiedUser.memberType === 'individual' ? 'individual' : 'enterprise')
+              setIsLoading(false)
               return
             } catch (error: any) {
               // 토큰이 만료되었거나 유효하지 않음
@@ -177,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(savedUser)
                 setIsAuthenticated(true)
                 setSelectedPlan(savedUser.memberType === 'individual' ? 'individual' : 'enterprise')
+                setIsLoading(false)
                 return
               }
             }
@@ -190,6 +195,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('세션 체크 실패:', error)
         setUser(null)
         setIsAuthenticated(false)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -351,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       localStorage.setItem('auth_session', JSON.stringify(sessionData))
-      document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+      document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
 
       router.push('/overview')
       return { success: true, message: '로그인에 성공했습니다.' }
@@ -439,7 +446,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           localStorage.setItem('auth_session', JSON.stringify(sessionData))
-          document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+          document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
 
           router.push('/overview')
           return { success: true, message: '로그인에 성공했습니다.' }
@@ -572,7 +579,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth_session', JSON.stringify(sessionData))
 
         // 쿠키에도 저장 (middleware에서 사용)
-        document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+        document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
 
         // 로그인 성공 후 overview로 이동
         router.push('/overview')
@@ -646,7 +653,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth_session', JSON.stringify(updatedSession))
 
         const sessionTimeout = getSessionTimeoutMs()
-        document.cookie = `auth_session=${JSON.stringify(updatedSession)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+        document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(updatedSession))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
       } catch (error) {
         console.error('세션 갱신 실패:', error)
       }
@@ -826,6 +833,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated,
+        isLoading,
         authStep,
         login,
         verifyOtp,

@@ -47,11 +47,10 @@ import RejectedTabComponent from "./withdrawal/RejectedTabComponent";
 import AirgapTab from "./withdrawal/AirgapTab";
 import ApprovalTab from "./withdrawal/ApprovalTab";
 import ApprovalAuthModal from "./withdrawal/ApprovalAuthModal";
-import {
-  mockWithdrawalRequests,
-  networkAssets,
-  whitelistedAddresses,
-} from "@/data/mockWithdrawalData";
+import { networkAssets } from "@/data/mockWithdrawalData";
+import { getCorporateWithdrawals, createWithdrawal } from "@/lib/api/withdrawal";
+import { getAddresses } from "@/lib/api/addresses";
+import { WhitelistedAddress } from "@/types/address";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -93,22 +92,94 @@ export default function CorporateWithdrawalManagement({
     priority: "medium" as "low" | "medium" | "high" | "critical",
   });
 
-  // Import mock data from separate file
-  const mockRequests = mockWithdrawalRequests;
+  // API 상태 관리
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [addresses, setAddresses] = useState<WhitelistedAddress[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreateRequest = () => {
-    console.log("Creating withdrawal request:", newRequest);
-    setShowCreateModal(false);
-    setNewRequest({
-      title: "",
-      fromAddress: "",
-      toAddress: "",
-      amount: 0,
-      network: "",
-      currency: "",
-      description: "",
-      priority: "medium",
-    });
+  // API 데이터 가져오기
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      try {
+        setLoading(true);
+        const response = await getCorporateWithdrawals();
+        setWithdrawals(response.data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
+        console.error('출금 목록 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWithdrawals();
+  }, []);
+
+  // 사용자별 주소 가져오기
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!user?.id) return;
+
+      try {
+        const userAddresses = await getAddresses({ userId: user.id });
+        console.log('API 응답 - 주소 목록:', userAddresses);
+        console.log('현재 사용자 ID:', user.id);
+        setAddresses(userAddresses);
+      } catch (err) {
+        console.error('주소 목록 조회 실패:', err);
+      }
+    };
+
+    fetchAddresses();
+  }, [user?.id]);
+
+  const mockRequests = withdrawals;
+
+  const handleCreateRequest = async () => {
+    try {
+      const withdrawalData = {
+        id: `REQ-${Date.now()}`,
+        title: newRequest.title,
+        fromAddress: newRequest.fromAddress,
+        toAddress: newRequest.toAddress,
+        amount: newRequest.amount,
+        currency: newRequest.currency as any,
+        userId: user?.id || '1',
+        memberType: 'corporate' as const,
+        groupId: '1',
+        initiator: user?.name || '사용자',
+        status: 'draft' as const,
+        priority: newRequest.priority,
+        description: newRequest.description,
+        requiredApprovals: [],
+        approvals: [],
+        rejections: [],
+      };
+
+      await createWithdrawal(withdrawalData);
+
+      const response = await getCorporateWithdrawals();
+      setWithdrawals(response.data);
+
+      setShowCreateModal(false);
+      setNewRequest({
+        title: "",
+        fromAddress: "",
+        toAddress: "",
+        amount: 0,
+        network: "",
+        currency: "",
+        description: "",
+        priority: "medium",
+      });
+
+      alert('출금 신청이 성공적으로 접수되었습니다.');
+    } catch (err) {
+      console.error('출금 신청 실패:', err);
+      alert(err instanceof Error ? err.message : '출금 신청에 실패했습니다.');
+    }
   };
 
   // 승인/반려 팝업 상태
@@ -273,6 +344,35 @@ export default function CorporateWithdrawalManagement({
 
   // 필터 기능 제거 - 모든 요청 표시
   const filteredRequests = mockRequests;
+
+  // 로딩 상태 렌더링
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">출금 목록을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태 렌더링
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">오류: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (plan !== "enterprise") {
     return (
@@ -510,7 +610,7 @@ export default function CorporateWithdrawalManagement({
         newRequest={newRequest}
         onRequestChange={setNewRequest}
         networkAssets={networkAssets}
-        whitelistedAddresses={whitelistedAddresses}
+        whitelistedAddresses={addresses}
       />
 
       {/* 승인/반려 확인 팝업 */}

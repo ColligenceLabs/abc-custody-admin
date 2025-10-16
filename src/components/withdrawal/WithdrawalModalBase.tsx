@@ -9,6 +9,10 @@ export interface WhitelistedAddress {
   network: string;
   coin: string;
   type: "personal" | "exchange" | "vasp";
+  permissions: {
+    canDeposit: boolean;
+    canWithdraw: boolean;
+  };
 }
 
 export interface NetworkAsset {
@@ -57,6 +61,13 @@ export function WithdrawalModalBase<T extends BaseFormData>({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 출금 주소 필수 검증
+    if (!formData.toAddress) {
+      alert('출금 주소를 선택해주세요.');
+      return;
+    }
+
     onSubmit(formData);
   };
 
@@ -172,12 +183,21 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                   step="0.00000001"
                   required
                   value={formData.amount}
-                  onChange={(e) =>
+                  onFocus={(e) => {
+                    if (formData.amount === 0) {
+                      onFormDataChange({
+                        ...formData,
+                        amount: '' as any,
+                      });
+                    }
+                  }}
+                  onChange={(e) => {
+                    const value = e.target.value;
                     onFormDataChange({
                       ...formData,
-                      amount: Number(e.target.value),
-                    })
-                  }
+                      amount: value === '' ? ('' as any) : Number(value),
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="0.00"
                 />
@@ -190,12 +210,17 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                 출금 주소 *
               </label>
               <div className="space-y-2">
-                {whitelistedAddresses
-                  .filter(
+                {(() => {
+                  const filtered = whitelistedAddresses.filter(
                     (addr) =>
-                      addr.network === formData.network &&
-                      addr.coin === formData.currency
-                  )
+                      addr.coin === formData.currency &&
+                      addr.permissions.canWithdraw
+                  );
+                  console.log('[WithdrawalModalBase] 필터링 전 주소 목록:', whitelistedAddresses);
+                  console.log('[WithdrawalModalBase] 선택된 자산:', formData.currency);
+                  console.log('[WithdrawalModalBase] 필터링 후 주소 목록:', filtered);
+                  return filtered;
+                })()
                   .map((address) => (
                     <div
                       key={address.id}
@@ -245,17 +270,15 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                     </div>
                   ))}
 
-                {formData.network &&
-                  formData.currency &&
+                {formData.currency &&
                   whitelistedAddresses.filter(
                     (addr) =>
-                      addr.network === formData.network &&
-                      addr.coin === formData.currency
+                      addr.coin === formData.currency &&
+                      addr.permissions.canWithdraw
                   ).length === 0 && (
                     <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center">
                       <p className="text-gray-500 text-sm">
-                        {formData.network} 네트워크의 {formData.currency}{" "}
-                        자산에 대한 등록된 출금 주소가 없습니다.
+                        {formData.currency} 자산에 대한 등록된 출금 주소가 없습니다.
                       </p>
                       <p className="text-gray-400 text-xs mt-1">
                         보안 설정에서 출금 주소를 먼저 등록해주세요.

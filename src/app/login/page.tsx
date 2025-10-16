@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSecurityPolicy, AuthStepType } from '@/contexts/SecurityPolicyContext'
@@ -30,6 +30,19 @@ export default function LoginPage() {
   const [smsLoading, setSmsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [otpResendCooldown, setOtpResendCooldown] = useState(0)
+
+  // 입력 필드 자동 포커스를 위한 ref
+  const otpInputRef = useRef<HTMLInputElement>(null)
+  const smsInputRef = useRef<HTMLInputElement>(null)
+
+  // OTP/SMS 단계로 이동 시 자동 포커스
+  useEffect(() => {
+    if (authStep.step === 'otp') {
+      setTimeout(() => otpInputRef.current?.focus(), 100)
+    } else if (authStep.step === 'sms') {
+      setTimeout(() => smsInputRef.current?.focus(), 100)
+    }
+  }, [authStep.step])
 
   // 회원 유형별 기본 이메일 로드
   useEffect(() => {
@@ -375,6 +388,7 @@ export default function LoginPage() {
                     OTP 코드
                   </label>
                   <input
+                    ref={otpInputRef}
                     type="text"
                     required
                     maxLength={6}
@@ -438,6 +452,7 @@ export default function LoginPage() {
                     SMS 인증 코드
                   </label>
                   <input
+                    ref={smsInputRef}
                     type="text"
                     required
                     maxLength={6}

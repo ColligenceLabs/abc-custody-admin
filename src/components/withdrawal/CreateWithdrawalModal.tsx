@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { ExclamationTriangleIcon, DocumentIcon, XMarkIcon, PaperClipIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+// 재컴파일 강제
 
 interface NewRequest {
   title: string;
@@ -155,6 +156,13 @@ export function CreateWithdrawalModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 출금 주소 필수 검증
+    if (!newRequest.toAddress) {
+      alert('출금 주소를 선택해주세요.');
+      return;
+    }
+
     onSubmit(newRequest);
   };
 
@@ -274,12 +282,21 @@ export function CreateWithdrawalModal({
                 step="0.00000001"
                 required
                 value={newRequest.amount}
-                onChange={(e) =>
+                onFocus={(e) => {
+                  if (newRequest.amount === 0) {
+                    onRequestChange({
+                      ...newRequest,
+                      amount: '' as any,
+                    });
+                  }
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
                   onRequestChange({
                     ...newRequest,
-                    amount: Number(e.target.value),
-                  })
-                }
+                    amount: value === '' ? ('' as any) : Number(value),
+                  });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="0.00"
               />
@@ -292,12 +309,17 @@ export function CreateWithdrawalModal({
               출금 주소 *
             </label>
             <div className="space-y-2">
-              {whitelistedAddresses
-                .filter(
+              {(() => {
+                const filtered = whitelistedAddresses.filter(
                   (addr) =>
-                    addr.network === newRequest.network &&
-                    addr.coin === newRequest.currency
-                )
+                    addr.coin === newRequest.currency &&
+                    addr.permissions.canWithdraw
+                );
+                console.log('필터링 전 주소 목록:', whitelistedAddresses);
+                console.log('선택된 자산:', newRequest.currency);
+                console.log('필터링 후 주소 목록:', filtered);
+                return filtered;
+              })()
                 .map((address) => (
                   <div
                     key={address.id}
@@ -347,17 +369,15 @@ export function CreateWithdrawalModal({
                   </div>
                 ))}
 
-              {newRequest.network &&
-                newRequest.currency &&
+              {newRequest.currency &&
                 whitelistedAddresses.filter(
                   (addr) =>
-                    addr.network === newRequest.network &&
-                    addr.coin === newRequest.currency
+                    addr.coin === newRequest.currency &&
+                    addr.permissions.canWithdraw
                 ).length === 0 && (
                   <div className="p-4 border border-dashed border-gray-300 rounded-lg text-center">
                     <p className="text-gray-500 text-sm">
-                      {newRequest.network} 네트워크의 {newRequest.currency}{" "}
-                      자산에 대한 등록된 출금 주소가 없습니다.
+                      {newRequest.currency} 자산에 대한 등록된 출금 주소가 없습니다.
                     </p>
                     <p className="text-gray-400 text-xs mt-1">
                       보안 설정에서 출금 주소를 먼저 등록해주세요.

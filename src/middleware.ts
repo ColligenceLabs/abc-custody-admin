@@ -24,7 +24,7 @@ export function middleware(request: NextRequest) {
 
   // 세션 유효성 검증 (활동 기반 타임아웃)
   try {
-    const sessionData = JSON.parse(authSession.value)
+    const sessionData = JSON.parse(decodeURIComponent(authSession.value))
     // 기본 타임아웃: 20분 (SecurityPolicyContext와 동기화)
     // AuthContext에서 사용자 활동 시 timestamp가 자동 갱신됨
     const sessionTimeout = 20 * 60 * 1000 // 20분 (활동 기반)

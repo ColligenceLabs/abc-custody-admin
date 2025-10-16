@@ -26,11 +26,10 @@ import { CreateIndividualWithdrawalModal } from "./withdrawal/CreateIndividualWi
 import { CancelWithdrawalModal } from "./withdrawal/CancelWithdrawalModal";
 import { ProcessingTableRow } from "./withdrawal/ProcessingTableRow";
 import { BlockchainInfo } from "./withdrawal/BlockchainInfo";
-import {
-  mockIndividualWithdrawalRequests,
-  individualNetworkAssets,
-  individualWhitelistedAddresses,
-} from "@/data/individualWithdrawalMockData";
+import { individualNetworkAssets } from "@/data/individualWithdrawalMockData";
+import { getIndividualWithdrawals, createWithdrawal } from "@/lib/api/withdrawal";
+import { getAddresses } from "@/lib/api/addresses";
+import { WhitelistedAddress } from "@/types/address";
 
 export default function IndividualWithdrawalManagement({
   plan,
@@ -85,11 +84,7 @@ export default function IndividualWithdrawalManagement({
     description: "",
   });
 
-  const mockRequests = mockIndividualWithdrawalRequests;
-
-  const handleCreateRequest = () => {
-    console.log("Creating withdrawal request:", newRequest);
-    setShowCreateModal(false);
+  const resetNewRequest = () => {
     setNewRequest({
       title: "",
       fromAddress: "",
@@ -99,7 +94,94 @@ export default function IndividualWithdrawalManagement({
       currency: "",
       description: "",
     });
-    alert("출금 신청이 접수되었습니다.");
+  };
+
+  // API 상태 관리
+  const [withdrawals, setWithdrawals] = useState<IndividualWithdrawalRequest[]>([]);
+  const [addresses, setAddresses] = useState<WhitelistedAddress[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // API 데이터 가져오기
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      try {
+        setLoading(true);
+        const response = await getIndividualWithdrawals();
+        setWithdrawals(response.data as unknown as IndividualWithdrawalRequest[]);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
+        console.error('출금 목록 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWithdrawals();
+  }, []);
+
+  // 사용자별 주소 가져오기
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (!user?.id) return;
+
+      try {
+        const userAddresses = await getAddresses({ userId: user.id });
+        console.log('API 응답 - 주소 목록:', userAddresses);
+        console.log('현재 사용자 ID:', user.id);
+        setAddresses(userAddresses);
+      } catch (err) {
+        console.error('주소 목록 조회 실패:', err);
+      }
+    };
+
+    fetchAddresses();
+  }, [user?.id]);
+
+  const mockRequests = withdrawals;
+
+  const handleCreateRequest = async () => {
+    try {
+      // fromAddress가 비어있으면 사용자의 첫 번째 입금 주소 사용
+      let fromAddress = newRequest.fromAddress;
+      if (!fromAddress) {
+        // 임시: 개인 출금의 경우 시스템 자동 설정
+        fromAddress = '개인지갑';
+      }
+
+      const withdrawalData = {
+        id: `IND-${Date.now()}`,
+        title: newRequest.title,
+        fromAddress: fromAddress,
+        toAddress: newRequest.toAddress,
+        amount: newRequest.amount,
+        currency: newRequest.currency as any,
+        userId: user?.id || '0',
+        memberType: 'individual' as const,
+        groupId: '',
+        initiator: user?.name || '사용자',
+        status: 'pending' as const,
+        priority: 'medium' as const,
+        description: newRequest.description,
+        requiredApprovals: [],
+        approvals: [],
+        rejections: [],
+      };
+
+      await createWithdrawal(withdrawalData);
+
+      const response = await getIndividualWithdrawals();
+      setWithdrawals(response.data as unknown as IndividualWithdrawalRequest[]);
+
+      setShowCreateModal(false);
+      resetNewRequest();
+
+      alert('출금 신청이 성공적으로 접수되었습니다.');
+    } catch (err) {
+      console.error('출금 신청 실패:', err);
+      alert(err instanceof Error ? err.message : '출금 신청에 실패했습니다.');
+    }
   };
 
   // 개인용: 진행 중인 요청과 완료된 요청으로 분류
@@ -268,6 +350,35 @@ export default function IndividualWithdrawalManagement({
           <p className="text-gray-500 mb-4">
             출금 관리는 가입한 플랜에서만 사용 가능한 기능입니다
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 로딩 상태 렌더링
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">출금 목록을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태 렌더링
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">오류: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            다시 시도
+          </button>
         </div>
       </div>
     );
@@ -1008,12 +1119,15 @@ export default function IndividualWithdrawalManagement({
       {/* 출금 신청 모달 */}
       <CreateIndividualWithdrawalModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          resetNewRequest();
+        }}
         onSubmit={handleCreateRequest}
         newRequest={newRequest}
         onRequestChange={setNewRequest}
         networkAssets={individualNetworkAssets}
-        whitelistedAddresses={individualWhitelistedAddresses}
+        whitelistedAddresses={addresses}
       />
 
       {/* 출금 취소 모달 */}

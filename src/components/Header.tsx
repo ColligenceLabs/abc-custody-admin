@@ -17,7 +17,7 @@ import LanguageToggle from "./LanguageToggle";
 
 export default function Header() {
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const { toggleSidebar, isCollapsed } = useSidebar();
   const [sessionTime, setSessionTime] = useState(1800); // 30분 = 1800초
   const [showExtensionModal, setShowExtensionModal] = useState(false);
@@ -110,16 +110,16 @@ export default function Header() {
                 >
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.name || "관리자"}
+                      {isLoading ? "" : user?.name || "사용자"}
                     </p>
                     <p className="text-xs text-gray-600">
-                      {user?.department || t("header.admin")}
+                      {isLoading ? "" : user?.department || t("header.admin")}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                       <span className="text-sm font-semibold text-primary-600">
-                        {user?.name?.charAt(0) || "A"}
+                        {isLoading ? "" : user?.name?.charAt(0) || "U"}
                       </span>
                     </div>
                     <ChevronDownIcon
@@ -146,15 +146,15 @@ export default function Header() {
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
                             <span className="text-lg font-semibold text-primary-600">
-                              {user?.name?.charAt(0) || "A"}
+                              {isLoading ? "" : user?.name?.charAt(0) || "U"}
                             </span>
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">
-                              {user?.name || "관리자"}
+                              {isLoading ? "" : user?.name || "사용자"}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {user?.email || "admin@company.com"}
+                              {isLoading ? "" : user?.email || ""}
                             </p>
                           </div>
                         </div>

@@ -1,7 +1,6 @@
 'use client'
 
-import { notFound, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { notFound } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import PageLayout from '@/components/PageLayout'
 import WithdrawalManagement from '@/components/WithdrawalManagement'
@@ -31,21 +30,8 @@ function isIndividualTab(tab: string): tab is IndividualTab {
 
 export default function WithdrawalTabPage({ params }: WithdrawalTabPageProps) {
   const { selectedPlan } = useServicePlan()
-  const { user, isAuthenticated } = useAuth()
+  const { user } = useAuth()
   const { tab } = params
-  const router = useRouter()
-
-  // 로그인 상태 확인
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, user, router])
-
-  // 로그인되지 않은 경우 null 반환 (리다이렉트 대기)
-  if (!isAuthenticated || !user) {
-    return null
-  }
 
   // 회원 유형에 따라 유효한 탭인지 확인
   const isValidTab = user?.memberType === 'corporate'
