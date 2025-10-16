@@ -717,74 +717,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       secretKey: secretKey.substring(0, 10) + '...'
     })
 
-    // 사용자 GA 설정 상태 업데이트 (백업 코드는 저장하지 않음 - 보안상 사용자만 보관)
-    const updatedUser = {
-      ...authStep.user,
-      hasGASetup: true,
-      gaSetupDate: new Date().toISOString(),
-      isFirstLogin: false,
-      totpSecret: secretKey
-    }
-
-    // 백엔드 API로 사용자 정보 업데이트
+    // 백엔드 API로 GA 설정 완료 및 JWT 토큰 발급
     try {
-      const updateData = {
-        hasGASetup: true,
-        gaSetupDate: updatedUser.gaSetupDate,
-        isFirstLogin: false,
-        totpSecret: secretKey
-      }
-
-      console.log('PATCH 요청 데이터:', {
-        url: `http://localhost:4000/api/users/${authStep.user.id}`,
-        data: {
-          ...updateData,
-          totpSecret: updateData.totpSecret.substring(0, 10) + '...'
-        }
-      })
-
-      const response = await fetch(`http://localhost:4000/api/users/${authStep.user.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`http://localhost:4000/api/auth/complete-ga-setup`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({
+          userId: authStep.user.id,
+          secretKey,
+          memberType: authStep.memberType
+        })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        console.error('GA 설정 상태 저장 실패:', response.status, response.statusText)
-      } else {
-        console.log('GA 설정 상태 저장 성공')
+        console.error('GA 설정 완료 실패:', response.status, data)
+        throw new Error(data.message || 'GA 설정 완료에 실패했습니다.')
       }
-    } catch (error) {
-      console.error('GA 설정 상태 저장 오류:', error)
+
+      console.log('GA 설정 완료 성공:', data)
+
+      // JWT 토큰 저장
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+
+      // 사용자 정보 업데이트
+      const updatedUser = {
+        ...authStep.user,
+        ...data.user,
+        memberType: authStep.memberType
+      }
+
+      // 로그인 완료 처리
+      setUser(updatedUser)
+      setIsAuthenticated(true)
+      setAuthStep({
+        step: 'completed',
+        user: updatedUser,
+        attempts: 0,
+        maxAttempts: 5
+      })
+
+      // ServicePlan 설정
+      setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
+
+      // 세션 저장 (JWT 토큰 포함)
+      const sessionTimeout = getSessionTimeoutMs()
+      const sessionData = {
+        user: updatedUser,
+        timestamp: Date.now(),
+        token: data.token
+      }
+
+      localStorage.setItem('auth_session', JSON.stringify(sessionData))
+      document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+
+      // 대시보드로 이동
+      router.push('/overview')
+    } catch (error: any) {
+      console.error('GA 설정 완료 오류:', error)
+      alert(error.message || 'GA 설정 완료 중 오류가 발생했습니다.')
     }
-
-    // 로그인 완료 처리
-    setUser(updatedUser)
-    setIsAuthenticated(true)
-    setAuthStep({
-      step: 'completed',
-      user: updatedUser,
-      attempts: 0,
-      maxAttempts: 5
-    })
-
-    // ServicePlan 설정
-    setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
-
-    // 세션 저장
-    const sessionTimeout = getSessionTimeoutMs()
-    const sessionData = {
-      user: updatedUser,
-      timestamp: Date.now()
-    }
-
-    localStorage.setItem('auth_session', JSON.stringify(sessionData))
-    document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
-
-    // 대시보드로 이동
-    router.push('/overview')
   }
 
   // 사용자 활동 감지 및 세션 갱신 (throttle 적용)
