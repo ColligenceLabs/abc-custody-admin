@@ -224,9 +224,9 @@ export default function IndividualWithdrawalManagement({
   };
 
   // 개인용: 진행 중인 요청과 완료된 요청으로 분류
-  // 진행 중: 출금 대기, AML 검토, 승인 대기, 처리 중
+  // 진행 중: 출금 대기, AML 검토, 승인 대기, 처리 중, 출금 처리 대기, 전송 중
   const activeRequests = mockRequests.filter(
-    (r) => ["withdrawal_wait", "aml_review", "approval_pending", "processing"].includes(r.status)
+    (r) => ["withdrawal_wait", "aml_review", "approval_pending", "processing", "withdrawal_pending", "transferring"].includes(r.status)
   );
   // 완료됨: 성공, 관리자 거부, 출금 정지, 실패, AML 문제
   const completedRequests = mockRequests.filter((r) =>

@@ -157,7 +157,7 @@ export function ProcessingTableRow({
             {request.title}
           </div>
           <div className="text-sm text-gray-500">
-            기안자: {request.initiator} | {formatDateTime(request.initiatedAt)}
+            {request.initiator} | {formatDateTime(request.initiatedAt)}
           </div>
         </div>
       </td>
