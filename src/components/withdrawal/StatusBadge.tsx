@@ -9,13 +9,12 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, text, hideIcon = false }: StatusBadgeProps) {
   const statusInfo = getStatusInfo(status);
-  const StatusIcon = statusInfo.icon;
+  const displayText = text || statusInfo.name;
 
   return (
     <div className="flex items-center space-x-2">
-      {!hideIcon && <StatusIcon className="h-4 w-4" />}
       <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${statusInfo.color}`}>
-        {text || statusInfo.name}
+        {displayText}
       </span>
     </div>
   );

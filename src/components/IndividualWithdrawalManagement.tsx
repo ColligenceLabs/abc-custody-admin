@@ -104,23 +104,34 @@ export default function IndividualWithdrawalManagement({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // API 데이터 가져오기
-  useEffect(() => {
-    const fetchWithdrawals = async () => {
-      try {
-        setLoading(true);
-        const response = await getIndividualWithdrawals();
-        setWithdrawals(response.data as unknown as IndividualWithdrawalRequest[]);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
-        console.error('출금 목록 조회 실패:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // 출금 목록 가져오기 함수
+  const fetchWithdrawals = async () => {
+    try {
+      setLoading(true);
+      const response = await getIndividualWithdrawals();
+      setWithdrawals(response.data as unknown as IndividualWithdrawalRequest[]);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
+      console.error('출금 목록 조회 실패:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // 초기 데이터 로딩
+  useEffect(() => {
     fetchWithdrawals();
+  }, []);
+
+  // 자동 폴링: 30초마다 데이터 갱신
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchWithdrawals();
+    }, 30000); // 30초마다 실행
+
+    // 컴포넌트 언마운트 시 인터벌 정리
+    return () => clearInterval(intervalId);
   }, []);
 
   // 사용자별 주소 가져오기
@@ -189,7 +200,7 @@ export default function IndividualWithdrawalManagement({
         memberType: 'individual' as const,
         groupId: '',
         initiator: user?.name || '사용자',
-        status: 'pending' as const,
+        status: 'withdrawal_wait' as const,
         priority: 'medium' as const,
         description: newRequest.description,
         requiredApprovals: [],
@@ -213,11 +224,13 @@ export default function IndividualWithdrawalManagement({
   };
 
   // 개인용: 진행 중인 요청과 완료된 요청으로 분류
+  // 진행 중: 출금 대기, AML 검토, 승인 대기, 처리 중
   const activeRequests = mockRequests.filter(
-    (r) => r.status === "pending" || r.status === "processing"
+    (r) => ["withdrawal_wait", "aml_review", "approval_pending", "processing"].includes(r.status)
   );
+  // 완료됨: 성공, 관리자 거부, 출금 정지, 실패, AML 문제
   const completedRequests = mockRequests.filter((r) =>
-    ["completed", "rejected", "cancelled"].includes(r.status)
+    ["success", "admin_rejected", "withdrawal_stopped", "failed", "aml_issue", "rejected", "archived"].includes(r.status)
   );
 
   // 진행 중인 출금 필터링 로직
@@ -517,8 +530,10 @@ export default function IndividualWithdrawalManagement({
                   className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="all">전체 상태</option>
-                  <option value="pending">출금 대기</option>
-                  <option value="processing">출금 처리 중</option>
+                  <option value="withdrawal_wait">출금 대기</option>
+                  <option value="aml_review">AML 검토</option>
+                  <option value="approval_pending">승인 대기</option>
+                  <option value="processing">처리 중</option>
                 </select>
 
                 {/* 기간 필터 */}
@@ -576,7 +591,7 @@ export default function IndividualWithdrawalManagement({
                           상태
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          진행률/대기순서
+                          진행률
                         </th>
                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                           작업
@@ -827,8 +842,8 @@ export default function IndividualWithdrawalManagement({
                         처리 상태
                       </h5>
                       <div className="space-y-4">
-                        {/* 출금 대기 상태 표시 - pending 상태일 때만 표시 */}
-                        {request.status === "pending" && (
+                        {/* 출금 대기 상태 표시 - withdrawal_wait 상태일 때만 표시 */}
+                        {request.status === "withdrawal_wait" && (
                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center">
@@ -971,9 +986,11 @@ export default function IndividualWithdrawalManagement({
                   className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="all">전체 상태</option>
-                  <option value="completed">출금 완료</option>
-                  <option value="rejected">반려됨</option>
-                  <option value="cancelled">취소됨</option>
+                  <option value="success">출금 완료</option>
+                  <option value="admin_rejected">관리자 거부</option>
+                  <option value="withdrawal_stopped">출금 정지</option>
+                  <option value="failed">실패</option>
+                  <option value="aml_issue">AML 문제</option>
                 </select>
 
                 {/* 기간 필터 */}

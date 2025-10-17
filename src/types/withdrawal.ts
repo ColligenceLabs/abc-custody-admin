@@ -1,14 +1,27 @@
-export type WithdrawalStatus =
-  | "draft" // 임시저장
-  | "submitted" // 출금 신청
-  | "approved" // 결재 완료
-  | "pending" // 출금 대기
-  | "processing" // 출금 진행 (Air-gap)
-  | "completed" // 출금 완료
-  | "rejected" // 반료
-  | "archived" // 처리 완료 (반료 후 아카이브)
-  | "cancelled" // 취소
-  | "stopped"; // 출금 정지
+// 개인회원 출금 상태
+export type IndividualWithdrawalStatus =
+  | "withdrawal_wait"      // 출금대기 (24시간 홀드)
+  | "aml_review"          // AML 검토 중
+  | "approval_pending"    // 승인 대기 (AML 통과 후)
+  | "aml_issue"          // AML 문제 감지
+  | "transferring"       // 출금중 (TxHash 기록됨, 블록체인 전송 중)
+  | "processing"         // 블록체인 전송 처리 중
+  | "withdrawal_pending" // BlockDaemon API 호출 완료, 관리자 승인 대기
+  | "success"            // 출금 완료
+  | "failed"             // 기술적 실패 (재시도 가능)
+  | "admin_rejected"     // 관리자 거부 (재시도 불가)
+  | "withdrawal_stopped"; // 사용자 취소
+
+// 기업회원 출금 상태
+export type CorporateWithdrawalStatus =
+  | IndividualWithdrawalStatus
+  | "withdrawal_request"   // 출금 신청 (최초)
+  | "withdrawal_reapply"   // 재신청 (반려 후)
+  | "rejected"           // 결재 반려
+  | "archived";          // 아카이브 처리 (종료)
+
+// 통합 출금 상태 (하위 호환성 유지)
+export type WithdrawalStatus = IndividualWithdrawalStatus | CorporateWithdrawalStatus;
 
 export type UserRole =
   | "initiator"
@@ -137,7 +150,7 @@ export interface IndividualWithdrawalRequest {
   currency: Currency;
   initiator: string;
   initiatedAt: string;
-  status: "pending" | "processing" | "completed" | "rejected" | "cancelled";
+  status: IndividualWithdrawalStatus;
   description: string;
 
   // 진행 상태 세부 정보
