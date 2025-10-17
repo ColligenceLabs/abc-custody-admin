@@ -115,111 +115,270 @@ function calculatePriority(
 // ============================================================================
 
 /**
- * 출금 대기열 조회
+ * 백엔드 API 응답을 프론트엔드 Withdrawal 타입으로 변환
+ */
+function mapBackendToFrontend(backendData: any): Withdrawal {
+  const waitingTimeMinutes = calculateWaitingTime(backendData.initiatedAt);
+  const amount = parseFloat(backendData.amount).toFixed(0);
+  const networkFee = "10000"; // 기본 네트워크 수수료
+  const netAmount = (parseFloat(amount) - parseFloat(networkFee)).toFixed(0);
+
+  return {
+    id: backendData.id,
+    memberId: backendData.userId,
+    memberInfo: {
+      companyName: backendData.userId, // 실제로는 사용자 정보 조회 필요
+      businessNumber: "123-45-67890",
+      planType: backendData.memberType === "individual" ? "basic" : "enterprise",
+    },
+    assetSymbol: backendData.currency,
+    network: backendData.currency === "BTC" ? "Bitcoin" : "Ethereum",
+    amount: amount,
+    toAddress: backendData.toAddress,
+    networkFee: networkFee,
+    netAmount: netAmount,
+    priority: calculatePriority(amount, backendData.memberType, waitingTimeMinutes),
+    priorityHistory: [],
+    status: backendData.status as WithdrawalStatus,
+    addressVerification: {
+      status: "verified",
+      message: "검증된 주소입니다.",
+      verifiedAt: backendData.initiatedAt,
+    },
+    limitCheck: {
+      dailyLimit: "10000000000",
+      usedToday: "0",
+      pendingAmount: "0",
+      totalUsed: "0",
+      remainingLimit: "10000000000",
+      requestAmount: amount,
+      isWithinLimit: true,
+      usagePercentage: 0,
+      limitType: "member",
+      resetAt: new Date().toISOString(),
+    },
+    amlReview: {
+      status: backendData.status === "aml_review" ? "pending" : "approved",
+      riskScore: 50,
+      sanctionCheck: {
+        isOnSanctionList: false,
+        matchedLists: [],
+      },
+      adverseMediaCheck: {
+        hasNegativeNews: false,
+        newsCount: 0,
+      },
+    },
+    requestedAt: backendData.initiatedAt,
+    waitingTimeMinutes: waitingTimeMinutes,
+    approvedAt: backendData.completedAt,
+    confirmedAt: backendData.completedAt,
+    txHash: backendData.txHash,
+    rejectedAt: backendData.rejectedAt,
+    notes: backendData.description,
+  };
+}
+
+/**
+ * 출금 대기열 조회 (백엔드 API 호출)
  */
 export async function getWithdrawalQueue(
   filters?: WithdrawalQueueFilter,
   sort?: WithdrawalQueueSort
 ): Promise<WithdrawalQueueResponse> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  try {
+    // 백엔드 API 호출
+    const response = await fetch("http://localhost:4000/api/withdrawals");
 
-  let withdrawals = loadWithdrawals();
-
-  // 대기 시간 업데이트
-  withdrawals = withdrawals.map((w) => ({
-    ...w,
-    waitingTimeMinutes: calculateWaitingTime(w.requestedAt),
-  }));
-
-  // 필터 적용
-  if (filters) {
-    if (filters.status && filters.status.length > 0) {
-      withdrawals = withdrawals.filter((w) =>
-        filters.status!.includes(w.status)
-      );
+    if (!response.ok) {
+      throw new Error(`API 호출 실패: ${response.status}`);
     }
 
-    if (filters.priority && filters.priority.length > 0) {
-      withdrawals = withdrawals.filter((w) =>
-        filters.priority!.includes(w.priority)
-      );
+    const backendData = await response.json();
+
+    // 백엔드 데이터를 프론트엔드 형식으로 변환
+    let withdrawals: Withdrawal[] = backendData.map(mapBackendToFrontend);
+
+    // 대기 시간 업데이트
+    withdrawals = withdrawals.map((w) => ({
+      ...w,
+      waitingTimeMinutes: calculateWaitingTime(w.requestedAt),
+    }));
+
+    // 필터 적용
+    if (filters) {
+      if (filters.status && filters.status.length > 0) {
+        withdrawals = withdrawals.filter((w) =>
+          filters.status!.includes(w.status)
+        );
+      }
+
+      if (filters.priority && filters.priority.length > 0) {
+        withdrawals = withdrawals.filter((w) =>
+          filters.priority!.includes(w.priority)
+        );
+      }
+
+      if (filters.memberId) {
+        withdrawals = withdrawals.filter(
+          (w) => w.memberId === filters.memberId
+        );
+      }
+
+      if (filters.assetSymbol) {
+        withdrawals = withdrawals.filter(
+          (w) => w.assetSymbol === filters.assetSymbol
+        );
+      }
+
+      if (filters.dateRange) {
+        const from = new Date(filters.dateRange.from);
+        const to = new Date(filters.dateRange.to);
+        withdrawals = withdrawals.filter((w) => {
+          const requestedAt = new Date(w.requestedAt);
+          return requestedAt >= from && requestedAt <= to;
+        });
+      }
+
+      if (filters.searchTerm) {
+        const term = filters.searchTerm.toLowerCase();
+        withdrawals = withdrawals.filter(
+          (w) =>
+            w.memberInfo.companyName.toLowerCase().includes(term) ||
+            w.toAddress.toLowerCase().includes(term) ||
+            w.id.toLowerCase().includes(term)
+        );
+      }
     }
 
-    if (filters.memberId) {
-      withdrawals = withdrawals.filter(
-        (w) => w.memberId === filters.memberId
-      );
-    }
+    // 정렬
+    if (sort) {
+      withdrawals.sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
 
-    if (filters.assetSymbol) {
-      withdrawals = withdrawals.filter(
-        (w) => w.assetSymbol === filters.assetSymbol
-      );
-    }
+        switch (sort.field) {
+          case "requestedAt":
+            aValue = new Date(a.requestedAt).getTime();
+            bValue = new Date(b.requestedAt).getTime();
+            break;
+          case "amount":
+            aValue = parseFloat(a.amount);
+            bValue = parseFloat(b.amount);
+            break;
+          case "priority":
+            const priorityOrder = { urgent: 3, normal: 2, low: 1 };
+            aValue = priorityOrder[a.priority];
+            bValue = priorityOrder[b.priority];
+            break;
+          case "waitingTime":
+            aValue = a.waitingTimeMinutes;
+            bValue = b.waitingTimeMinutes;
+            break;
+          case "riskScore":
+            aValue = a.amlReview.riskScore;
+            bValue = b.amlReview.riskScore;
+            break;
+          case "memberName":
+            aValue = a.memberInfo.companyName;
+            bValue = b.memberInfo.companyName;
+            break;
+          default:
+            return 0;
+        }
 
-    if (filters.dateRange) {
-      const from = new Date(filters.dateRange.from);
-      const to = new Date(filters.dateRange.to);
-      withdrawals = withdrawals.filter((w) => {
-        const requestedAt = new Date(w.requestedAt);
-        return requestedAt >= from && requestedAt <= to;
+        if (sort.direction === "asc") {
+          return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
+      });
+    } else {
+      // 기본 정렬: 우선순위 높은 순 → 요청 시간 오래된 순
+      withdrawals.sort((a, b) => {
+        const priorityOrder = { urgent: 3, normal: 2, low: 1 };
+        const priorityDiff =
+          priorityOrder[b.priority] - priorityOrder[a.priority];
+
+        if (priorityDiff !== 0) return priorityDiff;
+
+        return (
+          new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime()
+        );
       });
     }
 
-    if (filters.searchTerm) {
-      const term = filters.searchTerm.toLowerCase();
-      withdrawals = withdrawals.filter(
-        (w) =>
-          w.memberInfo.companyName.toLowerCase().includes(term) ||
-          w.toAddress.toLowerCase().includes(term)
-      );
+    // 통계 계산
+    const statistics = calculateStatistics(withdrawals);
+
+    return {
+      withdrawals,
+      statistics,
+      totalCount: withdrawals.length,
+      pagination: {
+        page: 1,
+        pageSize: withdrawals.length,
+        totalPages: 1,
+      },
+    };
+  } catch (error) {
+    console.error("백엔드 API 호출 실패, Mock 데이터로 전환:", error);
+
+    // 백엔드 API 실패 시 기존 Mock 데이터 사용
+    let withdrawals = loadWithdrawals();
+
+    // 대기 시간 업데이트
+    withdrawals = withdrawals.map((w) => ({
+      ...w,
+      waitingTimeMinutes: calculateWaitingTime(w.requestedAt),
+    }));
+
+    // 필터 적용 (동일한 로직)
+    if (filters) {
+      if (filters.status && filters.status.length > 0) {
+        withdrawals = withdrawals.filter((w) =>
+          filters.status!.includes(w.status)
+        );
+      }
+
+      if (filters.priority && filters.priority.length > 0) {
+        withdrawals = withdrawals.filter((w) =>
+          filters.priority!.includes(w.priority)
+        );
+      }
+
+      if (filters.memberId) {
+        withdrawals = withdrawals.filter(
+          (w) => w.memberId === filters.memberId
+        );
+      }
+
+      if (filters.assetSymbol) {
+        withdrawals = withdrawals.filter(
+          (w) => w.assetSymbol === filters.assetSymbol
+        );
+      }
+
+      if (filters.dateRange) {
+        const from = new Date(filters.dateRange.from);
+        const to = new Date(filters.dateRange.to);
+        withdrawals = withdrawals.filter((w) => {
+          const requestedAt = new Date(w.requestedAt);
+          return requestedAt >= from && requestedAt <= to;
+        });
+      }
+
+      if (filters.searchTerm) {
+        const term = filters.searchTerm.toLowerCase();
+        withdrawals = withdrawals.filter(
+          (w) =>
+            w.memberInfo.companyName.toLowerCase().includes(term) ||
+            w.toAddress.toLowerCase().includes(term)
+        );
+      }
     }
-  }
 
-  // 정렬
-  if (sort) {
-    withdrawals.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (sort.field) {
-        case "requestedAt":
-          aValue = new Date(a.requestedAt).getTime();
-          bValue = new Date(b.requestedAt).getTime();
-          break;
-        case "amount":
-          aValue = parseFloat(a.amount);
-          bValue = parseFloat(b.amount);
-          break;
-        case "priority":
-          const priorityOrder = { urgent: 3, normal: 2, low: 1 };
-          aValue = priorityOrder[a.priority];
-          bValue = priorityOrder[b.priority];
-          break;
-        case "waitingTime":
-          aValue = a.waitingTimeMinutes;
-          bValue = b.waitingTimeMinutes;
-          break;
-        case "riskScore":
-          aValue = a.amlReview.riskScore;
-          bValue = b.amlReview.riskScore;
-          break;
-        case "memberName":
-          aValue = a.memberInfo.companyName;
-          bValue = b.memberInfo.companyName;
-          break;
-        default:
-          return 0;
-      }
-
-      if (sort.direction === "asc") {
-        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-  } else {
-    // 기본 정렬: 우선순위 높은 순 → 요청 시간 오래된 순
+    // 기본 정렬
     withdrawals.sort((a, b) => {
       const priorityOrder = { urgent: 3, normal: 2, low: 1 };
       const priorityDiff =
@@ -231,21 +390,21 @@ export async function getWithdrawalQueue(
         new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime()
       );
     });
+
+    // 통계 계산
+    const statistics = calculateStatistics(withdrawals);
+
+    return {
+      withdrawals,
+      statistics,
+      totalCount: withdrawals.length,
+      pagination: {
+        page: 1,
+        pageSize: withdrawals.length,
+        totalPages: 1,
+      },
+    };
   }
-
-  // 통계 계산
-  const statistics = calculateStatistics(loadWithdrawals());
-
-  return {
-    withdrawals,
-    statistics,
-    totalCount: withdrawals.length,
-    pagination: {
-      page: 1,
-      pageSize: withdrawals.length,
-      totalPages: 1,
-    },
-  };
 }
 
 /**

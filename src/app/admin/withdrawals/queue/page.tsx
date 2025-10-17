@@ -42,6 +42,7 @@ import {
   Filter,
   ArrowUpDown,
 } from "lucide-react";
+import WithdrawalDetailModal from "./WithdrawalDetailModal";
 
 // ============================================================================
 // 출금 대기열 페이지 컴포넌트
@@ -58,6 +59,9 @@ export default function WithdrawalQueuePage() {
   const [priorityFilter, setPriorityFilter] = useState<WithdrawalPriority[]>(
     []
   );
+  const [selectedWithdrawal, setSelectedWithdrawal] =
+    useState<Withdrawal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 데이터 로드
   useEffect(() => {
@@ -87,6 +91,15 @@ export default function WithdrawalQueuePage() {
   // 필터 변경 시 재로드
   useEffect(() => {
     loadWithdrawals();
+  }, [statusFilter, priorityFilter, searchTerm]);
+
+  // 자동 새로고침 (30초마다)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadWithdrawals();
+    }, 30000); // 30초
+
+    return () => clearInterval(interval); // 컴포넌트 언마운트 시 정리
   }, [statusFilter, priorityFilter, searchTerm]);
 
   return (
@@ -218,6 +231,8 @@ export default function WithdrawalQueuePage() {
                   label: "AML 검토",
                   color: "blue",
                 },
+                { value: "processing" as const, label: "출금처리대기", color: "indigo" },
+                { value: "withdrawal_pending" as const, label: "출금대기중", color: "purple" },
                 { value: "approved" as const, label: "승인", color: "green" },
                 { value: "signing" as const, label: "서명 중", color: "purple" },
                 { value: "confirmed" as const, label: "완료", color: "gray" },
@@ -432,6 +447,12 @@ export default function WithdrawalQueuePage() {
                             ? "대기"
                             : withdrawal.status === "aml_review"
                             ? "AML 검토"
+                            : withdrawal.status === "approval_pending"
+                            ? "처리중"
+                            : withdrawal.status === "processing"
+                            ? "출금처리대기"
+                            : withdrawal.status === "withdrawal_pending"
+                            ? "출금대기중"
                             : withdrawal.status === "approved"
                             ? "승인됨"
                             : withdrawal.status === "signing"
@@ -460,7 +481,14 @@ export default function WithdrawalQueuePage() {
 
                       {/* 액션 */}
                       <TableCell>
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedWithdrawal(withdrawal);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           상세
                         </Button>
                       </TableCell>
@@ -472,6 +500,20 @@ export default function WithdrawalQueuePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 출금 상세 모달 */}
+      <WithdrawalDetailModal
+        withdrawal={selectedWithdrawal}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedWithdrawal(null);
+        }}
+        onSuccess={() => {
+          // 모달에서 AML 검증 완료 후 데이터 새로고침
+          loadWithdrawals();
+        }}
+      />
     </div>
   );
 }

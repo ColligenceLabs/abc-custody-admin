@@ -19,6 +19,7 @@ export interface AssetDistribution {
   value: number; // KRW 환산 가치
   percentage: number;
   color: string;
+  [key: string]: any; // Recharts 호환성을 위한 index signature
 }
 
 export interface WalletStatus {

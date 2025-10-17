@@ -28,6 +28,7 @@ import {
 import { withdrawalV2Api } from "@/services/withdrawalV2Api";
 import { WalletBalanceCheckComponent } from "./WalletBalanceCheck";
 import { ApprovalButtonsComponent } from "./ApprovalButtons";
+import { apiClient } from "@/services/api";
 import {
   CheckCircle,
   XCircle,
@@ -39,6 +40,7 @@ import {
   Ban,
   Copy,
   ExternalLink,
+  Settings,
 } from "lucide-react";
 
 interface RequestDetailModalProps {
@@ -52,16 +54,18 @@ interface RequestDetailModalProps {
 
 const getStatusBadge = (status: string) => {
   const statusConfig = {
-    pending: { label: "AML 검토 중", variant: "default" as const, className: "bg-yellow-600" },
-    approval_waiting: { label: "승인 대기", variant: "default" as const, className: "bg-blue-600" },
-    aml_flagged: { label: "AML 문제", variant: "destructive" as const, className: "" },
-    processing: { label: "처리 중", variant: "default" as const, className: "bg-purple-600" },
-    completed: { label: "완료", variant: "default" as const, className: "bg-green-600" },
-    rejected: { label: "거부됨", variant: "destructive" as const, className: "" },
+    withdrawal_wait: { label: "출금 대기", variant: "default" as const, className: "bg-slate-600" },
+    aml_review: { label: "AML 검토 중", variant: "default" as const, className: "bg-yellow-600" },
+    aml_issue: { label: "AML 문제", variant: "destructive" as const, className: "" },
+    processing: { label: "출금처리대기", variant: "default" as const, className: "bg-purple-600" },
+    withdrawal_pending: { label: "출금처리중", variant: "default" as const, className: "bg-indigo-600" },
+    transferring: { label: "출금중", variant: "default" as const, className: "bg-blue-500" },
+    success: { label: "완료", variant: "default" as const, className: "bg-green-600" },
+    admin_rejected: { label: "관리자거부", variant: "destructive" as const, className: "" },
     failed: { label: "실패", variant: "destructive" as const, className: "" },
   };
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.withdrawal_wait;
   return (
     <Badge variant={config.variant} className={config.className}>
       {config.label}
@@ -71,12 +75,14 @@ const getStatusBadge = (status: string) => {
 
 const getStatusIcon = (status: string) => {
   const icons = {
-    pending: Clock,
-    approval_waiting: FileText,
-    aml_flagged: AlertTriangle,
+    withdrawal_wait: Clock,
+    aml_review: Clock,
+    aml_issue: AlertTriangle,
     processing: RefreshCw,
-    completed: CheckCheck,
-    rejected: Ban,
+    withdrawal_pending: Clock,
+    transferring: RefreshCw,
+    success: CheckCheck,
+    admin_rejected: Ban,
     failed: XCircle,
   };
   const Icon = icons[status as keyof typeof icons] || FileText;
@@ -101,9 +107,9 @@ export function RequestDetailModal({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  // approval_waiting 상태일 때만 지갑 잔고 확인
+  // processing 상태일 때 지갑 잔고 확인
   useEffect(() => {
-    if (open && request && request.status === "approval_waiting") {
+    if (open && request && request.status === "processing") {
       performWalletBalanceCheck();
     } else {
       setHotWalletCheck(null);
@@ -189,6 +195,82 @@ export function RequestDetailModal({
     });
   };
 
+  const handleSetWaitTime = async (minutes: number) => {
+    if (!request) return;
+
+    setIsLoading(true);
+    try {
+      // 현재 시각 기준으로 미래 시간 계산
+      const newScheduledAt = new Date();
+      newScheduledAt.setMinutes(newScheduledAt.getMinutes() + minutes);
+
+      await apiClient.patch(`/withdrawals/${request.id}`, {
+        processingScheduledAt: newScheduledAt.toISOString(),
+      });
+
+      toast({
+        description: `대기 시간이 ${minutes}분으로 설정되었습니다.`,
+      });
+
+      window.location.reload();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: "대기 시간 설정 실패",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAMLApprove = async () => {
+    if (!request) return;
+
+    setIsLoading(true);
+    try {
+      await apiClient.patch(`/withdrawals/${request.id}`, {
+        status: 'processing',
+      });
+
+      toast({
+        description: "AML 승인 처리되었습니다.",
+      });
+
+      window.location.reload();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: "AML 승인 처리 실패",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAMLIssue = async () => {
+    if (!request) return;
+
+    setIsLoading(true);
+    try {
+      await apiClient.patch(`/withdrawals/${request.id}`, {
+        status: 'aml_issue',
+      });
+
+      toast({
+        description: "AML 문제 처리되었습니다.",
+      });
+
+      window.location.reload();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: "AML 문제 처리 실패",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getBlockchainExplorerUrl = (blockchain: string, txHash: string) => {
     const explorers: Record<string, string> = {
       BITCOIN: `https://blockstream.info/tx/${txHash}`,
@@ -257,30 +339,245 @@ export function RequestDetailModal({
 
           {/* 상태별 특화 섹션 */}
 
-          {/* pending: AML 검토 중 */}
-          {request.status === "pending" && (
-            <Alert>
-              <Clock className="h-4 w-4" />
-              <AlertTitle>AML 자동 검토 진행 중</AlertTitle>
-              <AlertDescription>
-                자동 AML 검토가 진행 중입니다. 완료되면 승인 대기 상태로 전환됩니다.
-              </AlertDescription>
-            </Alert>
+          {/* withdrawal_wait: 출금 대기 (개인 회원 전용 테스트 설정) */}
+          {request.status === "withdrawal_wait" &&
+           request.memberType === "individual" &&
+           request.processingScheduledAt && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-yellow-600" />
+                <h4 className="font-semibold text-sm text-yellow-800">테스트용 대기 시간 설정</h4>
+              </div>
+              <p className="text-xs text-yellow-700">
+                개인 회원의 출금 대기 시간을 테스트용으로 조정할 수 있습니다. (24시간 기본값)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSetWaitTime(1)}
+                  disabled={isLoading}
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                >
+                  1분
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSetWaitTime(5)}
+                  disabled={isLoading}
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                >
+                  5분
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSetWaitTime(10)}
+                  disabled={isLoading}
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                >
+                  10분
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSetWaitTime(24 * 60)}
+                  disabled={isLoading}
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                >
+                  24시간 (기본값)
+                </Button>
+              </div>
+              <p className="text-xs text-yellow-600">
+                현재 대기 종료 시각: {new Date(request.processingScheduledAt).toLocaleString("ko-KR")}
+              </p>
+            </div>
           )}
 
-          {/* approval_waiting: 승인 대기 */}
-          {request.status === "approval_waiting" && (
+          {/* aml_review: AML 검토 중 */}
+          {request.status === "aml_review" && (
             <>
-              {/* AML 검토 통과 정보 */}
-              {request.amlReview && request.amlReview.status === "passed" && (
-                <Alert>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertTitle>AML 검토 완료</AlertTitle>
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertTitle>AML 자동 검토 진행 중</AlertTitle>
+                <AlertDescription>
+                  자동 AML 검토가 진행 중입니다. 테스트를 위해 수동으로 처리할 수 있습니다.
+                </AlertDescription>
+              </Alert>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-semibold text-sm text-blue-800">테스트용 AML 처리</h4>
+                </div>
+                <p className="text-xs text-blue-700">
+                  AML 검토 결과를 테스트용으로 설정할 수 있습니다.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAMLApprove}
+                    disabled={isLoading}
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    AML승인처리
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAMLIssue}
+                    disabled={isLoading}
+                    className="border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    AML문제처리
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* aml_issue: AML 문제 */}
+          {request.status === "aml_issue" && (
+            <>
+              {request.amlReview && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>AML 리스크 감지</AlertTitle>
                   <AlertDescription>
-                    자동 AML 검토를 통과했습니다. (리스크 레벨: {request.amlReview.riskLevel}, 점수: {request.amlReview.riskScore})
+                    <div className="space-y-2 mt-2">
+                      <p>리스크 레벨: <span className="font-bold">{request.amlReview.riskLevel}</span></p>
+                      <p>리스크 점수: <span className="font-bold">{request.amlReview.riskScore}</span></p>
+                      {request.amlReview.flaggedReasons && (
+                        <div>
+                          <p className="font-medium">문제 사유:</p>
+                          <ul className="list-disc list-inside ml-2">
+                            {request.amlReview.flaggedReasons.map((reason, idx) => (
+                              <li key={idx}>{reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {request.amlReview.notes && (
+                        <p className="text-xs mt-2">{request.amlReview.notes}</p>
+                      )}
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
+
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
+                  onClick={handleReject}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  거부
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* withdrawal_pending: 전송 대기 */}
+          {request.status === "withdrawal_pending" && (
+            <>
+              <Alert>
+                <Clock className="h-4 w-4 text-indigo-600" />
+                <AlertTitle>블록데몬 API 호출 완료</AlertTitle>
+                <AlertDescription>
+                  BlockDaemon API를 호출 하였습니다. 관리자의 승인을 기다리고 있습니다.
+                </AlertDescription>
+              </Alert>
+
+              {/* BlockDaemon 트랜잭션 ID 표시 */}
+              {request.blockdaemonTransactionId && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                  <h4 className="font-semibold">BlockDaemon 트랜잭션</h4>
+                  <p>트랜잭션 ID: <span className="font-mono">{request.blockdaemonTransactionId}</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    트랜잭션 해시(txHash)는 블록체인 전송 후 자동으로 업데이트됩니다.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* transferring: 출금중 */}
+          {request.status === "transferring" && (
+            <>
+              <Alert>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <AlertTitle>출금중</AlertTitle>
+                <AlertDescription>
+                  블록체인 네트워크로 트랜잭션이 전송되고 있습니다.
+                </AlertDescription>
+              </Alert>
+
+              {/* 트랜잭션 해시가 있으면 표시 */}
+              {request.txHash && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <h4 className="font-semibold text-sm">트랜잭션 정보</h4>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">트랜잭션 해시</p>
+                    <div className="bg-background rounded border p-3">
+                      <p
+                        className="font-mono text-xs whitespace-normal"
+                        style={{
+                          wordBreak: 'break-all',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
+                        {request.txHash}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyTxHash(request.txHash!)}
+                        className="flex-1"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        복사
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(getBlockchainExplorerUrl(request.blockchain, request.txHash!), "_blank")}
+                        className="flex-1"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        익스플로러에서 보기
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BlockDaemon 트랜잭션 ID 표시 */}
+              {request.blockdaemonTransactionId && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                  <h4 className="font-semibold">BlockDaemon 트랜잭션</h4>
+                  <p>트랜잭션 ID: <span className="font-mono">{request.blockdaemonTransactionId}</span></p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* processing: 처리 중 */}
+          {request.status === "processing" && (
+            <>
+              <Alert>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle>AML 검토 완료</AlertTitle>
+                <AlertDescription>
+                  AML 검토를 통과했습니다. Hot 또는 Cold 지갑을 선택하여 출금을 승인해주세요.
+                </AlertDescription>
+              </Alert>
 
               {/* 지갑 잔고 확인 */}
               {isLoading && (
@@ -326,72 +623,8 @@ export function RequestDetailModal({
             </>
           )}
 
-          {/* aml_flagged: AML 문제 */}
-          {request.status === "aml_flagged" && (
-            <>
-              {request.amlReview && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>AML 리스크 감지</AlertTitle>
-                  <AlertDescription>
-                    <div className="space-y-2 mt-2">
-                      <p>리스크 레벨: <span className="font-bold">{request.amlReview.riskLevel}</span></p>
-                      <p>리스크 점수: <span className="font-bold">{request.amlReview.riskScore}</span></p>
-                      {request.amlReview.flaggedReasons && (
-                        <div>
-                          <p className="font-medium">문제 사유:</p>
-                          <ul className="list-disc list-inside ml-2">
-                            {request.amlReview.flaggedReasons.map((reason, idx) => (
-                              <li key={idx}>{reason}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {request.amlReview.notes && (
-                        <p className="text-xs mt-2">{request.amlReview.notes}</p>
-                      )}
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
-                  onClick={handleReject}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  거부
-                </Button>
-              </div>
-            </>
-          )}
-
-          {/* processing: 처리 중 */}
-          {request.status === "processing" && (
-            <>
-              <Alert>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                <AlertTitle>출금 처리 중</AlertTitle>
-                <AlertDescription>
-                  {request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}에서 출금이 진행 중입니다.
-                </AlertDescription>
-              </Alert>
-
-              {request.mpcExecution && (
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                  <h4 className="font-semibold">MPC 실행 정보</h4>
-                  <p>MPC 요청 ID: <span className="font-mono">{request.mpcExecution.mpcRequestId}</span></p>
-                  <p>시작 시간: {request.mpcExecution.initiatedAt.toLocaleString("ko-KR")}</p>
-                  <p>상태: <Badge variant="outline">{request.mpcExecution.status}</Badge></p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* completed: 완료 */}
-          {request.status === "completed" && (
+          {/* success: 완료 */}
+          {request.status === "success" && (
             <>
               <Alert>
                 <CheckCheck className="h-4 w-4 text-green-600" />
@@ -452,8 +685,8 @@ export function RequestDetailModal({
             </>
           )}
 
-          {/* rejected: 거부됨 */}
-          {request.status === "rejected" && request.rejection && (
+          {/* admin_rejected: 거부됨 */}
+          {request.status === "admin_rejected" && request.rejection && (
             <>
               <Alert variant="destructive">
                 <Ban className="h-4 w-4" />

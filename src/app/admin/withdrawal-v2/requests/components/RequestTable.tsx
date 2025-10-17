@@ -14,8 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -37,7 +35,8 @@ import {
   WithdrawalV2Request,
   WithdrawalStatus,
 } from "@/types/withdrawalV2";
-import { Search, Filter, Eye } from "lucide-react";
+import { Search, Filter } from "lucide-react";
+import { RequestTableRow } from "./RequestTableRow";
 
 interface RequestTableProps {
   requests: WithdrawalV2Request[];
@@ -78,76 +77,6 @@ export function RequestTable({
     setCurrentPage(1);
   };
 
-  const getStatusBadge = (status: WithdrawalStatus) => {
-    const variants: Record<
-      WithdrawalStatus,
-      { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }
-    > = {
-      pending: { variant: "secondary", label: "AML 검토 중", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200" },
-      approval_waiting: { variant: "default", label: "승인 대기", className: "bg-blue-600" },
-      aml_flagged: { variant: "destructive", label: "AML 문제" },
-      processing: { variant: "outline", label: "처리 중", className: "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-200" },
-      completed: { variant: "default", label: "완료", className: "bg-green-600" },
-      rejected: { variant: "destructive", label: "거부됨" },
-      failed: { variant: "destructive", label: "실패" },
-    };
-
-    const config = variants[status];
-    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const variants: Record<
-      string,
-      { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }
-    > = {
-      urgent: { variant: "destructive", label: "긴급", className: "bg-red-600 text-white" },
-      normal: { variant: "default", label: "보통", className: "bg-blue-600 text-white" },
-      low: { variant: "secondary", label: "낮음", className: "bg-gray-400 text-white dark:bg-gray-600" },
-    };
-
-    const config = variants[priority] || variants.normal;
-    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
-  };
-
-
-  const getBlockchainBadge = (blockchain: string) => {
-    const colors: Record<string, string> = {
-      BITCOIN:
-        "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-200",
-      ETHEREUM:
-        "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
-      SOLANA:
-        "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-200",
-    };
-
-    const labels: Record<string, string> = {
-      BITCOIN: "Bitcoin",
-      ETHEREUM: "Ethereum",
-      SOLANA: "Solana",
-    };
-
-    return (
-      <Badge variant="outline" className={colors[blockchain]}>
-        {labels[blockchain]}
-      </Badge>
-    );
-  };
-
-  const getMemberTypeBadge = (memberType: "individual" | "corporate") => {
-    if (memberType === "individual") {
-      return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200">
-          개인
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
-        기업
-      </Badge>
-    );
-  };
 
   return (
     <div className="space-y-4">
@@ -179,12 +108,13 @@ export function RequestTable({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">전체 상태</SelectItem>
-            <SelectItem value="pending">AML 검토 중</SelectItem>
-            <SelectItem value="approval_waiting">승인 대기</SelectItem>
-            <SelectItem value="aml_flagged">AML 문제</SelectItem>
+            <SelectItem value="withdrawal_wait">출금 대기</SelectItem>
+            <SelectItem value="aml_review">AML 검토 중</SelectItem>
+            <SelectItem value="approval_pending">승인 대기</SelectItem>
+            <SelectItem value="aml_issue">AML 문제</SelectItem>
             <SelectItem value="processing">처리 중</SelectItem>
-            <SelectItem value="completed">완료</SelectItem>
-            <SelectItem value="rejected">거부됨</SelectItem>
+            <SelectItem value="success">완료</SelectItem>
+            <SelectItem value="admin_rejected">관리자거부</SelectItem>
             <SelectItem value="failed">실패</SelectItem>
           </SelectContent>
         </Select>
@@ -218,39 +148,11 @@ export function RequestTable({
               </TableRow>
             ) : (
               paginatedRequests.map((request) => (
-                <TableRow key={request.id} className="hover:bg-muted/50">
-                  <TableCell className="font-mono text-xs">
-                    {request.id}
-                  </TableCell>
-                  <TableCell>
-                    {getMemberTypeBadge(request.memberType)}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {request.memberName}
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-semibold">{request.asset}</span>
-                  </TableCell>
-                  <TableCell className="font-mono">
-                    {request.amount}
-                  </TableCell>
-                  <TableCell>{getBlockchainBadge(request.blockchain)}</TableCell>
-                  <TableCell>{getPriorityBadge(request.priority)}</TableCell>
-                  <TableCell>{getStatusBadge(request.status)}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {request.createdAt.toLocaleString("ko-KR")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onView(request)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      상세 보기
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <RequestTableRow
+                  key={request.id}
+                  request={request}
+                  onView={onView}
+                />
               ))
             )}
           </TableBody>

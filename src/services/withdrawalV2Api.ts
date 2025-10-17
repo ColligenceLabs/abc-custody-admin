@@ -37,6 +37,9 @@ import {
 import { vaultApi } from './vaultApi';
 import { mockDb } from './mockDatabase';
 
+// Import API client for backend connection
+import { apiClient, transformApiError } from './api';
+
 // Simulated API delays
 const API_DELAY = {
   FAST: 200,
@@ -312,13 +315,15 @@ class WithdrawalV2ApiService {
   private getWithdrawalStats(): WithdrawalV2Stats {
     // Mock 데이터 (실제로는 LocalStorage에서 출금 요청 조회)
     return {
-      pending: 3,
-      approvalWaiting: 5,
-      amlFlagged: 1,
+      withdrawalWait: 3,
+      amlReview: 0,
+      amlIssue: 1,
       processing: 4,
-      completed: 15,
-      rejected: 2,
+      withdrawalPending: 5,
+      transferring: 2,
+      success: 15,
       failed: 1,
+      adminRejected: 2,
       completedToday: 15,
       totalValueTodayKRW: '5,240,000,000',
     };
@@ -414,12 +419,13 @@ class WithdrawalV2ApiService {
       id: withdrawalId,
       memberId: 'member-001',
       memberName: 'Alpha Corporation',
+      memberType: 'corporate',
       amount: '5.0',
       asset: 'BTC',
       blockchain: 'BITCOIN',
       network: 'mainnet',
       toAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      status: 'pending',
+      status: 'withdrawal_wait',
       priority: 'normal',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -634,6 +640,185 @@ class WithdrawalV2ApiService {
     return mockReview;
   }
 
+  // ========================================
+  // Backend API Integration Methods
+  // ========================================
+
+  /**
+   * 백엔드에서 출금 목록 조회 (실제 API 연결)
+   */
+  async getWithdrawalsFromBackend(params?: {
+    userId?: string;
+    memberType?: 'individual' | 'corporate';
+    status?: string;
+    currency?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    _page?: number;
+    _limit?: number;
+    _sort?: string;
+    _order?: 'asc' | 'desc';
+  }): Promise<{ data: WithdrawalV2Request[]; total: number }> {
+    try {
+      const response = await apiClient.get('/withdrawals', { params });
+
+      const total = parseInt(response.headers['x-total-count'] || '0', 10);
+      const data = response.data.map((item: any) => this.mapBackendToFrontend(item));
+
+      return { data, total };
+    } catch (error) {
+      const apiError = transformApiError(error);
+      console.error('출금 목록 조회 실패:', apiError);
+      throw new Error(apiError.message);
+    }
+  }
+
+  /**
+   * 백엔드에서 출금 상세 조회
+   */
+  async getWithdrawalByIdFromBackend(id: string): Promise<WithdrawalV2Request> {
+    try {
+      const response = await apiClient.get(`/withdrawals/${id}`);
+      return this.mapBackendToFrontend(response.data);
+    } catch (error) {
+      const apiError = transformApiError(error);
+      console.error('출금 상세 조회 실패:', apiError);
+      throw new Error(apiError.message);
+    }
+  }
+
+  /**
+   * Hot 지갑 출금 승인 (백엔드 API)
+   * POST /withdrawals/:id/approve/hot
+   */
+  async approveWithHotWalletBackend(
+    requestId: string,
+    hotCheck: HotWalletBalanceCheck
+  ): Promise<WithdrawalV2Request> {
+    try {
+      const response = await apiClient.post(`/withdrawals/${requestId}/approve/hot`);
+
+      return this.mapBackendToFrontend(response.data.withdrawal || response.data);
+    } catch (error) {
+      const apiError = transformApiError(error);
+      console.error('Hot 지갑 출금 승인 실패:', apiError);
+      throw new Error(apiError.message);
+    }
+  }
+
+  /**
+   * Cold 지갑 출금 승인 (백엔드 API)
+   * POST /withdrawals/:id/approve/cold
+   */
+  async approveWithColdWalletBackend(
+    requestId: string,
+    coldInfo: ColdWalletBalanceInfo
+  ): Promise<WithdrawalV2Request> {
+    try {
+      const response = await apiClient.post(`/withdrawals/${requestId}/approve/cold`);
+
+      return this.mapBackendToFrontend(response.data.withdrawal || response.data);
+    } catch (error) {
+      const apiError = transformApiError(error);
+      console.error('Cold 지갑 출금 승인 실패:', apiError);
+      throw new Error(apiError.message);
+    }
+  }
+
+  /**
+   * 출금 거부 (백엔드 API)
+   */
+  async rejectWithdrawalBackend(requestId: string, reason: string): Promise<WithdrawalV2Request> {
+    try {
+      const response = await apiClient.patch(`/withdrawals/${requestId}`, {
+        status: 'rejected',
+        rejection: {
+          rejectedBy: 'admin-current',
+          rejectedAt: new Date().toISOString(),
+          reason,
+          relatedAMLIssue: false,
+        },
+      });
+
+      return this.mapBackendToFrontend(response.data);
+    } catch (error) {
+      const apiError = transformApiError(error);
+      console.error('출금 거부 실패:', apiError);
+      throw new Error(apiError.message);
+    }
+  }
+
+  /**
+   * 백엔드 응답 데이터 → 프론트엔드 타입 변환
+   */
+  private mapBackendToFrontend(backendData: any): WithdrawalV2Request {
+    return {
+      id: backendData.id,
+      memberId: backendData.userId,
+      memberName: backendData.memberName || backendData.initiator,
+      memberType: backendData.memberType,
+      amount: backendData.amount?.toString() || '0',
+      asset: backendData.currency,
+      blockchain: this.getBlockchainFromCurrency(backendData.currency),
+      network: 'mainnet',
+      toAddress: backendData.toAddress,
+      status: this.mapBackendStatusToFrontend(backendData.status),
+      priority: backendData.priority || 'normal',
+      createdAt: new Date(backendData.initiatedAt || backendData.createdAt),
+      updatedAt: new Date(backendData.updatedAt),
+      completedAt: backendData.completedAt ? new Date(backendData.completedAt) : undefined,
+      processingScheduledAt: backendData.processingScheduledAt,
+      walletSource: backendData.walletSource,
+      txHash: backendData.txHash,
+      mpcExecution: backendData.mpcExecution,
+      amlReview: backendData.amlReview,
+      rejection: backendData.rejection,
+      error: backendData.error,
+    };
+  }
+
+  /**
+   * 백엔드 상태값 → 프론트엔드 상태값 매핑
+   */
+  private mapBackendStatusToFrontend(backendStatus: string): WithdrawalStatus {
+    // 신 버전 상태값만 사용 (구 버전 완전 제거)
+    const statusMapping: Record<string, WithdrawalStatus> = {
+      'withdrawal_wait': 'withdrawal_wait',
+      'aml_review': 'aml_review',
+      'aml_issue': 'aml_issue',
+      'processing': 'processing',
+      'withdrawal_pending': 'withdrawal_pending',
+      'transferring': 'transferring',
+      'success': 'success',
+      'failed': 'failed',
+      'admin_rejected': 'admin_rejected',
+    };
+
+    // 구 버전 상태값이 들어오면 경고 로그
+    if (!statusMapping[backendStatus]) {
+      console.warn(`⚠️ Unknown or deprecated status value: ${backendStatus}`);
+      return 'withdrawal_wait';
+    }
+
+    return statusMapping[backendStatus];
+  }
+
+  /**
+   * 자산 심볼에서 블록체인 추출
+   */
+  private getBlockchainFromCurrency(currency: string): BlockchainType {
+    const blockchainMap: Record<string, BlockchainType> = {
+      'BTC': 'BITCOIN',
+      'ETH': 'ETHEREUM',
+      'USDT': 'ETHEREUM',
+      'USDC': 'ETHEREUM',
+      'SOL': 'SOLANA',
+    };
+
+    return blockchainMap[currency] || 'ETHEREUM';
+  }
+
   /**
    * 출금 거부
    * approval_waiting 또는 aml_flagged → rejected
@@ -679,13 +864,15 @@ class WithdrawalV2ApiService {
  * 허용된 상태 전이 규칙
  */
 const ALLOWED_TRANSITIONS: Record<WithdrawalStatus, WithdrawalStatus[]> = {
-  pending: ["approval_waiting", "aml_flagged"],
-  approval_waiting: ["processing", "rejected"],
-  aml_flagged: ["rejected"],
-  processing: ["completed", "failed"],
-  completed: [],
-  rejected: [],
-  failed: ["pending"], // 재시도 가능
+  withdrawal_wait: ["aml_review", "admin_rejected"],
+  aml_review: ["processing", "aml_issue"],
+  aml_issue: ["admin_rejected", "processing"],
+  processing: ["withdrawal_pending", "admin_rejected"],
+  withdrawal_pending: ["transferring", "failed"],
+  transferring: ["success", "failed"],
+  success: [],
+  admin_rejected: [],
+  failed: ["withdrawal_wait"], // 재시도 가능
 };
 
 /**

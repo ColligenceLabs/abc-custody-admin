@@ -33,16 +33,18 @@ export type AssetType = "BTC" | "ETH" | "USDT" | "USDC" | "SOL" | "CUSTOM_ERC20"
 export type WalletSource = "hot" | "cold";
 
 /**
- * 출금 요청 상태 (개선된 7-상태 모델)
+ * 출금 요청 상태 (통합 상태 모델)
  */
 export type WithdrawalStatus =
-  | "pending"          // 대기 중 (AML 자동 검토 진행 중)
-  | "approval_waiting" // 승인 대기 (AML 통과, Hot/Cold 선택 가능)
-  | "aml_flagged"      // AML 문제 감지 (수동 검토 필요)
-  | "processing"       // 처리 중 (Hot/Cold 외부 시스템 처리)
-  | "completed"        // 완료
-  | "rejected"         // 거부됨
-  | "failed";          // 실패
+  | "withdrawal_wait"      // 출금대기 (24시간 홀드)
+  | "aml_review"          // AML 검토 중 (자동 검토)
+  | "aml_issue"          // AML 문제 감지 (수동 검토 필요)
+  | "processing"         // 처리 중 (AML 통과, Hot/Cold 선택 가능)
+  | "withdrawal_pending" // 출금 대기 (BlockDaemon 트랜잭션 생성됨, 블록체인 전송 대기)
+  | "transferring"       // 출금중 (TxHash 기록됨, 블록체인 전송 중)
+  | "success"            // 완료
+  | "failed"             // 실패
+  | "admin_rejected";    // 관리자 거부
 
 /**
  * 출금 요청 우선순위
@@ -365,6 +367,9 @@ export interface WithdrawalV2Request {
   // 우선순위
   priority: WithdrawalPriority;
 
+  // 개인 회원 전용 - 24시간 대기 처리 예정 시각
+  processingScheduledAt?: string;
+
   // 출금 소스 (Hot/Cold) - approval_waiting 이후 설정됨
   walletSource?: WalletSource;
 
@@ -391,6 +396,7 @@ export interface WithdrawalV2Request {
   // 완료 정보
   completedAt?: Date;
   txHash?: string;
+  blockdaemonTransactionId?: string; // BlockDaemon 트랜잭션 ID
 }
 
 // ============================================================================
@@ -570,16 +576,18 @@ export interface RebalancingQueryFilter {
 // ============================================================================
 
 /**
- * V2 출금 통계 (개선된 7-상태 모델)
+ * V2 출금 통계 (통합 상태 모델)
  */
 export interface WithdrawalV2Stats {
-  pending: number;
-  approvalWaiting: number;
-  amlFlagged: number;
+  withdrawalWait: number;
+  amlReview: number;
+  amlIssue: number;
   processing: number;
-  completed: number;
-  rejected: number;
+  withdrawalPending: number;
+  transferring: number;
+  success: number;
   failed: number;
+  adminRejected: number;
   completedToday: number;
   totalValueTodayKRW: string;
 }

@@ -35,9 +35,9 @@ const MOCK_PRICES: Record<AssetType, number> = {
 export function PendingWithdrawalAssetsSection({
   requests,
 }: PendingWithdrawalAssetsSectionProps) {
-  // 승인 대기 중인 요청만 필터링
+  // 승인 대기 중인 요청만 필터링 (processing 상태 = Hot/Cold 지갑 선택 대기)
   const pendingRequests = useMemo(
-    () => requests.filter((r) => r.status === "approval_waiting"),
+    () => requests.filter((r) => r.status === "processing"),
     [requests]
   );
 

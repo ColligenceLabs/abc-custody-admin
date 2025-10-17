@@ -30,38 +30,50 @@ export function WithdrawalStatusCard({ stats }: WithdrawalStatusCardProps) {
 
   const statusItems = [
     {
+      label: "출금 대기",
+      value: stats.withdrawalWait,
+      color: "bg-slate-500",
+      textColor: "text-slate-700 dark:text-slate-300",
+    },
+    {
       label: "AML 검토 중",
-      value: stats.pending,
+      value: stats.amlReview,
       color: "bg-yellow-500",
       textColor: "text-yellow-700 dark:text-yellow-300",
     },
     {
-      label: "승인 대기",
-      value: stats.approvalWaiting,
-      color: "bg-blue-500",
-      textColor: "text-blue-700 dark:text-blue-300",
+      label: "출금처리중",
+      value: stats.withdrawalPending,
+      color: "bg-indigo-500",
+      textColor: "text-indigo-700 dark:text-indigo-300",
     },
     {
       label: "AML 문제",
-      value: stats.amlFlagged,
+      value: stats.amlIssue,
       color: "bg-red-500",
       textColor: "text-red-700 dark:text-red-300",
     },
     {
-      label: "처리 중",
+      label: "출금처리대기",
       value: stats.processing,
       color: "bg-purple-500",
       textColor: "text-purple-700 dark:text-purple-300",
     },
     {
-      label: "완료",
-      value: stats.completed,
-      color: "bg-green-500",
-      textColor: "text-green-700 dark:text-green-300",
+      label: "전송 중",
+      value: stats.transferring,
+      color: "bg-blue-500",
+      textColor: "text-blue-700 dark:text-blue-300",
     },
     {
-      label: "거부됨",
-      value: stats.rejected,
+      label: "완료",
+      value: stats.success,
+      color: "bg-sky-500",
+      textColor: "text-sky-700 dark:text-sky-300",
+    },
+    {
+      label: "관리자거부",
+      value: stats.adminRejected,
       color: "bg-slate-500",
       textColor: "text-slate-700 dark:text-slate-300",
     },
@@ -74,10 +86,12 @@ export function WithdrawalStatusCard({ stats }: WithdrawalStatusCardProps) {
   ];
 
   const totalActive =
-    stats.pending +
-    stats.approvalWaiting +
-    stats.amlFlagged +
-    stats.processing;
+    stats.withdrawalWait +
+    stats.amlReview +
+    stats.amlIssue +
+    stats.processing +
+    stats.withdrawalPending +
+    stats.transferring;
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -134,7 +148,7 @@ export function WithdrawalStatusCard({ stats }: WithdrawalStatusCardProps) {
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">오늘 완료</span>
             <div className="text-right">
-              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+              <p className="text-lg font-bold text-sky-600 dark:text-sky-400">
                 {stats.completedToday}건
               </p>
               <p className="text-xs text-muted-foreground">
