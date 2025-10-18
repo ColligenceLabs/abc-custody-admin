@@ -11,6 +11,9 @@
 export type WithdrawalStatus =
   | "pending" // 대기 중
   | "aml_review" // AML 검토 중
+  | "approval_pending" // 승인 대기 중
+  | "processing" // 출금 처리 대기
+  | "withdrawal_pending" // 출금 대기 중
   | "approved" // 승인됨 (서명 대기)
   | "signing" // 서명 중 (Air-gap)
   | "broadcasting" // 브로드캐스트 중
