@@ -81,9 +81,7 @@ export function RejectedTableRow({
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        {(request.status === "submitted" ||
-          request.status === "approved" ||
-          request.status === "rejected" ||
+        {(request.status === "rejected" ||
           request.status === "archived") && (
           <div className="w-full">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
@@ -92,9 +90,6 @@ export function RejectedTableRow({
                   ? `${request.approvals.length + request.rejections.length}/${request.requiredApprovals.length}`
                   : `${request.approvals.length}/${request.requiredApprovals.length}`}
               </span>
-              {request.status === "approved" && (
-                <span className="text-sky-600 font-medium">완룼</span>
-              )}
               {(request.status === "rejected" || request.status === "archived") && (
                 <span className="text-red-600 font-medium">반려</span>
               )}
@@ -102,9 +97,7 @@ export function RejectedTableRow({
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all ${
-                  request.status === "approved"
-                    ? "bg-sky-500"
-                    : request.status === "rejected" || request.status === "archived"
+                  request.status === "rejected" || request.status === "archived"
                     ? "bg-red-500"
                     : "bg-blue-500"
                 }`}

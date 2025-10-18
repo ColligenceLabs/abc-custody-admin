@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { ExclamationTriangleIcon, DocumentIcon, XMarkIcon, PaperClipIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { WhitelistedAddress } from "@/types/address";
 
 interface NewRequest {
   title: string;
@@ -14,19 +15,6 @@ interface NewRequest {
   description: string;
   priority: "low" | "medium" | "high" | "critical";
   attachments?: File[];
-}
-
-interface WhitelistedAddress {
-  id: string;
-  label: string;
-  address: string;
-  network: string;
-  coin: string;
-  type: "personal" | "exchange" | "vasp";
-  permissions: {
-    canDeposit: boolean;
-    canWithdraw: boolean;
-  };
 }
 
 interface NetworkAsset {

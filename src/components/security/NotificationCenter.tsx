@@ -125,7 +125,7 @@ export function NotificationCenter({ initialSubtab }: NotificationCenterProps) {
       groupId: "group-1",
       initiator: "테스트사용자",
       initiatedAt: new Date().toISOString(),
-      status: "submitted" as const,
+      status: "withdrawal_request" as const,
       priority: "medium" as const,
       description: "테스트용 출금 신청입니다.",
       requiredApprovals: ["박CFO", "이CISO"],

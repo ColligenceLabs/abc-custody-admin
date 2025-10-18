@@ -1,19 +1,7 @@
 import React from "react";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
-
-export interface WhitelistedAddress {
-  id: string;
-  label: string;
-  address: string;
-  network: string;
-  coin: string;
-  type: "personal" | "exchange" | "vasp";
-  permissions: {
-    canDeposit: boolean;
-    canWithdraw: boolean;
-  };
-}
+import { WhitelistedAddress } from "@/types/address";
 
 export interface NetworkAsset {
   value: string;

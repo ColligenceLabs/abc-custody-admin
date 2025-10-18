@@ -180,15 +180,15 @@ export function ApprovalStatus({
               {request.rejections.length > 0 && ` (반려 ${request.rejections.length}건)`}
             </span>
             <span className={`font-medium ${
-              request.status === "rejected" || request.status === "archived" 
-                ? "text-red-600" 
-                : request.status === "approved" 
+              request.status === "rejected" || request.status === "archived"
+                ? "text-red-600"
+                : (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0)
                 ? "text-sky-600"
                 : "text-blue-600"
             }`}>
-              {request.status === "rejected" ? "반려됨" 
+              {request.status === "rejected" ? "반려됨"
                 : request.status === "archived" ? "아카이브됨"
-                : request.status === "approved" ? "승인 완료"
+                : (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0) ? "승인 완료"
                 : "진행 중"}
             </span>
           </div>

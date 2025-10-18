@@ -37,13 +37,13 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
       const statusMatch =
         processingStatusFilter === "all" ||
         (processingStatusFilter === "pending" &&
-          request.status === "pending") ||
+          ["withdrawal_wait", "withdrawal_pending", "approval_pending"].includes(request.status)) ||
         (processingStatusFilter === "processing" &&
-          request.status === "processing") ||
+          ["processing", "transferring"].includes(request.status)) ||
         (processingStatusFilter === "security_verification" &&
-          request.status === "processing") ||
+          ["processing", "transferring"].includes(request.status)) ||
         (processingStatusFilter === "completed" &&
-          request.status === "completed");
+          request.status === "success");
 
       // 검색어 필터
       const searchMatch =
@@ -92,7 +92,7 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
         statusMatch &&
         searchMatch &&
         dateMatch &&
-        ["pending", "processing", "completed"].includes(request.status)
+        ["withdrawal_wait", "withdrawal_pending", "approval_pending", "processing", "transferring", "success"].includes(request.status)
       );
     });
   };
@@ -530,8 +530,8 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                           </div>
                         )}
 
-                        {/* 출금 대기 상태 표시 - pending 상태일 때만 표시 */}
-                        {request.status === "pending" && (
+                        {/* 출금 대기 상태 표시 - withdrawal_wait 상태일 때만 표시 */}
+                        {request.status === "withdrawal_wait" && (
                           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center">

@@ -13,7 +13,9 @@ const STATUS_LABELS: Record<WithdrawalStatus, string> = {
   aml_review: 'AML 검토',
   approval_pending: '승인 대기',
   aml_issue: 'AML 문제',
+  transferring: '출금중',
   processing: '처리중',
+  withdrawal_pending: '승인 대기',
   success: '완료',
   failed: '실패',
   admin_rejected: '관리자 거부',
@@ -46,7 +48,9 @@ export function getStatusBadgeColor(status: WithdrawalStatus): string {
     withdrawal_wait: 'text-yellow-600 bg-yellow-50 border-yellow-200',
     aml_review: 'text-blue-600 bg-blue-50 border-blue-200',
     approval_pending: 'text-purple-600 bg-purple-50 border-purple-200',
+    transferring: 'text-indigo-600 bg-indigo-50 border-indigo-200',
     processing: 'text-indigo-600 bg-indigo-50 border-indigo-200',
+    withdrawal_pending: 'text-purple-600 bg-purple-50 border-purple-200',
     withdrawal_request: 'text-blue-600 bg-blue-50 border-blue-200',
     withdrawal_reapply: 'text-purple-600 bg-purple-50 border-purple-200',
 
@@ -170,7 +174,9 @@ export function getStatusProgress(status: WithdrawalStatus): number {
     withdrawal_wait: 20,
     aml_review: 40,
     approval_pending: 60,
+    withdrawal_pending: 60,
     aml_issue: 40,
+    transferring: 70,
     processing: 80,
     success: 100,
     failed: 100,
@@ -208,6 +214,12 @@ export function getPossibleNextStatuses(
 
     // 승인 대기 → 처리중 또는 관리자 거부
     approval_pending: ['processing', 'admin_rejected'],
+
+    // 출금 대기 (블록데몬 API 완료) → 출금중
+    withdrawal_pending: ['transferring', 'admin_rejected'],
+
+    // 출금중 → 처리중
+    transferring: ['processing'],
 
     // 처리중 → 완료 또는 실패
     processing: ['success', 'failed'],

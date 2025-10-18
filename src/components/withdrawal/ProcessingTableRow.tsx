@@ -52,7 +52,7 @@ export function ProcessingTableRow({
 
       // 1초마다 업데이트
       const interval = setInterval(() => {
-        const newTime = calculateRemainingTime(individualRequest.processingScheduledAt);
+        const newTime = calculateRemainingTime(individualRequest.processingScheduledAt!);
         setRemainingTime(newTime);
 
         // 시간이 다 되면 interval 정리
@@ -67,7 +67,7 @@ export function ProcessingTableRow({
 
   // Progress 계산 로직
   const getProgressInfo = (request: WithdrawalRequest | IndividualWithdrawalRequest) => {
-    if (request.status === "withdrawal_wait" || request.status === "pending") {
+    if (request.status === "withdrawal_wait" || request.status === "withdrawal_pending") {
       // 개인회원의 경우 실시간 remainingTime 사용
       const eta = remainingTime || "24시간";
 
@@ -119,7 +119,7 @@ export function ProcessingTableRow({
         eta: "",
         type: "processing",
       };
-    } else if (request.status === "success" || request.status === "completed") {
+    } else if (request.status === "success") {
       return {
         progress: 100,
         step: "전송 완료",

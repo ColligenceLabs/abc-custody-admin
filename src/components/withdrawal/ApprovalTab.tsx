@@ -45,8 +45,8 @@ export default function ApprovalTab({
   // 결재 승인 필터링 로직
   const getFilteredRequests = () => {
     return withdrawalRequests.filter((request) => {
-      // 상태 필터 - submitted만 표시
-      const statusMatch = request.status === "submitted";
+      // 상태 필터 - withdrawal_request만 표시
+      const statusMatch = request.status === "withdrawal_request";
 
       // 검색어 필터
       const searchMatch =

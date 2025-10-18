@@ -517,7 +517,7 @@ export class NotificationSystem {
     const now = new Date();
 
     for (const request of requests) {
-      if (request.status !== 'submitted') continue;
+      if (request.status !== 'withdrawal_request') continue;
 
       // 다음 결재자 찾기
       const nextApproverIndex = request.approvals.length;

@@ -66,9 +66,9 @@ export default function TransactionHistory({ plan }: TransactionHistoryProps) {
     status: TransactionStatus
   ): WithdrawalStatus => {
     const statusMap: Record<TransactionStatus, WithdrawalStatus> = {
-      completed: "completed",
-      pending: "pending",
-      failed: "rejected",
+      completed: "success",
+      pending: "withdrawal_wait",
+      failed: "failed",
     };
     return statusMap[status];
   };

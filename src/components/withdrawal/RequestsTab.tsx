@@ -12,7 +12,7 @@ export default function RequestsTab({ withdrawalRequests }: RequestsTabProps) {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
 
   const submittedRequests = withdrawalRequests.filter(
-    (r) => r.status === "submitted"
+    (r) => r.status === "withdrawal_request"
   );
 
   return (

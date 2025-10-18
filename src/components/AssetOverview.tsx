@@ -44,12 +44,12 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     { symbol: 'USDC', name: 'USD Coin', balance: '185000.00', value: 251500000, change: -0.01, currentPrice: 1360 }
   ]
 
-  // Filter actual withdrawal requests with submitted status (pending approval)
-  const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'submitted')
+  // Filter actual withdrawal requests with withdrawal_request status (pending approval)
+  const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'withdrawal_request')
 
-  // Filter individual withdrawal requests with pending or processing status
+  // Filter individual withdrawal requests with withdrawal_wait or processing status
   const mockIndividualOngoingWithdrawals = mockIndividualWithdrawalRequests.filter(
-    request => request.status === 'pending' || request.status === 'processing'
+    request => request.status === 'withdrawal_wait' || request.status === 'processing'
   )
 
   // 시간대별 차트 데이터
@@ -148,7 +148,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
   }
 
   const getIndividualProgressStatus = (request: IndividualWithdrawalRequest) => {
-    if (request.status === "pending") {
+    if (request.status === "withdrawal_wait") {
       const eta = request.processingScheduledAt
         ? calculateRemainingTime(request.processingScheduledAt)
         : "24시간"
@@ -339,7 +339,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        {request.status === "pending" ? (
+                        {request.status === "withdrawal_wait" ? (
                           <div>
                             <p className="font-medium text-yellow-700">
                               {getIndividualProgressStatus(request)}

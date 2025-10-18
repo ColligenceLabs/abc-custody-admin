@@ -1,9 +1,9 @@
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import {
   WithdrawalModalBase,
-  WhitelistedAddress,
   NetworkAsset,
 } from "./WithdrawalModalBase";
+import { WhitelistedAddress } from "@/types/address";
 import { IndividualWithdrawalFormData } from "@/types/withdrawal";
 
 interface CreateIndividualWithdrawalModalProps {

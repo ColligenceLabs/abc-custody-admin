@@ -150,7 +150,7 @@ export default function CorporateWithdrawalManagement({
         memberType: 'corporate' as const,
         groupId: '1',
         initiator: user?.name || '사용자',
-        status: 'draft' as const,
+        status: 'withdrawal_request' as const,
         priority: newRequest.priority,
         description: newRequest.description,
         requiredApprovals: [],
@@ -233,7 +233,7 @@ export default function CorporateWithdrawalManagement({
     const newRequestData = {
       ...originalRequest,
       id: `REQ-${Date.now()}`, // 새로운 ID 생성
-      status: "draft" as WithdrawalStatus,
+      status: "withdrawal_reapply" as WithdrawalStatus,
       originalRequestId: originalRequest.id,
       reapplicationCount: (originalRequest.reapplicationCount || 0) + 1,
       initiatedAt: new Date().toISOString(),
@@ -525,7 +525,7 @@ export default function CorporateWithdrawalManagement({
               id: "approval",
               name: "결재 승인 대기",
               icon: CheckCircleIcon,
-              count: mockRequests.filter((r) => r.status === "submitted")
+              count: mockRequests.filter((r) => r.status === "withdrawal_request")
                 .length,
             },
             {
@@ -533,7 +533,7 @@ export default function CorporateWithdrawalManagement({
               name: "출금 처리",
               icon: LockClosedIcon,
               count: mockRequests.filter((r) =>
-                ["pending", "processing"].includes(r.status)
+                ["withdrawal_pending", "processing"].includes(r.status)
               ).length,
             },
             {

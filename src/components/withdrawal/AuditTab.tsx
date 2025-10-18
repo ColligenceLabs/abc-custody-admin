@@ -145,13 +145,13 @@ export default function AuditTab({ withdrawalRequests }: AuditTabProps) {
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="all">모든 상태</option>
-                <option value="submitted">결재 승인 대기</option>
-                <option value="pending">출금 대기</option>
+                <option value="withdrawal_request">결재 승인 대기</option>
+                <option value="withdrawal_wait">출금 대기</option>
                 <option value="processing">보안 검증</option>
-                <option value="completed">출금 완료</option>
+                <option value="success">출금 완료</option>
                 <option value="rejected">반려</option>
                 <option value="archived">처리 완료</option>
-                <option value="stopped">출금 정지</option>
+                <option value="withdrawal_stopped">출금 정지</option>
               </select>
 
               {/* 기간 필터 */}
@@ -353,7 +353,7 @@ export default function AuditTab({ withdrawalRequests }: AuditTabProps) {
                               })}
 
                               {/* 결재 승인 대기 상태일 때 대기중인 결재자들과 다음 단계 표시 */}
-                              {request.status === "submitted" && (
+                              {request.status === "withdrawal_request" && (
                                 <>
                                   {/* 대기중인 결재자들 */}
                                   {request.requiredApprovals
@@ -415,7 +415,7 @@ export default function AuditTab({ withdrawalRequests }: AuditTabProps) {
                               )}
 
                               {/* 출금 대기 상태일 때 다음 단계 표시 */}
-                              {request.status === "pending" && (
+                              {request.status === "withdrawal_wait" && (
                                 <>
                                   <div className="flex items-start bg-gray-50 p-3 rounded-lg">
                                     <div className="flex-shrink-0 w-2 h-2 rounded-full mt-2 mr-3 bg-gray-400"></div>

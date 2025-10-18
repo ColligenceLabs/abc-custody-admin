@@ -71,20 +71,20 @@ export function WithdrawalTableRow({
         <StatusBadge status={request.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        {showApprovalProgress && (request.status === "submitted" || request.status === "approved") && (
+        {showApprovalProgress && (request.status === "withdrawal_request" || request.status === "approval_pending" || (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0)) && (
           <div className="w-full">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
               <span>
                 {request.approvals.length}/{request.requiredApprovals.length}
               </span>
-              {request.status === "approved" && (
+              {(request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0) && (
                 <span className="text-sky-600 font-medium">완료</span>
               )}
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all ${
-                  request.status === "approved" ? "bg-sky-500" : "bg-blue-500"
+                  (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0) ? "bg-sky-500" : "bg-blue-500"
                 }`}
                 style={{ width: `${approvalProgress}%` }}
               />
