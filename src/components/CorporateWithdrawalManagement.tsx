@@ -51,6 +51,7 @@ import { networkAssets } from "@/data/mockWithdrawalData";
 import { getCorporateWithdrawals, createWithdrawal, getWithdrawalById } from "@/lib/api/withdrawal";
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -80,6 +81,7 @@ export default function CorporateWithdrawalManagement({
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [newRequest, setNewRequest] = useState({
     title: "",
@@ -175,10 +177,15 @@ export default function CorporateWithdrawalManagement({
         priority: "medium",
       });
 
-      alert('출금 신청이 성공적으로 접수되었습니다.');
+      toast({
+        description: '출금 신청이 성공적으로 접수되었습니다.',
+      });
     } catch (err) {
       console.error('출금 신청 실패:', err);
-      alert(err instanceof Error ? err.message : '출금 신청에 실패했습니다.');
+      toast({
+        variant: 'destructive',
+        description: err instanceof Error ? err.message : '출금 신청에 실패했습니다.',
+      });
     }
   };
 
@@ -265,9 +272,9 @@ export default function CorporateWithdrawalManagement({
     setShowReapplicationModal({ show: false, requestId: null });
     setShowCreateModal(true);
 
-    alert(
-      "기존 신청 정보가 복사되었습니다. 필요한 내용을 수정 후 신청해주세요."
-    );
+    toast({
+      description: "기존 신청 정보가 복사되었습니다. 필요한 내용을 수정 후 신청해주세요.",
+    });
   };
 
   // 아카이브 확인
@@ -276,7 +283,9 @@ export default function CorporateWithdrawalManagement({
 
     // 실제 구현에서는 API 호출로 상태 업데이트
     console.log(`Archive request ${showArchiveModal.requestId}`);
-    alert("반려된 신청이 처리 완료되었습니다.");
+    toast({
+      description: "반려된 신청이 처리 완료되었습니다.",
+    });
 
     setShowArchiveModal({ show: false, requestId: null });
   };
@@ -286,7 +295,10 @@ export default function CorporateWithdrawalManagement({
     if (!showApprovalModal.requestId || !showApprovalModal.action) return;
 
     if (showApprovalModal.action === "reject" && !rejectionReason.trim()) {
-      alert("반려 사유를 입력해주세요.");
+      toast({
+        variant: 'destructive',
+        description: "반려 사유를 입력해주세요.",
+      });
       return;
     }
 
@@ -300,7 +312,9 @@ export default function CorporateWithdrawalManagement({
       console.log(`Request ${showApprovalModal.requestId} rejected`, {
         rejectionReason,
       });
-      alert("출금 신청이 반려되었습니다.");
+      toast({
+        description: "출금 신청이 반려되었습니다.",
+      });
       setShowApprovalModal({ show: false, requestId: null, action: null });
       setRejectionReason("");
     }
@@ -318,7 +332,9 @@ export default function CorporateWithdrawalManagement({
 
     // 실제 구현에서는 API 호출로 승인 처리
     console.log(`Request ${pendingApprovalRequest} approved with auth session ${sessionId}`);
-    alert("관리자 인증이 완료되어 출금 신청이 승인되었습니다.\n출금 처리 대기 상태로 전환됩니다.");
+    toast({
+      description: "관리자 인증이 완료되어 출금 신청이 승인되었습니다. 출금 처리 대기 상태로 전환됩니다.",
+    });
 
     // 상태 초기화
     setShowAuthModal(false);
@@ -331,7 +347,10 @@ export default function CorporateWithdrawalManagement({
 
   // 인증 실패 처리
   const handleAuthFailed = (reason: string) => {
-    alert(`관리자 인증에 실패했습니다: ${reason}`);
+    toast({
+      variant: 'destructive',
+      description: `관리자 인증에 실패했습니다: ${reason}`,
+    });
     setShowAuthModal(false);
     setPendingApprovalRequest(null);
   };

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { DepositHistory } from "@/types/deposit";
 import { Modal } from "@/components/common/Modal";
-import { formatAmount, formatDateTime } from "@/utils/depositHelpers";
+import { formatDateTime } from "@/utils/depositHelpers";
+import { formatAmount } from "@/lib/format";
 import DepositStatusBadge from "./DepositStatusBadge";
 import DepositTimeline from "./DepositTimeline";
 import { FunnelIcon, EyeIcon, XMarkIcon, ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
@@ -285,7 +286,7 @@ export default function DepositHistoryTable({
                       자산
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-36">
-                      금액
+                      수량
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-56">
                       트랜잭션 해시
@@ -344,7 +345,7 @@ export default function DepositHistoryTable({
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {formatAmount(deposit.amount, deposit.asset)}
+                          {formatAmount(deposit.amount)}
                         </div>
                         {deposit.valueInKRW && (
                           <div className="text-xs text-gray-500">

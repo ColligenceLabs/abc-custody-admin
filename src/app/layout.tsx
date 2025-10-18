@@ -9,6 +9,7 @@ import { CompanyProvider } from "@/contexts/CompanyContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ErrorGuard from "@/components/ErrorGuard";
 import MetaMaskErrorHandler from "@/components/MetaMaskErrorHandler";
+import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script";
 import dynamic from "next/dynamic";
 
@@ -135,6 +136,7 @@ export default function RootLayout({
                 </ServicePlanProvider>
               </SecurityPolicyProvider>
             </LanguageProvider>
+            <Toaster />
           </ErrorGuard>
         </ErrorBoundary>
       </body>
