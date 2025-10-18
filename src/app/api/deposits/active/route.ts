@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+// API Route를 동적으로 렌더링하도록 설정
+export const dynamic = 'force-dynamic';
+
 /**
  * 진행 중인 입금 조회 API
  * status가 detected 또는 confirming인 입금만 반환
