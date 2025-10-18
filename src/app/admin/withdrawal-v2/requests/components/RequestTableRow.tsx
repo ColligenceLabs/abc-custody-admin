@@ -14,6 +14,7 @@ import {
   WithdrawalStatus,
 } from "@/types/withdrawalV2";
 import { Eye } from "lucide-react";
+import { formatAmount } from "@/lib/format";
 
 interface RequestTableRowProps {
   request: WithdrawalV2Request;
@@ -215,7 +216,7 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
       <TableCell>
         <span className="font-semibold">{request.asset}</span>
       </TableCell>
-      <TableCell className="font-mono">{request.amount}</TableCell>
+      <TableCell className="font-mono">{formatAmount(request.amount)}</TableCell>
       <TableCell>{getBlockchainBadge(request.blockchain)}</TableCell>
       <TableCell>{getPriorityBadge(request.priority)}</TableCell>
       <TableCell>{getStatusBadge(request.status)}</TableCell>
