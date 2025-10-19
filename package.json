@@ -4,8 +4,8 @@
   "description": "Custody Service Dashboard for Enterprise and Personal Users",
   "main": "index.js",
   "scripts": {
-    "dev": "kill -9 $(lsof -ti:3000) 2>/dev/null || true && next dev -p 3000",
-    "wdev": "npx next dev -p 3000",
+    "dev": "kill -9 $(lsof -ti:8000) 2>/dev/null || true && next dev -p 8000",
+    "wdev": "npx next dev -p 8000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
