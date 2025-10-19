@@ -82,238 +82,82 @@ export default function IDAndAccountVerificationStep({
     if (currentPhase === "intro") return;
 
     const handleMessage = (e: MessageEvent) => {
-      // 보안: origin 확인 (개발 환경 localhost도 허용)
-      const allowedOrigins = [
-        KYC_TARGET_ORIGIN, // https://kyc.useb.co.kr (운영)
-        "http://localhost:3000", // 개발 환경
-      ];
-
-      if (!allowedOrigins.includes(e.origin)) {
-        console.log("❌ Origin mismatch:", e.origin, "expected:", allowedOrigins);
-        return;
-      }
-
-      console.log("=== 📩 eKYC postMessage 수신 ===");
-      console.log("⏰ 수신 시각:", new Date().toLocaleTimeString());
-      console.log("🎯 현재 Phase:", currentPhase);
-      console.log("📍 선택된 방식:", selectedMethod);
-      console.log("🔍 Raw data 타입:", typeof e.data);
-      console.log("🔍 Raw data:", e.data);
-      console.log("🌐 Origin:", e.origin);
+      // eKYC postMessage 수신 처리
+      // 중요: localhost 개발 환경에서는 반드시 8000번 포트 사용 필요
+      // eKYC 측에서 localhost:8000으로만 postMessage 응답을 전송함
+      // 데모 코드와 동일한 방식: 모든 메시지를 디코딩 시도 (try-catch로 처리)
+      console.log('alcherakyc response', e.data);
+      console.log('origin:', e.origin);
 
       // postMessage 수신 시 QR 타임아웃 프롬프트 숨김
       if (currentPhase === 'qr') {
-        console.log("📩 postMessage 수신 - QR 타임아웃 프롬프트 숨김");
         setShowQrTimeoutPrompt(false);
       }
 
-      // eKYC 메시지는 base64 인코딩된 문자열이어야 함
-      // MetaMask 같은 브라우저 확장의 메시지는 객체 형태이므로 무시
-      if (typeof e.data !== "string") {
-        // 브라우저 확장 및 개발 도구 메시지 필터링
-        if (
-          e.data?.target === "metamask-inpage" ||
-          e.data?.target === "metamask-contentscript" ||
-          e.data?.source === "@devtools-page" ||
-          e.data?.name === "next-router" ||
-          e.data?.name === "redux-devtools"
-        ) {
-          // 개발 도구 메시지는 무시 (로그 출력 안 함)
-          return;
-        }
+      try {
+        const decodedData = decodeURIComponent(atob(e.data as string));
+        console.log('decoded', decodedData);
 
-        console.log("⏭️ 객체 타입 메시지 수신 - 상세 확인 중...");
-        console.log("📦 객체 키 목록:", Object.keys(e.data || {}));
+        const json: EKYCResponse = JSON.parse(decodedData);
+        console.log('json', json);
+        console.log(json.result + ' 처리 필요');
 
-        // 각 속성 개별 출력
-        if (e.data?.target) {
-          console.log("  - target:", e.data.target);
-        }
-        if (e.data?.data) {
-          console.log("  - data 속성 타입:", typeof e.data.data);
-          console.log("  - data 내용:", e.data.data);
+        // 데모 코드와 동일한 result 처리
+        if (json.result === "success") {
+          // success 처리 (review_result 있는 경우)
+          if (json.review_result) {
+            const { module, account } = json.review_result;
 
-          if (typeof e.data.data === "object") {
-            console.log("  - data 키 목록:", Object.keys(e.data.data));
+            // 신분증 인증 완료
+            if (module.id_card_verification && module.face_authentication && !idVerified) {
+              console.log("신분증 인증 완료");
+              setIdVerified(true);
+              setCurrentPhase("account");
+              setMessage({
+                type: "success",
+                text: "신분증 인증이 완료되었습니다. 계좌 인증을 진행합니다.",
+              });
+            }
 
-            // action 체크 (leave-room 등)
-            if (e.data.data?.action) {
-              console.log("  - action:", e.data.data.action);
-              if (e.data.data.action === "leave-room") {
-                console.log("🚪 leave-room 메시지 확인됨 (정상적인 단계 전환)");
+            // 계좌 인증 완료
+            if (module.account_verification && account?.verified && !accountVerified) {
+              console.log("계좌 인증 완료");
+              setAccountVerified(true);
+              setMessage({
+                type: "success",
+                text: "계좌 인증이 완료되었습니다.",
+              });
+
+              // 모든 인증 완료 시 자동 진행
+              if (idVerified) {
+                console.log("모든 인증 완료");
+                setCurrentPhase("complete");
+                setTimeout(() => {
+                  onComplete({
+                    idVerified: true,
+                    accountVerified: true,
+                    kycMethod: selectedMethod || undefined,
+                  });
+                }, 1500);
               }
             }
           }
-        }
-
-        // JSON 전체 출력 시도
-        try {
-          console.log("📦 JSON 전체 (stringify):", JSON.stringify(e.data, null, 2));
-        } catch (err) {
-          console.error("JSON stringify 실패:", err);
-        }
-
-        return;
-      }
-
-      console.log("📊 현재 상태 체크:");
-      console.log("  - idVerified:", idVerified);
-      console.log("  - accountVerified:", accountVerified);
-      console.log("  - currentPhase:", currentPhase);
-      console.log("  - selectedMethod:", selectedMethod);
-
-      try {
-        console.log("🔓 Base64 디코딩 시작...");
-        const decodedData = decodeURIComponent(atob(e.data));
-        console.log("🔓 디코딩된 원본 문자열:", decodedData);
-
-        const json: EKYCResponse = JSON.parse(decodedData);
-        console.log("📦 파싱된 JSON 객체:");
-        console.log("  - result:", json.result);
-        console.log("  - message:", json.message);
-        console.log("  - review_result 존재:", !!json.review_result);
-        console.log("  - api_response 존재:", !!json.api_response);
-        console.log("📦 전체 JSON (pretty print):", JSON.stringify(json, null, 2));
-
-        if (json.review_result) {
-          console.log("📋 Review Result 상세:");
-          console.log("  - result_type:", json.review_result.result_type);
-          console.log("  - transaction_id:", json.review_result.transaction_id);
-          console.log("  - module:", json.review_result.module);
-          console.log("  - account:", json.review_result.account);
-        }
-
-        // 1차 postMessage: 인증 결과 데이터 (success/failed + review_result)
-        if (json.result === "success" && json.review_result) {
-          console.log("✅ Success 메시지 처리 시작");
-          const { result_type, transaction_id, module, account } =
-            json.review_result;
-
-          console.log("Module 상태:", module);
-          console.log("Account 상태:", account);
-
-          // 신분증 인증 완료 확인
-          if (
-            module.id_card_verification &&
-            module.face_authentication &&
-            !idVerified
-          ) {
-            console.log("🆔 신분증 인증 완료 조건 충족");
-            setIdVerified(true);
-            setCurrentPhase("account");
-            setMessage({
-              type: "success",
-              text: "신분증 인증이 완료되었습니다. 계좌 인증을 진행합니다.",
-            });
-            console.log("신분증 인증 완료 - transaction_id:", transaction_id);
-          } else {
-            console.log("⏭️ 신분증 인증 조건 미충족 - id_card_verification:", module.id_card_verification, "face_authentication:", module.face_authentication, "idVerified:", idVerified);
-          }
-
-          // 계좌 인증 완료 확인
-          if (
-            module.account_verification &&
-            account?.verified &&
-            !accountVerified
-          ) {
-            console.log("💳 계좌 인증 완료 조건 충족");
-            setAccountVerified(true);
-
-            if (result_type === 1) {
-              // 자동 승인
-              setMessage({
-                type: "success",
-                text: "계좌 인증이 자동 승인되었습니다.",
-              });
-              console.log("계좌 자동승인 - transaction_id:", transaction_id);
-            } else if (result_type === 5) {
-              // 심사 필요
-              setMessage({
-                type: "success",
-                text: "계좌 인증이 완료되었습니다. 심사 후 이메일로 안내드립니다.",
-              });
-              console.log("계좌 심사필요 - transaction_id:", transaction_id);
-            }
-
-            console.log("계좌 정보:", account);
-
-            // 신분증과 계좌 인증이 모두 완료되면 자동으로 다음 단계로 진행
-            if (idVerified) {
-              console.log("🎉 === 모든 인증 완료, 자동으로 다음 단계 진행 ===");
-              setMessage({
-                type: "success",
-                text: "eKYC 인증이 모두 완료되었습니다!",
-              });
-              setLoading(false);
-              setCurrentPhase("complete");
-
-              setTimeout(() => {
-                console.log("⏰ onComplete 호출");
-                onComplete({
-                  idVerified: true,
-                  accountVerified: true,
-                  kycMethod: selectedMethod || undefined,
-                });
-              }, 1500);
-            } else {
-              console.log("⚠️ 계좌 인증 완료했으나 신분증 인증 미완료 - idVerified:", idVerified);
-            }
-          } else {
-            console.log("⏭️ 계좌 인증 조건 미충족 - account_verification:", module.account_verification, "verified:", account?.verified, "accountVerified:", accountVerified);
-          }
-        } else if (json.result === "failed" && json.review_result) {
-          console.log("❌ Failed 메시지 처리");
-
-          const { result_type } = json.review_result;
-          let failMessage = "";
-
-          if (result_type === 2) {
-            // 자동거부
-            failMessage = "인증이 거부되었습니다. 신분증 정보를 확인하고 다시 시도해주세요.";
-          } else if (result_type === 5) {
-            // 수동심사대상
-            failMessage = "추가 검토가 필요합니다. 잠시 후 다시 시도해주세요.";
-          } else {
-            failMessage = "인증에 실패했습니다. 다시 시도해주세요.";
-          }
-
+        } else if (json.result === "failed") {
+          // failed 처리
+          console.log("인증 실패");
           setMessage({
             type: "error",
-            text: failMessage,
+            text: json.message || "인증에 실패했습니다.",
           });
-
-          // 사용자에게 명확한 알림
-          alert(failMessage);
-
-          console.log(
-            "인증 실패 - result_type:",
-            result_type,
-            "transaction_id:",
-            json.review_result.transaction_id
-          );
-
-          // 2차 postMessage: UI 처리 (complete/close)
         } else if (json.result === "complete") {
-          console.log("🎊 ========================================");
-          console.log("🎊 Complete 메시지 처리 시작");
-          console.log("🎊 수신 시각:", new Date().toLocaleTimeString());
-          console.log("🎊 현재 Phase:", currentPhase);
-          console.log("🎊 선택된 방식:", selectedMethod);
-          console.log("🎊 idVerified:", idVerified);
-          console.log("🎊 accountVerified:", accountVerified);
-          console.log("🎊 ========================================");
-
-          // 전체 인증 완료
+          // complete 처리
+          console.log("KYC 완료");
           setMessage({
             type: "success",
             text: "eKYC 인증이 모두 완료되었습니다!",
           });
-          setLoading(false);
           setCurrentPhase("complete");
-
-          // 인증 완료 후 다음 단계로 이동
           setTimeout(() => {
-            console.log("⏰ onComplete 호출 (complete 메시지)");
             onComplete({
               idVerified: true,
               accountVerified: true,
@@ -321,33 +165,17 @@ export default function IDAndAccountVerificationStep({
             });
           }, 1500);
         } else if (json.result === "close") {
-          console.log("🚪 ========================================");
-          console.log("🚪 Close 메시지 처리 시작");
-          console.log("🚪 수신 시각:", new Date().toLocaleTimeString());
-          console.log("🚪 현재 Phase:", currentPhase);
-          console.log("🚪 ========================================");
-
-          // 인증 중단 또는 이탈
+          // close 처리
+          console.log("KYC 중단");
           setMessage({ type: "error", text: "eKYC 인증이 중단되었습니다." });
           setCurrentPhase("intro");
-          setLoading(false);
-          setIdVerified(false);
-          setAccountVerified(false);
         } else {
-          console.log("⚠️ ========================================");
-          console.log("⚠️ 알 수 없는 result 타입:", json.result);
-          console.log("⚠️ 전체 JSON:", JSON.stringify(json, null, 2));
-          console.log("⚠️ ========================================");
+          // invalid result
+          console.log("알 수 없는 result:", json.result);
         }
       } catch (error) {
-        console.error("❌ ========================================");
-        console.error("❌ eKYC 응답 처리 오류:", error);
-        console.error("❌ Raw data:", e.data);
-        console.error("❌ ========================================");
-        setMessage({
-          type: "error",
-          text: "eKYC 응답 처리 중 오류가 발생했습니다.",
-        });
+        // 디코딩 실패 시 조용히 무시 (데모 코드 방식)
+        console.log('wrong data', error);
       }
     };
 
@@ -386,11 +214,25 @@ export default function IDAndAccountVerificationStep({
 
   // iframe이 로드되면 파라미터 전송 (PC 방식)
   useEffect(() => {
-    if (currentPhase === "intro" || currentPhase === "qr" || !iframeRef.current) return;
+    console.log('PC useEffect 실행, currentPhase:', currentPhase, 'iframeRef.current:', !!iframeRef.current);
+
+    if (currentPhase === "intro" || currentPhase === "qr" || !iframeRef.current) {
+      console.log('PC useEffect 조기 종료');
+      return;
+    }
 
     const iframe = iframeRef.current;
 
+    // 이미 src가 설정되어 있으면 중복 실행 방지
+    if (iframe.src && iframe.src !== 'about:blank' && iframe.src.includes('kyc.useb.co.kr/auth')) {
+      console.log('PC iframe 이미 초기화됨, 중복 실행 방지');
+      return;
+    }
+
+    console.log('PC iframe useEffect 시작');
+
     const handleLoad = async () => {
+      console.log('PC iframe onload 이벤트 발생');
       try {
         // 주민번호에서 생년월일 추출 (YYYY-MM-DD 형식)
         const residentNumber = initialData.residentNumber || "";
@@ -428,19 +270,23 @@ export default function IDAndAccountVerificationStep({
           isWasmSSAMode: "true",
         };
 
-        console.log("eKYC params (통합 인증):", {
-          customer_id: params.customer_id,
-          id: params.id,
-          key: "***" + params.key.slice(-3),
-          name: params.name,
-          birthday: params.birthday,
-          phone_number: params.phone_number,
-          email: params.email,
-        });
+        console.log("=".repeat(60));
+        console.log("📋 PC eKYC Credentials (디버깅용 - 전체 출력)");
+        console.log("=".repeat(60));
+        console.log("customer_id:", params.customer_id);
+        console.log("id:", params.id);
+        console.log("key:", params.key);
+        console.log("name:", params.name);
+        console.log("birthday:", params.birthday);
+        console.log("phone_number:", params.phone_number);
+        console.log("email:", params.email);
+        console.log("isWasmOCRMode:", params.isWasmOCRMode);
+        console.log("isWasmSSAMode:", params.isWasmSSAMode);
+        console.log("=".repeat(60));
 
         const encodedParams = btoa(encodeURIComponent(JSON.stringify(params)));
         iframe.contentWindow?.postMessage(encodedParams, KYC_TARGET_ORIGIN);
-        console.log("postMessage sent to:", KYC_TARGET_ORIGIN);
+        console.log("PC postMessage sent to:", KYC_TARGET_ORIGIN);
 
         setLoading(false);
         setMessage({
@@ -448,7 +294,7 @@ export default function IDAndAccountVerificationStep({
           text: "eKYC 인증을 시작합니다. 카메라 권한을 허용해주세요.",
         });
       } catch (error) {
-        console.error("eKYC 초기화 오류:", error);
+        console.error("PC eKYC 초기화 오류:", error);
         setMessage({
           type: "error",
           text: "eKYC 초기화 중 오류가 발생했습니다.",
@@ -457,8 +303,16 @@ export default function IDAndAccountVerificationStep({
       }
     };
 
+    // onload 핸들러 먼저 등록
     iframe.addEventListener("load", handleLoad);
-    return () => iframe.removeEventListener("load", handleLoad);
+
+    // 그 다음 src 설정 (데모 코드와 동일한 방식)
+    console.log('PC iframe src 설정:', KYC_URL);
+    iframe.src = KYC_URL;
+
+    return () => {
+      iframe.removeEventListener("load", handleLoad);
+    };
   }, [currentPhase, initialData]);
 
   // QR 코드 iframe 초기화 (모바일 방식)
@@ -520,15 +374,17 @@ export default function IDAndAccountVerificationStep({
           email: initialData.email || "",
         };
 
-        console.log("eKYC QR params (필수정보 포함):", {
-          customer_id: qrParams.customer_id,
-          id: qrParams.id,
-          key: "***" + qrParams.key.slice(-3),
-          name: qrParams.name,
-          birthday: birthday.substring(0, 4) + "-**-**",
-          phone_number: phoneNumber ? phoneNumber.substring(0, 3) + "****" + phoneNumber.substring(7) : "",
-          email: qrParams.email,
-        });
+        console.log("=".repeat(60));
+        console.log("📋 QR eKYC Credentials (디버깅용 - 전체 출력)");
+        console.log("=".repeat(60));
+        console.log("customer_id:", qrParams.customer_id);
+        console.log("id:", qrParams.id);
+        console.log("key:", qrParams.key);
+        console.log("name:", qrParams.name);
+        console.log("birthday:", qrParams.birthday);
+        console.log("phone_number:", qrParams.phone_number);
+        console.log("email:", qrParams.email);
+        console.log("=".repeat(60));
 
         const encodedParams = btoa(encodeURIComponent(JSON.stringify(qrParams)));
         iframe.contentWindow?.postMessage(encodedParams, KYC_TARGET_ORIGIN);
@@ -1107,7 +963,6 @@ export default function IDAndAccountVerificationStep({
           id="kyc_iframe"
           className="w-full h-full rounded-lg border-2 border-gray-300 bg-white"
           allow="camera; microphone; fullscreen"
-          src={KYC_URL}
           title="eKYC 통합 인증"
         />
       </div>
