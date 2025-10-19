@@ -232,7 +232,7 @@ export async function cancelWithdrawal(
 
   if (!response.ok) {
     const error: ErrorResponse = await response.json();
-    throw new Error(error.message || '출금 정지에 실패했습니다.');
+    throw new Error(error.message || '출금 중지에 실패했습니다.');
   }
 
   return response.json();

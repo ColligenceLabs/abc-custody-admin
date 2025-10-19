@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<WithdrawalStatus, string> = {
   success: '완료',
   failed: '실패',
   admin_rejected: '관리자 거부',
-  withdrawal_stopped: '출금 정지',
+  withdrawal_stopped: '출금 중지',
 
   // 기업회원 전용
   withdrawal_request: '출금 신청',

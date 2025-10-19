@@ -65,7 +65,7 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
       icon: XCircleIcon,
     },
     withdrawal_stopped: {
-      name: "출금 정지",
+      name: "출금 중지",
       color: badgeColors.danger,
       icon: StopIcon,
     },
@@ -124,7 +124,7 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
       icon: XCircleIcon,
     },
     stopped: {
-      name: "출금 정지",
+      name: "출금 중지",
       color: badgeColors.danger,
       icon: StopIcon,
     },

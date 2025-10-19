@@ -114,58 +114,58 @@ export default function AuditTab({ withdrawalRequests }: AuditTabProps) {
             {/* 검색 및 필터 */}
             <div className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex flex-col sm:flex-row gap-4">
-              {/* 검색 */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="신청 ID, 제목, 기안자 검색..."
-                  value={auditSearchTerm}
-                  onChange={(e) => setAuditSearchTerm(e.target.value)}
-                  className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm"
-                />
-                <svg
-                  className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                {/* 검색 */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="신청 ID, 제목, 기안자 검색..."
+                    value={auditSearchTerm}
+                    onChange={(e) => setAuditSearchTerm(e.target.value)}
+                    className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm"
                   />
-                </svg>
-              </div>
+                  <svg
+                    className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
 
-              {/* 상태 필터 */}
-              <select
-                value={auditStatusFilter}
-                onChange={(e) => setAuditStatusFilter(e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="all">모든 상태</option>
-                <option value="withdrawal_request">결재 승인 대기</option>
-                <option value="withdrawal_wait">출금 대기</option>
-                <option value="processing">보안 검증</option>
-                <option value="success">출금 완료</option>
-                <option value="rejected">반려</option>
-                <option value="archived">처리 완료</option>
-                <option value="withdrawal_stopped">출금 정지</option>
-              </select>
+                {/* 상태 필터 */}
+                <select
+                  value={auditStatusFilter}
+                  onChange={(e) => setAuditStatusFilter(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="all">모든 상태</option>
+                  <option value="withdrawal_request">결재 승인 대기</option>
+                  <option value="withdrawal_wait">출금 대기</option>
+                  <option value="processing">보안 검증</option>
+                  <option value="success">출금 완료</option>
+                  <option value="rejected">반려</option>
+                  <option value="archived">처리 완료</option>
+                  <option value="withdrawal_stopped">출금 중지</option>
+                </select>
 
-              {/* 기간 필터 */}
-              <select
-                value={auditDateFilter}
-                onChange={(e) => setAuditDateFilter(e.target.value)}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="all">전체 기간</option>
-                <option value="today">오늘</option>
-                <option value="week">최근 7일</option>
-                <option value="month">최근 30일</option>
-                <option value="quarter">최근 3개월</option>
-              </select>
+                {/* 기간 필터 */}
+                <select
+                  value={auditDateFilter}
+                  onChange={(e) => setAuditDateFilter(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="all">전체 기간</option>
+                  <option value="today">오늘</option>
+                  <option value="week">최근 7일</option>
+                  <option value="month">최근 30일</option>
+                  <option value="quarter">최근 3개월</option>
+                </select>
               </div>
               {/* CSV 내보내기 버튼 */}
               <button
@@ -280,15 +280,20 @@ export default function AuditTab({ withdrawalRequests }: AuditTabProps) {
                       <div className="flex items-center gap-8 pt-2 border-t border-gray-100">
                         <div>
                           <div className="text-lg font-bold text-gray-900">
-                            {formatAmount(request.amount, request.currency)} {request.currency}
+                            {formatAmount(request.amount, request.currency)}{" "}
+                            {request.currency}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">출금 금액</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            출금 금액
+                          </div>
                         </div>
                         <div>
                           <div className="text-base font-semibold text-gray-900">
                             {formatDate(request.initiatedAt)}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">신청 날짜</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            신청 날짜
+                          </div>
                         </div>
                       </div>
                       {/* 상세보기 펼침/접힘 */}

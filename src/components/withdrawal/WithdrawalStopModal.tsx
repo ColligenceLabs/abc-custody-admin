@@ -37,7 +37,7 @@ export function WithdrawalStopModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-lg font-semibold text-gray-900">
-            출금 정지 확인
+            출금 중지 확인
           </h3>
           <button
             onClick={handleClose}
@@ -102,7 +102,7 @@ export function WithdrawalStopModal({
               </svg>
               <div>
                 <h5 className="text-sm font-medium text-yellow-800">
-                  출금 정지 안내
+                  출금 중지 안내
                 </h5>
                 <p className="text-sm text-yellow-700 mt-1">
                   출금을 중지하면 해당 거래는 더 이상 처리되지 않습니다. 중지
@@ -120,7 +120,7 @@ export function WithdrawalStopModal({
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="출금 정지 사유를 상세히 입력해주세요."
+              placeholder="출금 중지 사유를 상세히 입력해주세요."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
               rows={4}
             />
@@ -140,7 +140,7 @@ export function WithdrawalStopModal({
             disabled={!reason.trim()}
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            출금 정지
+            출금 중지
           </button>
         </div>
       </div>

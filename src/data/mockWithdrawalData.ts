@@ -1227,10 +1227,10 @@ export const mockWithdrawalRequests: WithdrawalRequest[] = [
       },
       {
         timestamp: "2024-12-11T16:45:00Z",
-        action: "출금 대기중(출금 정지)",
+        action: "출금 대기중(출금 중지)",
         userId: "8",
         userName: "최마케팅이사",
-        details: "캠페인 전략 변경으로 인한 긴급 출금 정지 요청",
+        details: "캠페인 전략 변경으로 인한 긴급 출금 중지 요청",
       },
     ],
   }

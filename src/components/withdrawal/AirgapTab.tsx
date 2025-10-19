@@ -37,7 +37,11 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
       const statusMatch =
         processingStatusFilter === "all" ||
         (processingStatusFilter === "pending" &&
-          ["withdrawal_wait", "withdrawal_pending", "approval_pending"].includes(request.status)) ||
+          [
+            "withdrawal_wait",
+            "withdrawal_pending",
+            "approval_pending",
+          ].includes(request.status)) ||
         (processingStatusFilter === "processing" &&
           ["processing", "transferring"].includes(request.status)) ||
         (processingStatusFilter === "security_verification" &&
@@ -92,7 +96,14 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
         statusMatch &&
         searchMatch &&
         dateMatch &&
-        ["withdrawal_wait", "withdrawal_pending", "approval_pending", "processing", "transferring", "success"].includes(request.status)
+        [
+          "withdrawal_wait",
+          "withdrawal_pending",
+          "approval_pending",
+          "processing",
+          "transferring",
+          "success",
+        ].includes(request.status)
       );
     });
   };
@@ -113,8 +124,8 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
   const paginatedData = getPaginatedProcessingRequests();
 
   const handleStopWithdrawal = (requestId: string, reason: string) => {
-    // 실제로는 API 호출하여 출금 정지 처리
-    console.log("출금 정지:", requestId, "사유:", reason);
+    // 실제로는 API 호출하여 출금 중지 처리
+    console.log("출금 중지:", requestId, "사유:", reason);
     // 상태 업데이트 로직 (실제로는 상위 컴포넌트에서 처리)
     alert(`출금이 중지되었습니다.\n사유: ${reason}`);
   };
@@ -400,7 +411,10 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                             </div>
                             <div className="text-lg font-semibold text-primary-600">
                               ₩
-                              {convertToKRW(request.amount, request.currency).toLocaleString()}
+                              {convertToKRW(
+                                request.amount,
+                                request.currency
+                              ).toLocaleString()}
                             </div>
                           </div>
                         </div>
@@ -556,7 +570,7 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                                 onClick={() => setStopModalRequest(request)}
                                 className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                               >
-                                출금 정지
+                                출금 중지
                               </button>
                             </div>
                             <div className="mt-2 text-xs text-gray-600">
@@ -590,7 +604,7 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
         </div>
       )}
 
-      {/* 출금 정지 모달 */}
+      {/* 출금 중지 모달 */}
       {stopModalRequest && (
         <WithdrawalStopModal
           request={stopModalRequest}
