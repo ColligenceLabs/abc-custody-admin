@@ -169,6 +169,14 @@ export interface IndividualWithdrawalRequest {
   cancelledAt?: string;
   cancelledBy?: string;
 
+  // 출금 중지 정보 (withdrawal_stopped 상태)
+  withdrawalStoppedAt?: string;
+  withdrawalStoppedReason?: string;
+  stoppedBy?: {
+    userId: string;
+    userName: string;
+  };
+
   // 블록체인 정보
   txHash?: string;
   blockConfirmations?: number;
