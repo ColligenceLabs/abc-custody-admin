@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { WithdrawalRequest, IndividualWithdrawalRequest } from "@/types/withdrawal";
 import { StatusBadge } from "./StatusBadge";
-import { formatAmount, formatDateTime } from "@/utils/withdrawalHelpers";
+import { formatDateTime } from "@/utils/withdrawalHelpers";
+import { formatAmount } from "@/lib/format";
 import CryptoIcon from "@/components/ui/CryptoIcon";
 import { getSecurityProgress, isSecurityVerification } from "@/utils/securityProgressHelpers";
 
@@ -170,11 +171,15 @@ export function ProcessingTableRow({
           />
           <div>
             <p className="font-medium text-gray-900">
-              {formatAmount(request.amount, request.currency)}{" "}
               {request.currency}
             </p>
           </div>
         </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <p className="font-medium text-gray-900">
+          {formatAmount(request.amount)}
+        </p>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <StatusBadge status={request.status} />
@@ -263,7 +268,10 @@ export function ProcessingTableRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-center">
         <button
-          onClick={() => onToggleDetails(request.id)}
+          onClick={() => {
+            console.log('ProcessingTableRow 버튼 클릭:', request.id);
+            onToggleDetails(request.id);
+          }}
           className="text-primary-600 hover:text-primary-900 text-sm font-medium"
         >
           상세보기

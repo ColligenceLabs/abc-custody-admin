@@ -213,6 +213,32 @@ export async function getCorporateWithdrawals(
 }
 
 /**
+ * 출금 취소/정지
+ */
+export async function cancelWithdrawal(
+  id: string,
+  reason: string
+): Promise<WithdrawalRequest> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/api/withdrawals/${id}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const error: ErrorResponse = await response.json();
+    throw new Error(error.message || '출금 정지에 실패했습니다.');
+  }
+
+  return response.json();
+}
+
+/**
  * 출금 상태별 개수 조회 (대시보드용)
  */
 export async function getWithdrawalCountsByStatus(
