@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [memberType, setMemberType] = useState<'individual' | 'corporate'>('individual')
   const [email, setEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
-  const [smsCode, setSmsCode] = useState('')
+  const [smsCode, setSmsCode] = useState('987654')
   const [loading, setLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
