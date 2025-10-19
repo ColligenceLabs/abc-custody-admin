@@ -732,13 +732,11 @@ class WithdrawalV2ApiService {
   async rejectWithdrawalBackend(requestId: string, reason: string): Promise<WithdrawalV2Request> {
     try {
       const response = await apiClient.patch(`/withdrawals/${requestId}`, {
-        status: 'rejected',
-        rejection: {
-          rejectedBy: 'admin-current',
-          rejectedAt: new Date().toISOString(),
-          reason,
-          relatedAMLIssue: false,
-        },
+        status: 'admin_rejected',
+        rejectedReason: reason,
+        rejectedBy: 'admin-current',
+        rejectedAt: new Date().toISOString(),
+        relatedAMLIssue: false,
       });
 
       return this.mapBackendToFrontend(response.data);
@@ -747,6 +745,13 @@ class WithdrawalV2ApiService {
       console.error('출금 거부 실패:', apiError);
       throw new Error(apiError.message);
     }
+  }
+
+  /**
+   * 백엔드 응답 데이터 → 프론트엔드 타입 변환 (Public)
+   */
+  transformBackendData(backendData: any): WithdrawalV2Request {
+    return this.mapBackendToFrontend(backendData);
   }
 
   /**
@@ -773,7 +778,12 @@ class WithdrawalV2ApiService {
       txHash: backendData.txHash,
       mpcExecution: backendData.mpcExecution,
       amlReview: backendData.amlReview,
-      rejection: backendData.rejection,
+      rejection: backendData.rejectedReason || backendData.rejectedBy || backendData.rejectedAt ? {
+        reason: backendData.rejectedReason || '',
+        rejectedBy: backendData.rejectedBy || '',
+        rejectedAt: backendData.rejectedAt ? new Date(backendData.rejectedAt) : new Date(),
+        relatedAMLIssue: backendData.relatedAMLIssue || false,
+      } : undefined,
       withdrawalStoppedAt: backendData.withdrawalStoppedAt,
       withdrawalStoppedReason: backendData.withdrawalStoppedReason,
       stoppedBy: backendData.stoppedBy ? {

@@ -56,9 +56,9 @@ export function RequestTable({
   // 필터링된 요청 목록
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      request.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.toAddress.toLowerCase().includes(searchTerm.toLowerCase());
+      (request.memberName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (request.id?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (request.toAddress?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || request.status === statusFilter;

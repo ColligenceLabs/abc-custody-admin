@@ -67,24 +67,27 @@ export default function WithdrawalRequestsPage() {
   const handleWithdrawalUpdate = useCallback((updatedWithdrawal: any) => {
     console.log('관리자 페이지 출금 업데이트 받음:', updatedWithdrawal);
 
+    // 백엔드 데이터를 프론트엔드 형식으로 변환
+    const transformedWithdrawal = withdrawalV2Api.transformBackendData(updatedWithdrawal);
+
     setRequests((prevRequests) => {
-      const index = prevRequests.findIndex(r => r.id === updatedWithdrawal.id);
+      const index = prevRequests.findIndex(r => r.id === transformedWithdrawal.id);
 
       if (index !== -1) {
         // 기존 출금 업데이트
         const newRequests = [...prevRequests];
-        newRequests[index] = updatedWithdrawal;
+        newRequests[index] = transformedWithdrawal;
         return newRequests;
       } else {
         // 새 출금 추가
-        return [updatedWithdrawal, ...prevRequests];
+        return [transformedWithdrawal, ...prevRequests];
       }
     });
 
     // 상세 모달이 열려있고 같은 출금인 경우 상세 정보도 업데이트
     setSelectedRequest((prevSelected) => {
-      if (prevSelected && prevSelected.id === updatedWithdrawal.id) {
-        return updatedWithdrawal;
+      if (prevSelected && prevSelected.id === transformedWithdrawal.id) {
+        return transformedWithdrawal;
       }
       return prevSelected;
     });
