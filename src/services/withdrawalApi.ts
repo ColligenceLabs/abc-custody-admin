@@ -175,6 +175,12 @@ function mapBackendToFrontend(backendData: any): Withdrawal {
     confirmedAt: backendData.completedAt,
     txHash: backendData.txHash,
     rejectedAt: backendData.rejectedAt,
+    withdrawalStoppedAt: backendData.withdrawalStoppedAt,
+    withdrawalStoppedReason: backendData.withdrawalStoppedReason,
+    stoppedBy: backendData.stoppedBy ? {
+      userId: backendData.stoppedBy.userId,
+      userName: backendData.stoppedBy.userName,
+    } : undefined,
     notes: backendData.description,
   };
 }

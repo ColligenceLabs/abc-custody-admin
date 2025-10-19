@@ -20,7 +20,8 @@ export type WithdrawalStatus =
   | "confirming" // 컨펌 대기 중
   | "confirmed" // 완료
   | "failed" // 실패
-  | "rejected"; // 거부됨
+  | "rejected" // 거부됨
+  | "withdrawal_stopped"; // 출금 중지 (사용자 취소)
 
 /**
  * 출금 우선순위
@@ -288,6 +289,18 @@ export interface Withdrawal {
 
   /** 실패 사유 */
   failureReason?: string;
+
+  /** 출금 중지 일시 */
+  withdrawalStoppedAt?: string;
+
+  /** 출금 중지 사유 */
+  withdrawalStoppedReason?: string;
+
+  /** 출금 중지한 사용자 */
+  stoppedBy?: {
+    userId: string;
+    userName: string;
+  };
 
   /** 대기 시간 (분) */
   waitingTimeMinutes: number;

@@ -116,6 +116,7 @@ export function RequestTable({
             <SelectItem value="success">완료</SelectItem>
             <SelectItem value="admin_rejected">관리자거부</SelectItem>
             <SelectItem value="failed">실패</SelectItem>
+            <SelectItem value="withdrawal_stopped">출금 중지</SelectItem>
           </SelectContent>
         </Select>
       </div>

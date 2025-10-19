@@ -21,6 +21,7 @@ import CryptoIcon from "@/components/ui/CryptoIcon";
 import { useToast } from "@/hooks/use-toast";
 import { X, CheckCircle, Wallet } from "lucide-react";
 import { Withdrawal } from "@/types/withdrawal";
+import { getStatusText, getStatusBadgeVariant } from "@/lib/withdrawalStatusUtils";
 
 // ============================================================================
 // Props 인터페이스
@@ -62,57 +63,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-/**
- * 상태 배지 색상
- */
-function getStatusBadgeVariant(
-  status: string
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "confirmed":
-      return "default";
-    case "aml_review":
-      return "secondary";
-    case "approved":
-    case "signing":
-      return "outline";
-    case "failed":
-    case "rejected":
-      return "destructive";
-    default:
-      return "outline";
-  }
-}
-
-/**
- * 상태 텍스트
- */
-function getStatusText(status: string): string {
-  const statusMap: Record<string, string> = {
-    withdrawal_wait: "출금 대기 (24시간)",
-    aml_review: "AML 검토",
-    approval_pending: "처리중",
-    processing: "출금처리대기",
-    withdrawal_pending: "출금대기중",
-    transferring: "블록체인 전송 중",
-    pending: "대기 중",
-    approved: "승인됨",
-    signing: "서명 중",
-    broadcasting: "브로드캐스트 중",
-    confirming: "컨펌 대기 중",
-    confirmed: "완료",
-    success: "출금 완료",
-    failed: "실패",
-    rejected: "거부됨",
-    admin_rejected: "관리자 거부",
-    withdrawal_stopped: "사용자 취소",
-    aml_issue: "AML 문제 감지",
-    withdrawal_request: "출금 신청",
-    withdrawal_reapply: "재신청",
-    archived: "아카이브",
-  };
-  return statusMap[status] || status;
-}
 
 // ============================================================================
 // 메인 컴포넌트
@@ -502,6 +452,46 @@ export default function WithdrawalDetailModal({
                       </div>
                       <div className="text-sm text-red-900 dark:text-red-100">
                         {withdrawal.rejectedBy.adminName}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          {/* 출금 중지 정보 (중지된 경우) */}
+          {withdrawal.status === "withdrawal_stopped" &&
+            withdrawal.withdrawalStoppedReason && (
+              <div className="border rounded-lg p-4 space-y-3 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+                <h3 className="font-semibold text-lg text-yellow-900 dark:text-yellow-100">
+                  출금 중지 정보
+                </h3>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-1">
+                      중지 사유
+                    </div>
+                    <div className="text-sm text-yellow-900 dark:text-yellow-100">
+                      {withdrawal.withdrawalStoppedReason}
+                    </div>
+                  </div>
+                  {withdrawal.withdrawalStoppedAt && (
+                    <div>
+                      <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-1">
+                        중지 일시
+                      </div>
+                      <div className="text-sm text-yellow-900 dark:text-yellow-100">
+                        {formatDate(withdrawal.withdrawalStoppedAt)}
+                      </div>
+                    </div>
+                  )}
+                  {withdrawal.stoppedBy && (
+                    <div>
+                      <div className="text-xs text-yellow-700 dark:text-yellow-300 mb-1">
+                        중지한 사용자
+                      </div>
+                      <div className="text-sm text-yellow-900 dark:text-yellow-100">
+                        {withdrawal.stoppedBy.userName}
                       </div>
                     </div>
                   )}

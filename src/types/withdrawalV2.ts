@@ -44,7 +44,8 @@ export type WithdrawalStatus =
   | "transferring"       // 출금중 (TxHash 기록됨, 블록체인 전송 중)
   | "success"            // 완료
   | "failed"             // 실패
-  | "admin_rejected";    // 관리자 거부
+  | "admin_rejected"     // 관리자 거부
+  | "withdrawal_stopped"; // 출금 중지 (사용자 취소)
 
 /**
  * 출금 요청 우선순위
@@ -385,6 +386,14 @@ export interface WithdrawalV2Request {
 
   // 거부 정보
   rejection?: RejectionInfo;
+
+  // 출금 중지 정보
+  withdrawalStoppedAt?: string;
+  withdrawalStoppedReason?: string;
+  stoppedBy?: {
+    userId: string;
+    userName: string;
+  };
 
   // 에러 정보
   error?: {

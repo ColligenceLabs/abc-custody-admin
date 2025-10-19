@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RequestTable } from "./components/RequestTable";
 import { RequestDetailModal } from "./components/RequestDetailModal";
 import {
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { withdrawalV2Api } from "@/services/withdrawalV2Api";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminWithdrawalSocket } from "@/hooks/useAdminWithdrawalSocket";
 
 export default function WithdrawalRequestsPage() {
   const [selectedRequest, setSelectedRequest] =
@@ -62,15 +63,37 @@ export default function WithdrawalRequestsPage() {
     fetchWithdrawals();
   }, []);
 
-  // 자동 폴링: 30초마다 데이터 갱신
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      fetchWithdrawals();
-    }, 30000); // 30초마다 실행
+  // WebSocket 실시간 업데이트
+  const handleWithdrawalUpdate = useCallback((updatedWithdrawal: any) => {
+    console.log('관리자 페이지 출금 업데이트 받음:', updatedWithdrawal);
 
-    // 컴포넌트 언마운트 시 인터벌 정리
-    return () => clearInterval(intervalId);
+    setRequests((prevRequests) => {
+      const index = prevRequests.findIndex(r => r.id === updatedWithdrawal.id);
+
+      if (index !== -1) {
+        // 기존 출금 업데이트
+        const newRequests = [...prevRequests];
+        newRequests[index] = updatedWithdrawal;
+        return newRequests;
+      } else {
+        // 새 출금 추가
+        return [updatedWithdrawal, ...prevRequests];
+      }
+    });
+
+    // 상세 모달이 열려있고 같은 출금인 경우 상세 정보도 업데이트
+    setSelectedRequest((prevSelected) => {
+      if (prevSelected && prevSelected.id === updatedWithdrawal.id) {
+        return updatedWithdrawal;
+      }
+      return prevSelected;
+    });
   }, []);
+
+  // WebSocket 연결
+  useAdminWithdrawalSocket({
+    onWithdrawalUpdate: handleWithdrawalUpdate,
+  });
 
   const handleRefresh = () => {
     fetchWithdrawals();

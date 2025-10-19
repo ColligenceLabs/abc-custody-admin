@@ -43,6 +43,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import WithdrawalDetailModal from "./WithdrawalDetailModal";
+import { getStatusText } from "@/lib/withdrawalStatusUtils";
 
 // ============================================================================
 // 출금 대기열 페이지 컴포넌트
@@ -440,28 +441,12 @@ export default function WithdrawalQueuePage() {
                               ? "default"
                               : withdrawal.status === "rejected"
                               ? "destructive"
+                              : withdrawal.status === "withdrawal_stopped"
+                              ? "secondary"
                               : "outline"
                           }
                         >
-                          {withdrawal.status === "pending"
-                            ? "대기"
-                            : withdrawal.status === "aml_review"
-                            ? "AML 검토"
-                            : withdrawal.status === "approval_pending"
-                            ? "처리중"
-                            : withdrawal.status === "processing"
-                            ? "출금처리대기"
-                            : withdrawal.status === "withdrawal_pending"
-                            ? "출금대기중"
-                            : withdrawal.status === "approved"
-                            ? "승인됨"
-                            : withdrawal.status === "signing"
-                            ? "서명 중"
-                            : withdrawal.status === "confirmed"
-                            ? "완료"
-                            : withdrawal.status === "rejected"
-                            ? "거부"
-                            : withdrawal.status}
+                          {getStatusText(withdrawal.status)}
                         </Badge>
                       </TableCell>
 

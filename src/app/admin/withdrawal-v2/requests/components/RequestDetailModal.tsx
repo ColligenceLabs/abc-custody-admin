@@ -64,6 +64,7 @@ const getStatusBadge = (status: string) => {
     success: { label: "완료", variant: "default" as const, className: "bg-green-600" },
     admin_rejected: { label: "관리자거부", variant: "destructive" as const, className: "" },
     failed: { label: "실패", variant: "destructive" as const, className: "" },
+    withdrawal_stopped: { label: "출금 중지", variant: "default" as const, className: "bg-yellow-600" },
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.withdrawal_wait;
@@ -85,6 +86,7 @@ const getStatusIcon = (status: string) => {
     success: CheckCheck,
     admin_rejected: Ban,
     failed: XCircle,
+    withdrawal_stopped: Ban,
   };
   const Icon = icons[status as keyof typeof icons] || FileText;
   return <Icon className="w-5 h-5" />;
@@ -110,8 +112,10 @@ export function RequestDetailModal({
 
   // processing 상태일 때 지갑 잔고 확인
   useEffect(() => {
-    if (open && request && request.status === "processing") {
-      performWalletBalanceCheck();
+    if (open && request) {
+      if (request.status === "processing") {
+        performWalletBalanceCheck();
+      }
     } else {
       setHotWalletCheck(null);
       setColdWalletInfo(null);
@@ -730,6 +734,51 @@ export function RequestDetailModal({
                     </Badge>
                   </div>
                 )}
+              </div>
+            </>
+          )}
+
+          {/* withdrawal_stopped: 출금 중지 */}
+          {request.status === "withdrawal_stopped" &&
+           request.withdrawalStoppedReason && (
+            <>
+              <Alert>
+                <Ban className="h-4 w-4 text-yellow-600" />
+                <AlertTitle>출금 중지됨</AlertTitle>
+                <AlertDescription>
+                  이 출금 요청은 사용자에 의해 중지되었습니다.
+                </AlertDescription>
+              </Alert>
+
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <h4 className="font-semibold text-sm">출금 중지 정보</h4>
+
+                {/* 중지 사유 - 강조 표시 */}
+                <div className="bg-background rounded-lg border border-yellow-200 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Ban className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-600">중지 사유</span>
+                  </div>
+                  <p className="text-sm leading-relaxed pl-6">
+                    {request.withdrawalStoppedReason}
+                  </p>
+                </div>
+
+                {/* 중지 세부 정보 */}
+                <div className="grid grid-cols-2 gap-3 text-sm pt-2">
+                  {request.withdrawalStoppedAt && (
+                    <div>
+                      <p className="text-muted-foreground">중지 시간</p>
+                      <p className="font-medium">{new Date(request.withdrawalStoppedAt).toLocaleString("ko-KR")}</p>
+                    </div>
+                  )}
+                  {request.stoppedBy && (
+                    <div>
+                      <p className="text-muted-foreground">중지 처리자</p>
+                      <p className="font-medium">{request.stoppedBy.userName}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}

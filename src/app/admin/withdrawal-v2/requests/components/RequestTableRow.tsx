@@ -116,6 +116,12 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
       success: { variant: "default", label: "완료", className: "bg-green-600" },
       admin_rejected: { variant: "destructive", label: "관리자거부" },
       failed: { variant: "destructive", label: "실패" },
+      withdrawal_stopped: {
+        variant: "secondary",
+        label: "출금 중지",
+        className:
+          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200",
+      },
     };
 
     const config = variants[status] || {

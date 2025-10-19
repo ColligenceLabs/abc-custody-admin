@@ -774,6 +774,12 @@ class WithdrawalV2ApiService {
       mpcExecution: backendData.mpcExecution,
       amlReview: backendData.amlReview,
       rejection: backendData.rejection,
+      withdrawalStoppedAt: backendData.withdrawalStoppedAt,
+      withdrawalStoppedReason: backendData.withdrawalStoppedReason,
+      stoppedBy: backendData.stoppedBy ? {
+        userId: backendData.stoppedBy.userId,
+        userName: backendData.stoppedBy.userName,
+      } : undefined,
       error: backendData.error,
     };
   }
@@ -793,6 +799,7 @@ class WithdrawalV2ApiService {
       'success': 'success',
       'failed': 'failed',
       'admin_rejected': 'admin_rejected',
+      'withdrawal_stopped': 'withdrawal_stopped',
     };
 
     // 구 버전 상태값이 들어오면 경고 로그
@@ -873,6 +880,7 @@ const ALLOWED_TRANSITIONS: Record<WithdrawalStatus, WithdrawalStatus[]> = {
   success: [],
   admin_rejected: [],
   failed: ["withdrawal_wait"], // 재시도 가능
+  withdrawal_stopped: [], // 사용자가 출금을 중지한 종료 상태
 };
 
 /**
