@@ -1478,6 +1478,9 @@ export default function IndividualWithdrawalManagement({
                           상태
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          신청 일시
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           완료 일시
                         </th>
                       </tr>
@@ -1506,6 +1509,9 @@ export default function IndividualWithdrawalManagement({
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <StatusBadge status={request.status} />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDateTime(request.initiatedAt)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {request.completedAt

@@ -15,7 +15,7 @@ import {
   BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { ServicePlan } from '@/app/page'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { PriorityBadge } from './withdrawal/PriorityBadge'
 import { StatusBadge } from './withdrawal/StatusBadge'
@@ -107,6 +107,70 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
 
   const handlePieClick = (data: any, index: number) => {
     setSelectedAssetIndex(index)
+  }
+
+  // CustomActiveShapePieChart를 위한 renderActiveShape 함수
+  const renderActiveShape = (props: any) => {
+    const RADIAN = Math.PI / 180
+    const {
+      cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle,
+      fill, payload, percent, value
+    } = props
+
+    const sin = Math.sin(-RADIAN * midAngle)
+    const cos = Math.cos(-RADIAN * midAngle)
+    const sx = cx + (outerRadius + 10) * cos
+    const sy = cy + (outerRadius + 10) * sin
+    const mx = cx + (outerRadius + 30) * cos
+    const my = cy + (outerRadius + 30) * sin
+    const ex = mx + (cos >= 0 ? 1 : -1) * 22
+    const ey = my
+    const textAnchor = cos >= 0 ? 'start' : 'end'
+
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius + 10}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+        />
+        <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={2} />
+        <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * 12}
+          y={ey}
+          textAnchor={textAnchor}
+          fill="#111827"
+          style={{ fontSize: '14px', fontWeight: '600' }}
+        >
+          {payload.name}
+        </text>
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * 12}
+          y={ey}
+          dy={18}
+          textAnchor={textAnchor}
+          fill="#6B7280"
+          style={{ fontSize: '12px' }}
+        >
+          {formatCurrency(value)}
+        </text>
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * 12}
+          y={ey}
+          dy={33}
+          textAnchor={textAnchor}
+          fill="#6B7280"
+          style={{ fontSize: '12px' }}
+        >
+          {`${(percent * 100).toFixed(1)}%`}
+        </text>
+      </g>
+    )
   }
 
   const formatCurrency = (value: number) => {
@@ -506,10 +570,16 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
+                <XAxis
+                  dataKey="name"
                   tick={{ fontSize: 12 }}
                   interval={0}
                   angle={-45}
@@ -518,8 +588,15 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                 />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2} />
-              </LineChart>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#0ea5e9"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorValue)"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -540,32 +617,32 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           <div className="flex flex-col lg:flex-row items-center gap-8">
             {/* Donut Chart - Left */}
             <div className="flex-shrink-0">
-              <div className="relative w-64 h-64">
+              <div className="relative w-96 h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
+                      activeIndex={selectedAssetIndex}
+                      activeShape={renderActiveShape}
                       data={pieData}
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
-                      outerRadius={100}
+                      outerRadius={80}
                       dataKey="value"
                       onClick={handlePieClick}
+                      onMouseEnter={(_, index) => setSelectedAssetIndex(index)}
                       className="cursor-pointer"
                     >
                       {pieData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
+                        <Cell
+                          key={`cell-${index}`}
                           fill={entry.color}
-                          stroke={selectedAssetIndex === index ? '#374151' : 'transparent'}
-                          strokeWidth={selectedAssetIndex === index ? 2 : 0}
                         />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
                   </PieChart>
                 </ResponsiveContainer>
-                
+
                 {/* Center content - 선택한 자산 정보 */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center">
