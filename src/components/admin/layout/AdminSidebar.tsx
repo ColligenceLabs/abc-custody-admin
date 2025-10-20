@@ -252,6 +252,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: FileText,
     requiredPermissions: [{ resource: AdminResource.REPORTS, action: AdminAction.READ }],
   },
+  {
+    id: 'settings',
+    label: '설정',
+    href: '/admin/settings',
+    icon: Settings,
+    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+  },
 ];
 
 interface AdminSidebarProps {
