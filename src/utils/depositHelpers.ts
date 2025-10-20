@@ -60,21 +60,26 @@ export const formatDateTime = (timestamp: string) => {
   });
 };
 
+/**
+ * 가상자산별 기본 소수점 자릿수
+ */
+const CRYPTO_DECIMALS: Record<string, number> = {
+  BTC: 8,
+  ETH: 8,
+  USDT: 6,
+  USDC: 6,
+  SOL: 8,
+};
+
 export const formatAmount = (amount: string, asset: string) => {
   const num = parseFloat(amount);
-  
-  switch (asset) {
-    case "BTC":
-      return num.toFixed(8);
-    case "ETH":
-      return num.toFixed(6);
-    case "USDC":
-      return num.toFixed(2);
-    case "SOL":
-      return num.toFixed(4);
-    default:
-      return num.toFixed(6);
-  }
+  const decimals = CRYPTO_DECIMALS[asset.toUpperCase()] ?? 8;
+
+  // toLocaleString으로 천 단위 콤마 추가 및 trailing zeros 제거
+  return num.toLocaleString('ko-KR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  });
 };
 
 export const getProgressPercentage = (current: number, required: number) => {

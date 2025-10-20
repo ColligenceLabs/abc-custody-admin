@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CurrencyDollarIcon,
@@ -17,13 +17,16 @@ import {
 import { ServicePlan } from '@/app/page'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { PriorityBadge } from './withdrawal/PriorityBadge'
 import { StatusBadge } from './withdrawal/StatusBadge'
 import { mockWithdrawalRequests } from '@/data/mockWithdrawalData'
-import { mockIndividualWithdrawalRequests } from '@/data/individualWithdrawalMockData'
-import { formatAmount, formatDateTime } from '@/utils/withdrawalHelpers'
+import { formatDateTime } from '@/utils/withdrawalHelpers'
+import { formatCryptoAmount, formatKRW } from '@/lib/format'
 import CryptoIcon from '@/components/ui/CryptoIcon'
 import { IndividualWithdrawalRequest } from '@/types/withdrawal'
+import { getIndividualWithdrawals } from '@/lib/api/withdrawal'
+import { ProcessingTableRow } from './withdrawal/ProcessingTableRow'
 
 interface AssetOverviewProps {
   plan: ServicePlan
@@ -32,9 +35,12 @@ interface AssetOverviewProps {
 export default function AssetOverview({ plan }: AssetOverviewProps) {
   const [showBalances, setShowBalances] = useState(true)
   const [selectedAssetIndex, setSelectedAssetIndex] = useState(0)
-  // 탭 기능 제거 - All 데이터만 사용
   const [timePeriod, setTimePeriod] = useState<'hour' | 'day' | 'month'>('month')
+  const [ongoingWithdrawals, setOngoingWithdrawals] = useState<IndividualWithdrawalRequest[]>([])
+  const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false)
+
   const { t, language } = useLanguage()
+  const { user } = useAuth()
   const router = useRouter()
 
   const mockAssets = [
@@ -47,10 +53,40 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
   // Filter actual withdrawal requests with withdrawal_request status (pending approval)
   const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'withdrawal_request')
 
-  // Filter individual withdrawal requests with withdrawal_wait or processing status
-  const mockIndividualOngoingWithdrawals = mockIndividualWithdrawalRequests.filter(
-    request => request.status === 'withdrawal_wait' || request.status === 'processing'
-  )
+  // 진행 중인 출금 데이터 가져오기
+  useEffect(() => {
+    const fetchOngoingWithdrawals = async () => {
+      if (!user?.id || plan !== 'individual') {
+        return
+      }
+
+      try {
+        setIsLoadingWithdrawals(true)
+
+        const { data } = await getIndividualWithdrawals({
+          userId: user.id,
+          _limit: 100,
+          _sort: 'initiatedAt',
+          _order: 'desc'
+        })
+
+        // 진행 중인 상태만 필터링 (완료/실패/취소 상태 제외)
+        const completedStatuses = ['success', 'failed', 'admin_rejected', 'withdrawal_stopped', 'rejected', 'archived', 'cancelled', 'stopped', 'completed']
+        const ongoing = data.filter(
+          (w: any) => !completedStatuses.includes(w.status)
+        )
+
+        setOngoingWithdrawals(ongoing as IndividualWithdrawalRequest[])
+      } catch (error) {
+        console.error('[AssetOverview] 진행 중인 출금 데이터 조회 실패:', error)
+        setOngoingWithdrawals([])
+      } finally {
+        setIsLoadingWithdrawals(false)
+      }
+    }
+
+    fetchOngoingWithdrawals()
+  }, [user, plan])
 
   // 시간대별 차트 데이터
   const getChartData = (period: 'hour' | 'day' | 'month') => {
@@ -157,7 +193,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           fill="#6B7280"
           style={{ fontSize: '12px' }}
         >
-          {formatCurrency(value)}
+          {formatKRW(value)}
         </text>
         <text
           x={ex + (cos >= 0 ? 1 : -1) * 12}
@@ -171,10 +207,6 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
         </text>
       </g>
     )
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(language === 'ko' ? 'ko-KR' : 'en-US').format(value) + ' 원'
   }
 
   const formatTimeAgo = (timestamp: string) => {
@@ -191,45 +223,6 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     }
   }
 
-  const calculateRemainingTime = (scheduledAt: string) => {
-    const scheduledTime = new Date(scheduledAt)
-    const now = new Date()
-    const diffMs = scheduledTime.getTime() - now.getTime()
-
-    if (diffMs > 0) {
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-      if (diffHours >= 24) {
-        return "24시간"
-      } else if (diffHours > 0) {
-        return `${diffHours}시간 ${diffMinutes}분`
-      } else {
-        return `${diffMinutes}분`
-      }
-    }
-    return "처리 대기 중..."
-  }
-
-  const getIndividualProgressStatus = (request: IndividualWithdrawalRequest) => {
-    if (request.status === "withdrawal_wait") {
-      const eta = request.processingScheduledAt
-        ? calculateRemainingTime(request.processingScheduledAt)
-        : "24시간"
-      return `대기 중 (${eta})`
-    } else if (request.status === "processing") {
-      if (request.processingStep === "security_check") {
-        return "보안 검증 중..."
-      } else if (request.processingStep === "blockchain_broadcast") {
-        return "블록체인 전송 중..."
-      } else if (request.processingStep === "confirmation") {
-        const confirmations = request.blockConfirmations || 0
-        return `컨펌 대기 중 (${confirmations}/12)`
-      }
-      return "처리 중..."
-    }
-    return "-"
-  }
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -281,7 +274,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
             <div>
               <p className="text-gray-600 text-sm font-medium">{t('overview.total_asset_value')}</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {showBalances ? formatCurrency(totalValue) : '***,***,***'}
+                {showBalances ? formatKRW(totalValue) : '***,***,***'}
               </p>
             </div>
             <div className="p-3 bg-primary-50 rounded-full">
@@ -330,15 +323,17 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
 
       </div>
 
-      {/* Individual Ongoing Withdrawals Section - Only show if there are ongoing withdrawals and plan is individual */}
-      {plan === 'individual' && mockIndividualOngoingWithdrawals.length > 0 && (
+      {/* Individual Ongoing Withdrawals Section - Always show for individual plan */}
+      {plan === 'individual' && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <ClockIcon className="h-5 w-5 text-gray-500 mr-2" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">진행 중인 출금</h3>
-                <p className="text-sm text-gray-600">{mockIndividualOngoingWithdrawals.length}건의 출금이 처리되고 있습니다</p>
+                <p className="text-sm text-gray-600">
+                  {isLoadingWithdrawals ? '로딩 중...' : ongoingWithdrawals.length > 0 ? `${ongoingWithdrawals.length}건의 출금이 처리되고 있습니다` : '진행 중인 출금이 없습니다'}
+                </p>
               </div>
             </div>
             <button
@@ -349,88 +344,60 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청 ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">출금 내용</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">자산</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기안자</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">진행상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockIndividualOngoingWithdrawals.slice(0, 3).map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{request.id}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {request.title}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {request.description}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatDateTime(request.initiatedAt)}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <CryptoIcon
-                          symbol={request.currency}
-                          size={32}
-                          className="mr-3 flex-shrink-0"
-                        />
-                        <div className="text-sm">
-                          <p className="font-semibold text-gray-900">
-                            {formatAmount(request.amount, request.currency)}
-                          </p>
-                          <p className="text-gray-500">
-                            {request.currency}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.initiator}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <StatusBadge status={request.status} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm">
-                        {request.status === "withdrawal_wait" ? (
-                          <div>
-                            <p className="font-medium text-yellow-700">
-                              {getIndividualProgressStatus(request)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              오출금 방지 기간
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="font-medium text-gray-700">
-                            {getIndividualProgressStatus(request)}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {ongoingWithdrawals.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        신청 ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        출금 내용
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        자산
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        수량
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        상태
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        진행률
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {ongoingWithdrawals.slice(0, 3).map((request) => (
+                      <ProcessingTableRow
+                        key={request.id}
+                        request={request}
+                        onToggleDetails={() => {}}
+                        showActions={false}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          {mockIndividualOngoingWithdrawals.length > 3 && (
-            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
-              <span className="text-sm text-gray-600">
-                외 {mockIndividualOngoingWithdrawals.length - 3}건이 더 있습니다
-              </span>
-            </div>
+              {ongoingWithdrawals.length > 3 && (
+                <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                  <span className="text-sm text-gray-600">
+                    외 {ongoingWithdrawals.length - 3}건이 더 있습니다
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            !isLoadingWithdrawals && (
+              <div className="text-center py-12">
+                <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">진행 중인 출금이 없습니다</p>
+              </div>
+            )
           )}
         </div>
       )}
@@ -495,7 +462,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                         />
                         <div className="text-sm">
                           <p className="font-semibold text-gray-900">
-                            {formatAmount(request.amount, request.currency)}
+                            {formatCryptoAmount(request.amount, request.currency)}
                           </p>
                           <p className="text-gray-500">
                             {request.currency}
@@ -587,7 +554,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                   height={60}
                 />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                <Tooltip formatter={(value) => formatKRW(value as number)} />
                 <Area
                   type="monotone"
                   dataKey="value"
@@ -610,7 +577,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
             {/* 전체 자산을 오른쪽 위에 심플하게 배치 */}
             <div className="text-right">
               <div className="text-2xl font-bold text-gray-900">
-                {showBalances ? formatCurrency(totalValue) : '***,***,***'}
+                {showBalances ? formatKRW(totalValue) : '***,***,***'}
               </div>
             </div>
           </div>
@@ -655,7 +622,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                           {selectedPercentage}%
                         </div>
                         <div className="text-sm font-medium text-gray-900 mt-1">
-                          {showBalances ? formatCurrency(selectedAsset.value) : '***,***,***'}
+                          {showBalances ? formatKRW(selectedAsset.value) : '***,***,***'}
                         </div>
                       </>
                     )}
@@ -739,10 +706,10 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    {showBalances ? Number(asset.balance).toLocaleString() : '***'}
+                    {showBalances ? formatCryptoAmount(asset.balance, asset.symbol) : '***'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                    {showBalances ? formatCurrency(asset.value) : '***,***,***'}
+                    {showBalances ? formatKRW(asset.value) : '***,***,***'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`font-semibold ${

@@ -9,11 +9,13 @@ import { getSecurityProgress, isSecurityVerification } from "@/utils/securityPro
 interface ProcessingTableRowProps {
   request: WithdrawalRequest | IndividualWithdrawalRequest;
   onToggleDetails: (requestId: string) => void;
+  showActions?: boolean; // 작업(상세보기) 컬럼 표시 여부
 }
 
 export function ProcessingTableRow({
   request,
   onToggleDetails,
+  showActions = true,
 }: ProcessingTableRowProps) {
   // 실시간 카운트다운을 위한 state
   const [remainingTime, setRemainingTime] = useState<string>("");
@@ -266,17 +268,19 @@ export function ProcessingTableRow({
           }
         })()}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-center">
-        <button
-          onClick={() => {
-            console.log('ProcessingTableRow 버튼 클릭:', request.id);
-            onToggleDetails(request.id);
-          }}
-          className="text-primary-600 hover:text-primary-900 text-sm font-medium"
-        >
-          상세보기
-        </button>
-      </td>
+      {showActions && (
+        <td className="px-6 py-4 whitespace-nowrap text-center">
+          <button
+            onClick={() => {
+              console.log('ProcessingTableRow 버튼 클릭:', request.id);
+              onToggleDetails(request.id);
+            }}
+            className="text-primary-600 hover:text-primary-900 text-sm font-medium"
+          >
+            상세보기
+          </button>
+        </td>
+      )}
     </tr>
   );
 }

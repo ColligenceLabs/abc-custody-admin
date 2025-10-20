@@ -145,12 +145,35 @@ export const getPriorityInfo = (priority: string) => {
   );
 };
 
+/**
+ * 가상자산별 기본 소수점 자릿수
+ */
+const CRYPTO_DECIMALS: Record<string, number> = {
+  BTC: 8,
+  ETH: 8,
+  USDT: 6,
+  USDC: 6,
+  SOL: 8,
+  KRW: 0,
+  KRD: 0,
+  WON: 0,
+};
+
 export const formatCurrency = (amount: number, currency: string) => {
-  return `${amount.toLocaleString()} ${currency}`;
+  const decimals = CRYPTO_DECIMALS[currency.toUpperCase()] ?? 8;
+  const formatted = amount.toLocaleString('ko-KR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  });
+  return `${formatted} ${currency}`;
 };
 
 export const formatAmount = (amount: number, currency: string) => {
-  return amount.toLocaleString();
+  const decimals = CRYPTO_DECIMALS[currency.toUpperCase()] ?? 8;
+  return amount.toLocaleString('ko-KR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  });
 };
 
 export const formatDateTime = (timestamp: string) => {
