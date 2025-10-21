@@ -20,6 +20,8 @@ import {
   OnHoldRequest,
   AddNoteRequest,
   ReviewNote,
+  IndividualEDDSubmission,
+  CorporateEDDSubmission,
 } from '@/types/onboardingAml';
 
 import {
@@ -618,4 +620,130 @@ export async function fetchOnboardingStats(): Promise<OnboardingStats> {
 export async function fetchActivityFeed(limit: number = 10): Promise<ActivityFeedItem[]> {
   await new Promise((resolve) => setTimeout(resolve, 200));
   return getActivityFeed(limit);
+}
+
+// ===========================
+// EDD (Enhanced Due Diligence) API
+// ===========================
+
+/**
+ * 개인회원 EDD 제출
+ */
+export async function submitIndividualEDD(
+  data: IndividualEDDSubmission
+): Promise<{ success: boolean; message: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const application = getIndividualOnboardingById(data.applicationId);
+  if (!application) {
+    throw new Error(`Individual onboarding application not found: ${data.applicationId}`);
+  }
+
+  // EDD 정보 업데이트
+  application.edd = {
+    incomeProofUrl: data.incomeProofUrl,
+    residenceProofUrl: data.residenceProofUrl,
+    fundSourceUrl: data.fundSourceUrl,
+    videoInterviewUrl: data.videoInterviewUrl,
+    additionalDocumentUrls: data.additionalDocumentUrls,
+    submittedAt: data.submittedAt,
+  };
+
+  // 상태를 검토 중으로 변경
+  application.adminReview.status = 'UNDER_REVIEW';
+  application.updatedAt = new Date().toISOString();
+
+  // 검토 노트 추가
+  const note: ReviewNote = {
+    id: `note-${Date.now()}`,
+    createdBy: 'current-admin',
+    createdAt: new Date().toISOString(),
+    content: 'EDD 정보가 제출되었습니다. 검토를 시작합니다.',
+    type: 'GENERAL',
+  };
+  application.adminReview.notes.push(note);
+
+  return {
+    success: true,
+    message: 'EDD 정보가 성공적으로 제출되었습니다.',
+  };
+}
+
+/**
+ * 법인회원 EDD 제출
+ */
+export async function submitCorporateEDD(
+  data: CorporateEDDSubmission
+): Promise<{ success: boolean; message: string }> {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const application = getCorporateOnboardingById(data.applicationId);
+  if (!application) {
+    throw new Error(`Corporate onboarding application not found: ${data.applicationId}`);
+  }
+
+  // EDD 정보 업데이트
+  application.edd = {
+    detailedUboInfo: data.detailedUboInfo,
+    businessPlanUrl: data.businessPlanUrl,
+    financialStatementsUrl: data.financialStatementsUrl,
+    clientListUrl: data.clientListUrl,
+    backgroundCheckUrl: data.backgroundCheckUrl,
+    onSiteInspectionUrl: data.onSiteInspectionUrl,
+    executiveInterviewUrl: data.executiveInterviewUrl,
+    additionalDocumentUrls: data.additionalDocumentUrls,
+    submittedAt: data.submittedAt,
+  };
+
+  // 상태를 검토 중으로 변경
+  application.adminReview.status = 'UNDER_REVIEW';
+  application.updatedAt = new Date().toISOString();
+
+  // 검토 노트 추가
+  const note: ReviewNote = {
+    id: `note-${Date.now()}`,
+    createdBy: 'current-admin',
+    createdAt: new Date().toISOString(),
+    content: 'EDD 정보가 제출되었습니다. UBO 상세 정보 및 추가 서류를 검토합니다.',
+    type: 'GENERAL',
+  };
+  application.adminReview.notes.push(note);
+
+  return {
+    success: true,
+    message: 'EDD 정보가 성공적으로 제출되었습니다.',
+  };
+}
+
+/**
+ * EDD 상태 조회
+ */
+export async function getEDDStatus(
+  applicationId: string,
+  type: 'individual' | 'corporate'
+): Promise<{
+  eddRequired: boolean;
+  eddSubmitted: boolean;
+  eddRequestedAt?: string;
+  eddSubmittedAt?: string;
+}> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  let application;
+  if (type === 'individual') {
+    application = getIndividualOnboardingById(applicationId);
+  } else {
+    application = getCorporateOnboardingById(applicationId);
+  }
+
+  if (!application) {
+    throw new Error(`${type} onboarding application not found: ${applicationId}`);
+  }
+
+  return {
+    eddRequired: application.eddRequired || false,
+    eddSubmitted: !!application.edd?.submittedAt,
+    eddRequestedAt: application.edd ? application.createdAt : undefined,
+    eddSubmittedAt: application.edd?.submittedAt,
+  };
 }

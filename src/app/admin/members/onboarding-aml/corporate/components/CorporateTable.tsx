@@ -10,7 +10,8 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
 import { CorporateOnboarding } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
@@ -75,6 +76,7 @@ export function CorporateTable({
                 <th className="text-left p-4 font-medium text-sm">등록 경로</th>
                 <th className="text-left p-4 font-medium text-sm">진행 단계</th>
                 <th className="text-left p-4 font-medium text-sm">위험도</th>
+                <th className="text-left p-4 font-medium text-sm">EDD</th>
                 <th className="text-left p-4 font-medium text-sm">상태</th>
                 <th className="text-left p-4 font-medium text-sm">신청일</th>
                 <th className="text-center p-4 font-medium text-sm">작업</th>
@@ -115,6 +117,27 @@ export function CorporateTable({
                       />
                     ) : (
                       <span className="text-sm text-muted-foreground">평가 대기</span>
+                    )}
+                  </td>
+
+                  {/* EDD 상태 */}
+                  <td className="p-4">
+                    {application.eddRequired ? (
+                      application.edd?.submittedAt ? (
+                        <Badge variant="default" className="text-sky-600 bg-sky-50 border-sky-200">
+                          <FileText className="h-3 w-3 mr-1" />
+                          제출 완료
+                        </Badge>
+                      ) : (
+                        <Link href={`/admin/members/onboarding-aml/edd-request/corporate/${application.id}`}>
+                          <Badge variant="outline" className="text-yellow-600 border-yellow-300 hover:bg-yellow-50 cursor-pointer">
+                            <FileText className="h-3 w-3 mr-1" />
+                            요청 필요
+                          </Badge>
+                        </Link>
+                      )
+                    ) : (
+                      <span className="text-sm text-muted-foreground">불필요</span>
                     )}
                   </td>
 
