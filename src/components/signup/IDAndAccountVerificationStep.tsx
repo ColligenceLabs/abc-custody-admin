@@ -934,14 +934,12 @@ export default function IDAndAccountVerificationStep({
               인증 완료
             </button>
           ) : (
-            !skipMethodSelection && (
-              <button
-                onClick={handleSkipVerification}
-                className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-              >
-                다음에 하기
-              </button>
-            )
+            <button
+              onClick={handleSkipVerification}
+              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            >
+              다음에 하기
+            </button>
           )}
         </div>
       </div>
