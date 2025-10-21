@@ -31,6 +31,7 @@ import { OnHoldDialog } from "../../../components/OnHoldDialog";
 import { CorporateInfoSection } from "./components/CorporateInfoSection";
 import { UBOStructureViewer } from "./components/UBOStructureViewer";
 import { CorporateRiskSection } from "./components/CorporateRiskSection";
+import { CorporateEDDSection } from "./components/CorporateEDDSection";
 import { CorporateAdminDecisionPanel } from "./components/CorporateAdminDecisionPanel";
 
 export default function CorporateOnboardingReviewPage() {
@@ -223,6 +224,12 @@ export default function CorporateOnboardingReviewPage() {
       {application.riskAssessment && (
         <CorporateRiskSection riskAssessment={application.riskAssessment} />
       )}
+
+      {/* EDD Section */}
+      <CorporateEDDSection
+        edd={application.edd}
+        eddRequired={application.eddRequired}
+      />
 
       {/* Admin Decision Panel */}
       <CorporateAdminDecisionPanel

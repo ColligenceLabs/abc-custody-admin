@@ -31,6 +31,7 @@ import { OnHoldDialog } from "../../components/OnHoldDialog";
 import { KYCSection } from "./components/KYCSection";
 import { AMLSection } from "./components/AMLSection";
 import { RiskAssessmentSection } from "./components/RiskAssessmentSection";
+import { EDDSection } from "./components/EDDSection";
 import { AdminDecisionPanel } from "./components/AdminDecisionPanel";
 
 export default function OnboardingReviewPage() {
@@ -224,6 +225,12 @@ export default function OnboardingReviewPage() {
       {application.riskAssessment && (
         <RiskAssessmentSection riskAssessment={application.riskAssessment} />
       )}
+
+      {/* EDD Section */}
+      <EDDSection
+        edd={application.edd}
+        eddRequired={application.eddRequired}
+      />
 
       {/* Admin Decision Panel */}
       <AdminDecisionPanel
