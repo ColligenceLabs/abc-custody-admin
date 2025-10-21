@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function BlockedPage() {
   const router = useRouter()
+  const { resetAuth } = useAuth()
   const [cooldown, setCooldown] = useState(0)
   const [isValidating, setIsValidating] = useState(true)
   const [blockedInfo, setBlockedInfo] = useState<{until: number, reason: string, email?: string} | null>(null)
@@ -73,10 +75,14 @@ export default function BlockedPage() {
       if (remaining > 0) {
         setCooldown(Math.ceil(remaining / 1000))
       } else {
-        // 차단 시간 만료 시 localStorage 정리하고 로그인 페이지로 이동
-        localStorage.removeItem('blocked_info')
+        // 차단 시간 만료 시 authStep 초기화 및 로그인 페이지로 이동
+        console.log('차단 시간 만료, authStep 초기화');
 
-        // 실패 시도 횟수도 초기화
+        // authStep 초기화
+        resetAuth();
+
+        // localStorage 정리
+        localStorage.removeItem('blocked_info')
         const email = blockedInfo?.email
         if (email) {
           localStorage.removeItem(`login_attempts_${email}`)

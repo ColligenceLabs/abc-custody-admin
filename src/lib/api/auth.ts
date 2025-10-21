@@ -217,6 +217,12 @@ export async function verifyEmail(
     isFirstLogin: boolean;
   };
   requiresOTP?: boolean;
+  locked?: boolean;
+  unlockAt?: string;
+  remainingSeconds?: number;
+  loginFailCount?: number;
+  remainingAttempts?: number;
+  blockFailCount?: number;
 }> {
   const response = await fetch(`${API_URL}/api/auth/verify-email`, {
     method: 'POST',
@@ -227,6 +233,29 @@ export async function verifyEmail(
   });
 
   const data = await response.json();
+
+  // 차단 상태(403) 또는 사용자 없음(404)일 때도 데이터 반환
+  if (response.status === 403 && data.locked) {
+    // 차단 상태
+    return {
+      success: false,
+      message: data.message,
+      locked: true,
+      unlockAt: data.unlockAt,
+      remainingSeconds: data.remainingSeconds
+    };
+  }
+
+  if (response.status === 404) {
+    // 사용자 없음 (실패 카운트 포함)
+    return {
+      success: false,
+      message: data.message,
+      loginFailCount: data.loginFailCount,
+      remainingAttempts: data.remainingAttempts,
+      blockFailCount: data.blockFailCount
+    };
+  }
 
   if (!response.ok) {
     throw new Error(data.message || '이메일 확인에 실패했습니다.');
@@ -249,6 +278,12 @@ export async function verifyOtpBackend(
   token?: string;
   expiresIn?: string;
   user?: User;
+  locked?: boolean;
+  unlockAt?: string;
+  remainingSeconds?: number;
+  loginFailCount?: number;
+  remainingAttempts?: number;
+  blockFailCount?: number;
 }> {
   const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
     method: 'POST',
@@ -259,6 +294,31 @@ export async function verifyOtpBackend(
   });
 
   const data = await response.json();
+
+  console.log('[verifyOtpBackend] 응답:', { status: response.status, data });
+
+  // 차단 상태(403) 확인
+  if (response.status === 403) {
+    console.log('[403 차단] data.locked:', data.locked, 'data:', data);
+    return {
+      success: false,
+      message: data.message,
+      locked: true,
+      unlockAt: data.unlockAt,
+      remainingSeconds: data.remainingSeconds
+    };
+  }
+
+  // OTP 실패(401) - 실패 카운트 포함
+  if (response.status === 401) {
+    return {
+      success: false,
+      message: data.message,
+      loginFailCount: data.loginFailCount,
+      remainingAttempts: data.remainingAttempts,
+      blockFailCount: data.blockFailCount
+    };
+  }
 
   if (!response.ok) {
     throw new Error(data.message || 'OTP 인증에 실패했습니다.');
@@ -442,6 +502,94 @@ export async function verifyEmailPinSignup(
 
   if (!response.ok) {
     throw new Error(data.message || 'PIN 코드 검증에 실패했습니다.');
+  }
+
+  return data;
+}
+
+/**
+ * SMS 인증번호 발송
+ * POST /api/auth/send-sms-pin
+ */
+export async function sendSmsPin(
+  phone: string
+): Promise<{
+  success: boolean;
+  message: string;
+  requestId: string;
+  expiresIn: number;
+}> {
+  const response = await fetch(`${API_URL}/api/auth/send-sms-pin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'SMS 발송에 실패했습니다.');
+  }
+
+  return data;
+}
+
+/**
+ * SMS 인증번호 검증 (로그인용 - IP 기반 차단 포함)
+ * POST /api/auth/verify-sms-pin
+ */
+export async function verifySmsPin(
+  phone: string,
+  pin: string,
+  email?: string
+): Promise<{
+  success: boolean;
+  message: string;
+  locked?: boolean;
+  unlockAt?: string;
+  remainingSeconds?: number;
+  loginFailCount?: number;
+  remainingAttempts?: number;
+  blockFailCount?: number;
+}> {
+  const response = await fetch(`${API_URL}/api/auth/verify-sms-pin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone, pin, email }),
+  });
+
+  const data = await response.json();
+
+  console.log('[verifySmsPin] 응답:', { status: response.status, data });
+
+  // 차단 상태(403) 확인
+  if (response.status === 403) {
+    return {
+      success: false,
+      message: data.message,
+      locked: true,
+      unlockAt: data.unlockAt,
+      remainingSeconds: data.remainingSeconds
+    };
+  }
+
+  // SMS 실패(400) - 실패 카운트 포함
+  if (response.status === 400) {
+    return {
+      success: false,
+      message: data.message,
+      loginFailCount: data.loginFailCount,
+      remainingAttempts: data.remainingAttempts,
+      blockFailCount: data.blockFailCount
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.message || 'SMS 인증에 실패했습니다.');
   }
 
   return data;

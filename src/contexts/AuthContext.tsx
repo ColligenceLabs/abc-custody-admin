@@ -245,6 +245,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let foundUser: User | undefined
     try {
       const result = await verifyEmailAPI(email, memberType)
+
+      // Backend에서 차단 응답 확인
+      if (result.locked) {
+        const blockedUntil = new Date(result.unlockAt!).getTime()
+        const reason = '로그인 시도 횟수 초과로 일시적으로 차단되었습니다'
+
+        return {
+          success: false,
+          message: '차단 페이지로 이동합니다.',
+          isBlocked: true,
+          blockedUntil,
+          blockReason: reason
+        }
+      }
+
+      // Backend 응답 로그 (디버깅용)
+      if (result.loginFailCount) {
+        console.log('[로그인 시도] Backend 응답:', {
+          loginFailCount: result.loginFailCount,
+          remainingAttempts: result.remainingAttempts,
+          blockFailCount: result.blockFailCount
+        });
+      }
+
       if (result.success && result.user) {
         foundUser = {
           ...result.user,
@@ -387,26 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: '잘못된 접근입니다.' }
     }
 
-    if (authStep.attempts >= authStep.maxAttempts) {
-      const email = authStep.email || authStep.user.email
-      const totalAttempts = getStoredAttempts(email).count + 1
-      const cooldownDuration = getCooldownDuration(totalAttempts)
-      const blockedUntil = Date.now() + cooldownDuration
-
-      // localStorage에 차단 정보 저장
-      setStoredAttempts(email, totalAttempts, blockedUntil)
-
-      const reason = 'OTP 시도 횟수 초과로 인해 일시적으로 차단되었습니다'
-
-      return {
-        success: false,
-        message: '차단 페이지로 이동합니다.',
-        isBlocked: true,
-        blockedUntil,
-        blockReason: reason
-      }
-    }
-
+    // localStorage 기반 차단 로직 제거 - Backend 응답만 신뢰
     try {
       // 백엔드 API로 OTP 검증
       const result = await verifyOtpBackend(
@@ -464,20 +469,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true, message: stepMessage }
       } else {
         // 백엔드에서 OTP 검증 실패
-        const newAttempts = authStep.attempts + 1
-        setAuthStep(prev => ({ ...prev, attempts: newAttempts }))
+        console.log('[OTP 실패] Backend 응답:', {
+          loginFailCount: result.loginFailCount,
+          remainingAttempts: result.remainingAttempts,
+          blockFailCount: result.blockFailCount
+        });
 
-        // 5회 실패 시 즉시 차단 처리
-        if (newAttempts >= authStep.maxAttempts) {
-          const email = authStep.email || authStep.user.email
-          const totalAttempts = getStoredAttempts(email).count + 1
-          const cooldownDuration = getCooldownDuration(totalAttempts)
-          const blockedUntil = Date.now() + cooldownDuration
+        // Backend의 blockFailCount를 authStep.attempts에 반영
+        const backendAttempts = result.blockFailCount || (authStep.attempts + 1);
+        setAuthStep(prev => ({ ...prev, attempts: backendAttempts }))
 
-          // localStorage에 차단 정보 저장
-          setStoredAttempts(email, totalAttempts, blockedUntil)
-
-          const reason = 'OTP 시도 횟수 초과로 인해 일시적으로 차단되었습니다'
+        // Backend에서 차단 응답 확인
+        if (result.locked) {
+          const blockedUntil = new Date(result.unlockAt!).getTime()
+          const reason = 'OTP 시도 횟수 초과로 일시적으로 차단되었습니다'
 
           return {
             success: false,
@@ -486,6 +491,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             blockedUntil,
             blockReason: reason
           }
+        }
+
+        // Backend 응답 로그 (디버깅용)
+        if (result.loginFailCount) {
+          console.log('[OTP 시도] Backend 응답:', {
+            loginFailCount: result.loginFailCount,
+            remainingAttempts: result.remainingAttempts,
+            blockFailCount: result.blockFailCount
+          });
         }
 
         return { success: false, message: result.message || '올바르지 않은 OTP 코드입니다.' }
@@ -502,13 +516,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const result = await sendSMSCode(authStep.user.phone, 'login-session')
+      // Backend API 사용 (Naver SMS)
+      const { sendSmsPin } = await import('@/lib/api/auth')
+      const result = await sendSmsPin(authStep.user.phone)
+
       if (result.success) {
         return { success: true, message: `${authStep.user.phone}로 인증 코드를 발송했습니다.` }
       } else {
         return { success: false, message: 'SMS 발송에 실패했습니다.' }
       }
     } catch (error) {
+      console.error('SMS 발송 오류:', error)
       return { success: false, message: 'SMS 발송 중 오류가 발생했습니다.' }
     }
   }
@@ -518,28 +536,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: '잘못된 접근입니다.' }
     }
 
-    if (authStep.attempts >= authStep.maxAttempts) {
-      const email = authStep.email || authStep.user.email
-      const totalAttempts = getStoredAttempts(email).count + 1
-      const cooldownDuration = getCooldownDuration(totalAttempts)
-      const blockedUntil = Date.now() + cooldownDuration
-
-      // localStorage에 차단 정보 저장
-      setStoredAttempts(email, totalAttempts, blockedUntil)
-
-      const reason = 'SMS 시도 횟수 초과로 인해 일시적으로 차단되었습니다'
-
-      return {
-        success: false,
-        message: '차단 페이지로 이동합니다.',
-        isBlocked: true,
-        blockedUntil,
-        blockReason: reason
-      }
-    }
-
+    // localStorage 기반 차단 로직 제거 - Backend 응답만 신뢰
     try {
-      const isValid = await verifySMSCode(code, 'login-session')
+      // Backend API 사용 (IP 기반 차단 포함)
+      const { verifySmsPin } = await import('@/lib/api/auth')
+      const email = authStep.email || authStep.user.email
+      const result = await verifySmsPin(authStep.user.phone, code, email)
+
+      // Backend에서 차단 응답 확인
+      if (result.locked) {
+        const blockedUntil = new Date(result.unlockAt!).getTime()
+        const reason = 'SMS 시도 횟수 초과로 일시적으로 차단되었습니다'
+
+        return {
+          success: false,
+          message: '차단 페이지로 이동합니다.',
+          isBlocked: true,
+          blockedUntil,
+          blockReason: reason
+        }
+      }
+
+      // Backend 응답 로그 (디버깅용)
+      if (result.loginFailCount) {
+        console.log('[SMS 시도] Backend 응답:', {
+          loginFailCount: result.loginFailCount,
+          remainingAttempts: result.remainingAttempts,
+          blockFailCount: result.blockFailCount
+        });
+
+        // Backend의 blockFailCount를 authStep.attempts에 반영
+        const backendAttempts = result.blockFailCount || (authStep.attempts + 1);
+        setAuthStep(prev => ({ ...prev, attempts: backendAttempts }))
+      }
+
+      const isValid = result.success
 
       if (isValid) {
         // 신규 사용자인 경우 GA 설정 단계로 이동
@@ -587,34 +618,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return { success: true, message: '로그인에 성공했습니다.' }
       } else {
-        const newAttempts = authStep.attempts + 1
-        setAuthStep(prev => ({ ...prev, attempts: newAttempts }))
-
-        // 5회 실패 시 즉시 차단 처리
-        if (newAttempts >= authStep.maxAttempts) {
-          const email = authStep.email || authStep.user.email
-          const totalAttempts = getStoredAttempts(email).count + 1
-          const cooldownDuration = getCooldownDuration(totalAttempts)
-          const blockedUntil = Date.now() + cooldownDuration
-
-          // localStorage에 차단 정보 저장
-          setStoredAttempts(email, totalAttempts, blockedUntil)
-
-          const reason = 'SMS 시도 횟수 초과로 인해 일시적으로 차단되었습니다'
-
-          return {
-            success: false,
-            message: '차단 페이지로 이동합니다.',
-            isBlocked: true,
-            blockedUntil,
-            blockReason: reason
-          }
-        }
-
-        return { success: false, message: '올바르지 않은 인증 코드입니다.' }
+        // SMS 실패 - Backend의 blockFailCount 이미 반영됨 (560-570라인)
+        return { success: false, message: result.message || '올바르지 않은 인증 코드입니다.' }
       }
-    } catch (error) {
-      return { success: false, message: 'SMS 인증 중 오류가 발생했습니다.' }
+    } catch (error: any) {
+      console.error('SMS 검증 오류:', error)
+      return { success: false, message: error.message || 'SMS 인증 중 오류가 발생했습니다.' }
     }
   }
 

@@ -35,6 +35,41 @@ export default function LoginPage() {
   const otpInputRef = useRef<HTMLInputElement>(null)
   const smsInputRef = useRef<HTMLInputElement>(null)
 
+  // 페이지 로드 시 IP 차단 확인 및 authStep 리셋 (한 번만 실행)
+  useEffect(() => {
+    const checkIpBlock = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const response = await fetch(`${API_URL}/api/auth/check-ip-lock`);
+        const data = await response.json();
+
+        console.log('[IP 차단 확인]', data);
+
+        if (data.isLocked) {
+          console.log('IP 차단 감지, /login/blocked로 리다이렉션');
+          localStorage.setItem('blocked_info', JSON.stringify({
+            until: new Date(data.unlockAt).getTime(),
+            reason: `IP 주소 차단 (${data.email || '로그인 시도'})`,
+            email: data.email
+          }));
+          router.push('/login/blocked');
+        } else {
+          // IP 차단 없음 - OTP/SMS 단계면 초기화
+          console.log('IP 차단 없음');
+          if (authStep.step === 'otp' || authStep.step === 'sms') {
+            console.log('OTP/SMS 단계 초기화');
+            resetAuth();
+          }
+        }
+      } catch (error) {
+        console.error('IP 차단 확인 실패:', error);
+      }
+    };
+
+    checkIpBlock();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 한 번만 실행
+
   // OTP/SMS 단계로 이동 시 자동 포커스
   useEffect(() => {
     if (authStep.step === 'otp') {
