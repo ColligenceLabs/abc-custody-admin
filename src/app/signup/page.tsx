@@ -171,6 +171,7 @@ export default function SignupPage() {
             initialData={signupData}
             onComplete={(data) => handleStepComplete('kyc', data)}
             onBack={handleBack}
+            skipMethodSelection={true}
           />
         )}
 
