@@ -1,3 +1,5 @@
+import { getMemberName, getMemberIdNumber } from '@/types/member';
+import { MemberType } from '@/data/types/individualOnboarding';
 /**
  * Member API Service
  *
@@ -73,8 +75,8 @@ class MemberApiService {
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
       members = members.filter(member =>
-        member.companyName.toLowerCase().includes(searchLower) ||
-        member.businessNumber.includes(filters.search!) ||
+        getMemberName(member).toLowerCase().includes(searchLower) ||
+        getMemberIdNumber(member).includes(filters.search!) ||
         member.contacts.some(contact =>
           contact.name.toLowerCase().includes(searchLower) ||
           contact.email.toLowerCase().includes(searchLower)
@@ -426,10 +428,28 @@ class MemberApiService {
 
     // Create member account
     const newMember = await this.createMember({
-      type: 'corporate', // 온보딩 신청은 기업회원만 가능
-      companyName: application.companyName,
-      businessNumber: application.businessNumber,
+      memberType: MemberType.CORPORATE, // 온보딩 신청은 기업회원만 가능
       status: MemberStatus.ACTIVE,
+      companyInfo: {
+        companyName: application.companyName,
+        businessNumber: application.businessNumber,
+        corporateNumber: '',
+        industry: '',
+        establishedDate: new Date().toISOString().split('T')[0]
+      },
+      representative: {
+        name: application.applicantName,
+        position: '대표이사',
+        email: application.applicantEmail,
+        phone: application.applicantPhone
+      },
+      companyAddress: {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: '대한민국'
+      },
       contractInfo: approvalData.contractInfo,
       contacts: [{
         id: `contact-${Date.now()}`,

@@ -3,7 +3,7 @@
  * Task 2.2: 승인 후 회원사 계정 자동 생성
  */
 
-import { Member, MemberAsset } from '@/types/member';
+import { Member, MemberAsset, getMemberName } from '@/types/member';
 
 // localStorage 헬퍼 함수들
 const getFromStorage = <T>(key: string): T[] => {
@@ -355,7 +355,7 @@ class AccountCreationService {
     // Mock 이메일 발송
     const emailResult = {
       to: member.contacts[0]?.email,
-      subject: `[커스터디] ${member.companyName} 계정 생성 완료`,
+      subject: `[커스터디] ${getMemberName(member)} 계정 생성 완료`,
       template: 'welcome_email',
       sentAt: new Date(),
       success: true

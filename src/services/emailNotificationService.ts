@@ -4,7 +4,7 @@
  */
 
 import { ApprovalStage, ApprovalDecision } from '@/types/approvalWorkflow';
-import { Member } from '@/types/member';
+import { Member, getMemberName } from '@/types/member';
 import { AdminUser } from '@/types/admin';
 // localStorage 헬퍼 함수들
 const getFromStorage = <T>(key: string): T[] => {
@@ -174,7 +174,7 @@ class EmailNotificationService {
     if (!template) return null;
 
     const variables = {
-      companyName: member.companyName,
+      companyName: getMemberName(member),
       stageName: this.getStageDisplayName(stage),
       adminName,
       decision: this.getDecisionDisplayName(decision),
@@ -212,7 +212,7 @@ class EmailNotificationService {
     if (nextStageAdmins.length === 0) return null;
 
     const variables = {
-      companyName: member.companyName,
+      companyName: getMemberName(member),
       stageName: this.getStageDisplayName(nextStage),
       previousStage: this.getStageDisplayName(currentStage),
       completedBy: completedByAdmin.name,
@@ -246,7 +246,7 @@ class EmailNotificationService {
     if (superAdmins.length === 0) return null;
 
     const variables = {
-      companyName: member.companyName,
+      companyName: getMemberName(member),
       stageName: this.getStageDisplayName(stage),
       escalatedBy: escalatedByAdmin.name,
       escalationReason: reason || '추가 검토 필요',
@@ -271,7 +271,7 @@ class EmailNotificationService {
   // 계정 생성 완료 알림
   async sendAccountCreatedNotification(member: Member, accountInfo: any): Promise<string | null> {
     const variables = {
-      companyName: member.companyName,
+      companyName: getMemberName(member),
       contactName: member.contacts[0]?.name || '담당자님',
       publicKey: accountInfo.publicKey.substring(0, 20) + '...',
       dashboardUrl: 'https://dashboard.custody.com',
@@ -300,7 +300,7 @@ class EmailNotificationService {
     assignedAdmins: AdminUser[]
   ): Promise<string | null> {
     const variables = {
-      companyName: member.companyName,
+      companyName: getMemberName(member),
       stageName: this.getStageDisplayName(stage),
       applicationId: member.id,
       overdueHours: this.calculateOverdueHours(stage),

@@ -38,217 +38,27 @@ import {
   FileText,
   Bell
 } from "lucide-react";
-import { Member, MemberStatus, OnboardingStatus, ContractPlan, AddressType, AddressStatus, ContactRole, ContactStatus, RiskLevel } from '@/types/member';
+import {
+  Member,
+  MemberStatus,
+  OnboardingStatus,
+  ContractPlan,
+  AddressType,
+  AddressStatus,
+  ContactRole,
+  ContactStatus,
+  RiskLevel,
+  getMemberName,
+  getMemberIdNumber,
+  isIndividualMember,
+  isCorporateMember
+} from '@/types/member';
+import { MemberType } from '@/data/types/individualOnboarding';
+import { corporateMember001 } from '@/services/mockMemberData';
 import Link from "next/link";
 
 // Mock data - 실제로는 API에서 가져올 데이터
-const mockMember: Member = {
-  id: "MEM-001",
-  type: 'corporate',
-  companyName: "테크놀로지 코퍼레이션",
-  businessNumber: "123-45-67890",
-  status: MemberStatus.ACTIVE,
-  onboardingStatus: OnboardingStatus.APPROVED,
-  contractInfo: {
-    plan: ContractPlan.ENTERPRISE,
-    feeRate: 0.15,
-    monthlyLimit: 10000000000,
-    dailyLimit: 1000000000,
-    startDate: new Date('2024-01-15'),
-    autoRenewal: true
-  },
-  generatedDepositAddresses: [
-    {
-      id: "ADDR-001",
-      memberId: "MEM-001",
-      assetSymbol: "BTC",
-      assetName: "Bitcoin",
-      depositAddress: "bc1q...xyz123",
-      balance: "5.25",
-      balanceInKRW: "350000000",
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastActivityAt: new Date('2024-09-25'),
-      totalDeposited: "12.50",
-      totalWithdrawn: "7.25",
-      transactionCount: 28
-    },
-    {
-      id: "ADDR-002",
-      memberId: "MEM-001",
-      assetSymbol: "ETH",
-      assetName: "Ethereum",
-      depositAddress: "0x742d35Cc6639C7532c5B3C34FE3e2a3D",
-      balance: "120.8",
-      balanceInKRW: "420000000",
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastActivityAt: new Date('2024-09-26'),
-      totalDeposited: "200.0",
-      totalWithdrawn: "79.2",
-      transactionCount: 45
-    },
-    {
-      id: "ADDR-003",
-      memberId: "MEM-001",
-      assetSymbol: "USDT",
-      assetName: "Tether USD",
-      depositAddress: "0x8d12A197cB00D4747a1fe03395095ce2A5CC6819",
-      balance: "500000",
-      balanceInKRW: "650000000",
-      isActive: true,
-      createdAt: new Date('2024-02-01'),
-      lastActivityAt: new Date('2024-09-26'),
-      totalDeposited: "800000",
-      totalWithdrawn: "300000",
-      transactionCount: 62
-    }
-  ],
-  registeredAddresses: [
-    {
-      id: "REG-001",
-      memberId: "MEM-001",
-      label: "CEO 개인 지갑",
-      address: "bc1q...personal123",
-      coin: "BTC",
-      type: AddressType.PERSONAL,
-      permissions: {
-        canDeposit: true,
-        canWithdraw: true
-      },
-      dailyLimits: {
-        deposit: 1000000,
-        withdrawal: 1000000
-      },
-      dailyUsage: {
-        date: "2024-09-26",
-        depositAmount: 250000,
-        withdrawalAmount: 0
-      },
-      status: AddressStatus.ACTIVE,
-      addedAt: new Date('2024-01-20'),
-      addedBy: "CEO-001",
-      lastUsedAt: new Date('2024-09-25')
-    },
-    {
-      id: "REG-002",
-      memberId: "MEM-001",
-      label: "업비트 출금 전용",
-      address: "0x742d35Cc6639C7532c5B3C34FE3e2a3D",
-      coin: "ETH",
-      type: AddressType.VASP,
-      permissions: {
-        canDeposit: false,
-        canWithdraw: true
-      },
-      vaspInfo: {
-        businessName: "두나무(업비트)",
-        travelRuleConnected: true,
-        complianceScore: 95,
-        jurisdiction: "KR"
-      },
-      dailyUsage: {
-        date: "2024-09-26",
-        depositAmount: 0,
-        withdrawalAmount: 15000000
-      },
-      status: AddressStatus.ACTIVE,
-      addedAt: new Date('2024-02-10'),
-      addedBy: "CFO-001",
-      lastUsedAt: new Date('2024-09-26')
-    }
-  ],
-  contacts: [
-    {
-      id: "CON-001",
-      name: "김철수",
-      email: "kim@techcorp.co.kr",
-      phone: "010-1234-5678",
-      role: ContactRole.ADMIN,
-      status: ContactStatus.ACTIVE,
-      isPrimary: true,
-      twoFactorEnabled: true,
-      lastLogin: new Date('2024-09-26T10:30:00')
-    },
-    {
-      id: "CON-002",
-      name: "이영희",
-      email: "lee@techcorp.co.kr",
-      phone: "010-2345-6789",
-      role: ContactRole.APPROVER,
-      status: ContactStatus.ACTIVE,
-      isPrimary: false,
-      twoFactorEnabled: true,
-      lastLogin: new Date('2024-09-25T16:45:00')
-    }
-  ],
-  approvalSettings: {
-    requiredApprovers: 2,
-    approvalThreshold: "100000000",
-    emergencyContacts: ["010-1234-5678", "010-2345-6789"],
-    weekendApprovalAllowed: false,
-    nightTimeApprovalAllowed: false
-  },
-  notificationSettings: {
-    email: true,
-    sms: true,
-    slack: "https://hooks.slack.com/...",
-    notifyOnDeposit: true,
-    notifyOnWithdrawal: true,
-    notifyOnSuspension: true
-  },
-  complianceProfile: {
-    riskLevel: RiskLevel.LOW,
-    amlScore: 25,
-    sanctionsScreening: true,
-    pepStatus: false,
-    lastKycUpdate: new Date('2024-09-01'),
-    nextKycReview: new Date('2024-12-01'),
-    complianceNotes: ["Initial compliance review completed", "Low risk profile confirmed"]
-  },
-  createdAt: new Date('2024-01-10'),
-  updatedAt: new Date('2024-09-26'),
-  approvedAt: new Date('2024-01-15'),
-  approvedBy: "ADMIN-001"
-};
-
-// Recent activity mock data
-const recentActivities = [
-  {
-    id: "ACT-001",
-    type: "deposit",
-    asset: "BTC",
-    amount: "0.25",
-    amountInKRW: "16500000",
-    fromAddress: "bc1q...personal123",
-    toAddress: "bc1q...xyz123",
-    timestamp: new Date('2024-09-26T10:30:00'),
-    status: "completed"
-  },
-  {
-    id: "ACT-002",
-    type: "withdrawal",
-    asset: "ETH",
-    amount: "5.0",
-    amountInKRW: "17500000",
-    fromAddress: "0x742d35Cc6639C7532c5B3C34FE3e2a3D",
-    toAddress: "0x742d35Cc6639C7532c5B3C34FE3e2a3D",
-    timestamp: new Date('2024-09-26T09:15:00'),
-    status: "completed"
-  },
-  {
-    id: "ACT-003",
-    type: "deposit",
-    asset: "USDT",
-    amount: "50000",
-    amountInKRW: "65000000",
-    fromAddress: "0x8d12...external",
-    toAddress: "0x8d12A197cB00D4747a1fe03395095ce2A5CC6819",
-    timestamp: new Date('2024-09-25T16:45:00'),
-    status: "completed"
-  }
-];
-
+const mockMember: Member = corporateMember001;
 export default function MemberOverviewPage() {
   const params = useParams();
   const memberId = params.memberId as string;
@@ -284,6 +94,28 @@ export default function MemberOverviewPage() {
       maximumFractionDigits: 0
     }).format(amount);
   };
+
+  // Recent activities mock data
+  const recentActivities = [
+    {
+      id: '1',
+      type: 'deposit',
+      asset: 'BTC',
+      amount: '0.5',
+      amountInKRW: '25000000',
+      timestamp: new Date(),
+      status: 'completed'
+    },
+    {
+      id: '2',
+      type: 'withdrawal',
+      asset: 'ETH',
+      amount: '10',
+      amountInKRW: '30000000',
+      timestamp: new Date(),
+      status: 'completed'
+    }
+  ];
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('ko-KR', {
@@ -343,13 +175,13 @@ export default function MemberOverviewPage() {
         <div className="flex items-center gap-4">
           <Avatar className="h-12 w-12">
             <AvatarFallback className="bg-primary/10 text-primary text-lg">
-              {member.companyName.charAt(0)}
+              {getMemberName(member).charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{member.companyName}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{getMemberName(member)}</h1>
             <div className="flex items-center gap-2 text-muted-foreground">
-              <span>{member.businessNumber}</span>
+              <span>{getMemberIdNumber(member)}</span>
               <Separator orientation="vertical" className="h-4" />
               <StatusBadge status={member.status} />
               <Separator orientation="vertical" className="h-4" />
@@ -460,11 +292,11 @@ export default function MemberOverviewPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">회사명</label>
-                    <p className="font-medium">{member.companyName}</p>
+                    <p className="font-medium">{getMemberName(member)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">사업자번호</label>
-                    <p className="font-medium">{member.businessNumber}</p>
+                    <p className="font-medium">{getMemberIdNumber(member)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">계약 플랜</label>

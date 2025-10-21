@@ -26,256 +26,28 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ArrowUpDown,
-  MoreHorizontal
+  ArrowUpDown
 } from "lucide-react";
-import { Member, MemberStatus, OnboardingStatus, ContractPlan, ContactRole, ContactStatus, RiskLevel } from '@/types/member';
+import {
+  Member,
+  MemberStatus,
+  OnboardingStatus,
+  ContractPlan,
+  ContactRole,
+  ContactStatus,
+  RiskLevel,
+  getMemberName,
+  getMemberIdNumber,
+  getMemberTypeLabel,
+  isIndividualMember,
+  isCorporateMember
+} from '@/types/member';
+import { MemberType } from '@/data/types/individualOnboarding';
+import { allMockMembers } from '@/services/mockMemberData';
 import Link from "next/link";
 
 // Mock data for member list
-const mockMembers: Member[] = [
-  {
-    id: "MEM-001",
-    type: 'corporate',
-    companyName: "테크놀로지 코퍼레이션",
-    businessNumber: "123-45-67890",
-    status: MemberStatus.ACTIVE,
-    onboardingStatus: OnboardingStatus.APPROVED,
-    contractInfo: {
-      plan: ContractPlan.ENTERPRISE,
-      feeRate: 0.15,
-      monthlyLimit: 10000000000, // 100억원
-      dailyLimit: 1000000000,    // 10억원
-      startDate: new Date('2024-01-15'),
-      autoRenewal: true
-    },
-    generatedDepositAddresses: [
-      {
-        id: "ADDR-001",
-        memberId: "MEM-001",
-        assetSymbol: "BTC",
-        assetName: "Bitcoin",
-        depositAddress: "bc1q...xyz123",
-        balance: "5.25",
-        balanceInKRW: "350000000",
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        lastActivityAt: new Date('2024-09-25'),
-        totalDeposited: "12.50",
-        totalWithdrawn: "7.25",
-        transactionCount: 28
-      },
-      {
-        id: "ADDR-002",
-        memberId: "MEM-001",
-        assetSymbol: "ETH",
-        assetName: "Ethereum",
-        depositAddress: "0x742d35Cc6639C7532c5B3C34FE3e2a3D",
-        balance: "120.8",
-        balanceInKRW: "420000000",
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        lastActivityAt: new Date('2024-09-26'),
-        totalDeposited: "200.0",
-        totalWithdrawn: "79.2",
-        transactionCount: 45
-      }
-    ],
-    registeredAddresses: [],
-    contacts: [
-      {
-        id: "CON-001",
-        name: "김철수",
-        email: "kim@techcorp.co.kr",
-        phone: "010-1234-5678",
-        role: ContactRole.ADMIN,
-        status: ContactStatus.ACTIVE,
-        isPrimary: true,
-        twoFactorEnabled: true,
-        lastLogin: new Date('2024-09-26T10:30:00')
-      }
-    ],
-    approvalSettings: {
-      requiredApprovers: 2,
-      approvalThreshold: "100000000",
-      emergencyContacts: ["010-1234-5678"],
-      weekendApprovalAllowed: false,
-      nightTimeApprovalAllowed: false
-    },
-    notificationSettings: {
-      email: true,
-      sms: true,
-      slack: "https://hooks.slack.com/...",
-      notifyOnDeposit: true,
-      notifyOnWithdrawal: true,
-      notifyOnSuspension: true
-    },
-    complianceProfile: {
-      riskLevel: RiskLevel.LOW,
-      amlScore: 25,
-      sanctionsScreening: true,
-      pepStatus: false,
-      lastKycUpdate: new Date('2024-09-01'),
-      nextKycReview: new Date('2024-12-01'),
-      complianceNotes: ["Initial compliance review completed"]
-    },
-    createdAt: new Date('2024-01-10'),
-    updatedAt: new Date('2024-09-26'),
-    approvedAt: new Date('2024-01-15'),
-    approvedBy: "ADMIN-001"
-  },
-  {
-    id: "MEM-002",
-    type: 'corporate',
-    companyName: "블록체인 솔루션스",
-    businessNumber: "234-56-78901",
-    status: MemberStatus.ACTIVE,
-    onboardingStatus: OnboardingStatus.APPROVED,
-    contractInfo: {
-      plan: ContractPlan.PREMIUM,
-      feeRate: 0.20,
-      monthlyLimit: 5000000000,
-      dailyLimit: 500000000,
-      startDate: new Date('2024-03-01'),
-      autoRenewal: true
-    },
-    generatedDepositAddresses: [
-      {
-        id: "ADDR-003",
-        memberId: "MEM-002",
-        assetSymbol: "USDT",
-        assetName: "Tether USD",
-        depositAddress: "0x8d12A197cB00D4747a1fe03395095ce2A5CC6819",
-        balance: "250000",
-        balanceInKRW: "325000000",
-        isActive: true,
-        createdAt: new Date('2024-03-01'),
-        lastActivityAt: new Date('2024-09-24'),
-        totalDeposited: "500000",
-        totalWithdrawn: "250000",
-        transactionCount: 18
-      }
-    ],
-    registeredAddresses: [],
-    contacts: [
-      {
-        id: "CON-002",
-        name: "이영희",
-        email: "lee@blockchain.co.kr",
-        phone: "010-2345-6789",
-        role: ContactRole.ADMIN,
-        status: ContactStatus.ACTIVE,
-        isPrimary: true,
-        twoFactorEnabled: true,
-        lastLogin: new Date('2024-09-25T14:15:00')
-      }
-    ],
-    approvalSettings: {
-      requiredApprovers: 1,
-      approvalThreshold: "50000000",
-      emergencyContacts: ["010-2345-6789"],
-      weekendApprovalAllowed: false,
-      nightTimeApprovalAllowed: false
-    },
-    notificationSettings: {
-      email: true,
-      sms: false,
-      notifyOnDeposit: true,
-      notifyOnWithdrawal: true,
-      notifyOnSuspension: true
-    },
-    complianceProfile: {
-      riskLevel: RiskLevel.LOW,
-      amlScore: 15,
-      sanctionsScreening: true,
-      pepStatus: false,
-      lastKycUpdate: new Date('2024-08-15'),
-      nextKycReview: new Date('2024-11-15'),
-      complianceNotes: ["Approved after initial review"]
-    },
-    createdAt: new Date('2024-02-20'),
-    updatedAt: new Date('2024-09-24'),
-    approvedAt: new Date('2024-03-01'),
-    approvedBy: "ADMIN-002"
-  },
-  {
-    id: "MEM-003",
-    type: 'corporate',
-    companyName: "글로벌 핀테크",
-    businessNumber: "345-67-89012",
-    status: MemberStatus.SUSPENDED,
-    onboardingStatus: OnboardingStatus.APPROVED,
-    contractInfo: {
-      plan: ContractPlan.BASIC,
-      feeRate: 0.25,
-      monthlyLimit: 1000000000,
-      dailyLimit: 100000000,
-      startDate: new Date('2024-06-01'),
-      autoRenewal: false
-    },
-    generatedDepositAddresses: [
-      {
-        id: "ADDR-004",
-        memberId: "MEM-003",
-        assetSymbol: "BTC",
-        assetName: "Bitcoin",
-        depositAddress: "bc1q...abc456",
-        balance: "0.15",
-        balanceInKRW: "10000000",
-        isActive: false,
-        createdAt: new Date('2024-06-01'),
-        lastActivityAt: new Date('2024-08-30'),
-        totalDeposited: "2.50",
-        totalWithdrawn: "2.35",
-        transactionCount: 8
-      }
-    ],
-    registeredAddresses: [],
-    contacts: [
-      {
-        id: "CON-003",
-        name: "박민수",
-        email: "park@global-fintech.com",
-        phone: "010-3456-7890",
-        role: ContactRole.ADMIN,
-        status: ContactStatus.ACTIVE,
-        isPrimary: true,
-        twoFactorEnabled: true,
-        lastLogin: new Date('2024-09-24T09:00:00')
-      }
-    ],
-    approvalSettings: {
-      requiredApprovers: 1,
-      approvalThreshold: "10000000",
-      emergencyContacts: ["010-3456-7890"],
-      weekendApprovalAllowed: false,
-      nightTimeApprovalAllowed: false
-    },
-    notificationSettings: {
-      email: true,
-      sms: true,
-      notifyOnDeposit: true,
-      notifyOnWithdrawal: true,
-      notifyOnSuspension: true
-    },
-    complianceProfile: {
-      riskLevel: RiskLevel.MEDIUM,
-      amlScore: 65,
-      sanctionsScreening: true,
-      pepStatus: true,
-      lastKycUpdate: new Date('2024-08-01'),
-      nextKycReview: new Date('2024-10-01'),
-      complianceNotes: ["Medium risk profile", "PEP status requires additional monitoring"]
-    },
-    createdAt: new Date('2024-05-20'),
-    updatedAt: new Date('2024-09-15'),
-    approvedAt: new Date('2024-06-01'),
-    approvedBy: "ADMIN-001",
-    suspendedAt: new Date('2024-09-15'),
-    suspendedBy: "ADMIN-003",
-    suspensionReason: "High AML risk score - requires manual review"
-  }
-];
+const mockMembers: Member[] = allMockMembers;
 
 // Status badge components
 const StatusBadge = ({ status }: { status: MemberStatus }) => {
@@ -338,9 +110,26 @@ const PlanBadge = ({ plan }: { plan: ContractPlan }) => {
   );
 };
 
+const MemberTypeBadge = ({ member }: { member: Member }) => {
+  const isIndividual = isIndividualMember(member);
+
+  return (
+    <Badge
+      variant="outline"
+      className={isIndividual
+        ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300"
+        : "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+      }
+    >
+      {getMemberTypeLabel(member)}
+    </Badge>
+  );
+};
+
 export default function MemberListPage() {
   const [members, setMembers] = useState<Member[]>(mockMembers);
   const [searchTerm, setSearchTerm] = useState("");
+  const [memberTypeFilter, setMemberTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("companyName");
@@ -348,16 +137,19 @@ export default function MemberListPage() {
 
   // Filter and search logic
   const filteredMembers = members.filter(member => {
+    const memberName = getMemberName(member);
+    const memberIdNumber = getMemberIdNumber(member);
     const matchesSearch =
-      member.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.businessNumber.includes(searchTerm) ||
+      memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      memberIdNumber.includes(searchTerm) ||
       member.contacts[0]?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.contacts[0]?.email.toLowerCase().includes(searchTerm.toLowerCase());
 
+    const matchesMemberType = memberTypeFilter === "all" || member.memberType === memberTypeFilter;
     const matchesStatus = statusFilter === "all" || member.status === statusFilter;
     const matchesPlan = planFilter === "all" || member.contractInfo.plan === planFilter;
 
-    return matchesSearch && matchesStatus && matchesPlan;
+    return matchesSearch && matchesMemberType && matchesStatus && matchesPlan;
   });
 
   // Sort logic
@@ -366,8 +158,8 @@ export default function MemberListPage() {
 
     switch (sortBy) {
       case "companyName":
-        aValue = a.companyName;
-        bValue = b.companyName;
+        aValue = getMemberName(a);
+        bValue = getMemberName(b);
         break;
       case "createdAt":
         aValue = a.createdAt;
@@ -382,8 +174,8 @@ export default function MemberListPage() {
         bValue = b.complianceProfile.amlScore;
         break;
       default:
-        aValue = a.companyName;
-        bValue = b.companyName;
+        aValue = getMemberName(a);
+        bValue = getMemberName(b);
     }
 
     if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
@@ -403,6 +195,8 @@ export default function MemberListPage() {
   // Calculate statistics
   const stats = {
     total: members.length,
+    individual: members.filter(m => isIndividualMember(m)).length,
+    corporate: members.filter(m => isCorporateMember(m)).length,
     active: members.filter(m => m.status === MemberStatus.ACTIVE).length,
     suspended: members.filter(m => m.status === MemberStatus.SUSPENDED).length,
     pending: members.filter(m => m.status === MemberStatus.PENDING).length,
@@ -463,7 +257,7 @@ export default function MemberListPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}개</div>
             <p className="text-xs text-muted-foreground">
-              활성 {stats.active}개 · 정지 {stats.suspended}개
+              개인 {stats.individual}개 · 기업 {stats.corporate}개
             </p>
           </CardContent>
         </Card>
@@ -524,6 +318,17 @@ export default function MemberListPage() {
               </div>
             </div>
             <div className="flex gap-2">
+              <Select value={memberTypeFilter} onValueChange={setMemberTypeFilter}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="회원 타입" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 타입</SelectItem>
+                  <SelectItem value={MemberType.INDIVIDUAL}>개인 회원</SelectItem>
+                  <SelectItem value={MemberType.CORPORATE}>기업 회원</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="상태" />
@@ -566,10 +371,9 @@ export default function MemberListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>회원사</TableHead>
                   <TableHead>
                     <Button variant="ghost" onClick={() => handleSort('companyName')} className="h-auto p-0">
-                      회사명
+                      회원 정보
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
                   </TableHead>
@@ -608,19 +412,20 @@ export default function MemberListPage() {
                         <div className="flex items-center gap-3">
                           <Avatar>
                             <AvatarFallback className="bg-primary/10 text-primary">
-                              {member.companyName.charAt(0)}
+                              {getMemberName(member).charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{member.companyName}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {member.businessNumber}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {member.contacts[0]?.name} ({member.contacts[0]?.email})
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{getMemberName(member)}</span>
+                              <MemberTypeBadge member={member} />
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {getMemberIdNumber(member)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {member.contacts[0]?.name} ({member.contacts[0]?.email})
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -656,16 +461,11 @@ export default function MemberListPage() {
                         <div className="text-sm">{formatDate(member.createdAt)}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Link href={`/admin/members/${member.id}/overview`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
+                        <Link href={`/admin/members/${member.id}/overview`}>
                           <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        </div>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   );

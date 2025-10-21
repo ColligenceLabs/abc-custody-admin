@@ -45,6 +45,8 @@ import {
 } from '@/types/deposit';
 import { mockDb } from './mockDatabase';
 import type { Member } from '@/types/member';
+import { getMemberName, isIndividualMember, isCorporateMember } from '@/types/member';
+import { MemberType } from '@/data/types/individualOnboarding';
 
 // ============================================================================
 // Mock Database 키
@@ -567,9 +569,9 @@ export const generateMockDeposits = (count: number = 50): DepositTransaction[] =
     const randomMember = members[Math.floor(Math.random() * members.length)];
 
     // 회원 유형: 실제 회원사의 타입 사용 (Corporate 또는 Individual)
-    // Member의 type이 'corporate'면 'Corporate', 'individual'이면 'Individual'로 매핑
+    // Member의 memberType이 CORPORATE면 'Corporate', INDIVIDUAL이면 'Individual'로 매핑
     const memberType: import('@/types/deposit').MemberType =
-      randomMember.type === 'corporate' ? 'Corporate' : 'Individual';
+      randomMember.memberType === MemberType.CORPORATE ? 'Corporate' : 'Individual';
 
     const amount =
       currency === 'BTC'
@@ -595,7 +597,7 @@ export const generateMockDeposits = (count: number = 50): DepositTransaction[] =
       id: `deposit-${Date.now()}-${i}`,
       txHash: `0x${Math.random().toString(36).substr(2, 64)}`,
       memberId: randomMember.id,        // 실제 회원사 ID
-      memberName: randomMember.companyName,  // 실제 회사명
+      memberName: getMemberName(randomMember),  // 실제 회원명 (개인/기업)
       memberType,                       // 회원 유형 (개인/기업)
       asset: currency,
       amount,
@@ -1203,7 +1205,7 @@ export const getAMLScreeningQueue = async (
         depositId: deposit.id,
         txHash: deposit.txHash,
         memberId: deposit.memberId,
-        memberName: member?.companyName || 'Unknown',
+        memberName: member ? getMemberName(member) : 'Unknown',
         asset: deposit.asset,
         amount: deposit.amount,
         amountKRW: deposit.amountKRW,
@@ -1583,7 +1585,7 @@ export const getAMLScreeningDetail = async (
     depositId: deposit.id,
     txHash: deposit.txHash,
     memberId: deposit.memberId,
-    memberName: member?.companyName || 'Unknown',
+    memberName: member ? getMemberName(member) : 'Unknown',
     asset: deposit.asset,
     amount: deposit.amount,
     amountKRW: deposit.amountKRW,
@@ -1816,7 +1818,7 @@ export const getTravelRuleQueue = async (
         depositId: deposit.id,
         txHash: deposit.txHash,
         memberId: deposit.memberId,
-        memberName: member?.companyName || 'Unknown',
+        memberName: member ? getMemberName(member) : 'Unknown',
         asset: deposit.asset,
         amount: deposit.amount,
         amountKRW: deposit.amountKRW,
@@ -2001,7 +2003,7 @@ export const getTravelRuleDetail = async (
     depositId: deposit.id,
     txHash: deposit.txHash,
     memberId: deposit.memberId,
-    memberName: member?.companyName || 'Unknown',
+    memberName: member ? getMemberName(member) : 'Unknown',
     asset: deposit.asset,
     amount: deposit.amount,
     amountKRW: deposit.amountKRW,
@@ -2025,7 +2027,7 @@ export const getTravelRuleDetail = async (
     priority: deposit.priority,
     memberInfo: {
       id: deposit.memberId,
-      companyName: member?.companyName || 'Unknown',
+      companyName: member ? getMemberName(member) : 'Unknown',
       contactEmail: member?.contacts?.[0]?.email || `contact@${deposit.memberName.toLowerCase().replace(/\s/g, '')}.com`,
       riskScore: deposit.amlCheck?.riskScore || 0,
     },

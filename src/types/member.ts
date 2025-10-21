@@ -3,11 +3,24 @@
  * 회원사 관리를 위한 타입 정의 (관리자 모니터링 중심)
  */
 
-export interface Member {
+import {
+  MemberType,
+  PersonalInfo as OnboardingPersonalInfo,
+  AddressInfo as OnboardingAddressInfo
+} from '@/data/types/individualOnboarding';
+
+import {
+  CompanyInfo as OnboardingCompanyInfo,
+  RepresentativeInfo as OnboardingRepresentativeInfo,
+  CompanyAddress as OnboardingCompanyAddress
+} from '@/data/types/corporateOnboarding';
+
+/**
+ * 공통 회원 기본 정보
+ */
+interface BaseMember {
   id: string;
-  type: 'individual' | 'corporate'; // 회원 유형: 개인 또는 기업
-  companyName: string;
-  businessNumber: string;
+  memberType: MemberType;
   status: MemberStatus;
   onboardingStatus: OnboardingStatus;
   contractInfo: MemberContract;
@@ -25,6 +38,83 @@ export interface Member {
   suspendedBy?: string;
   suspensionReason?: string;
 }
+
+/**
+ * 개인 회원 정보
+ */
+export interface PersonalInfo {
+  fullName: string;          // 성명
+  birthDate: string;         // 생년월일 (YYYY-MM-DD)
+  nationality: string;       // 국적
+  idNumber: string;          // 주민등록번호 (암호화)
+}
+
+/**
+ * 주소 정보
+ */
+export interface AddressInfo {
+  street: string;            // 도로명 주소
+  city: string;              // 시/군/구
+  state: string;             // 시/도
+  postalCode: string;        // 우편번호
+  country: string;           // 국가
+}
+
+/**
+ * 기업 정보
+ */
+export interface CompanyInfo {
+  companyName: string;       // 회사명
+  businessNumber: string;    // 사업자등록번호
+  corporateNumber: string;   // 법인등록번호
+  industry: string;          // 업종
+  establishedDate: string;   // 설립일 (YYYY-MM-DD)
+}
+
+/**
+ * 대표자 정보
+ */
+export interface RepresentativeInfo {
+  name: string;              // 대표자명
+  position: string;          // 직책
+  email: string;             // 이메일
+  phone: string;             // 전화번호
+}
+
+/**
+ * 기업 주소 정보
+ */
+export interface CompanyAddress {
+  street: string;            // 도로명 주소
+  city: string;              // 시/군/구
+  state: string;             // 시/도
+  postalCode: string;        // 우편번호
+  country: string;           // 국가
+}
+
+/**
+ * 개인 회원
+ */
+export interface IndividualMember extends BaseMember {
+  memberType: MemberType.INDIVIDUAL;
+  personalInfo: PersonalInfo;
+  address: AddressInfo;
+}
+
+/**
+ * 기업 회원
+ */
+export interface CorporateMember extends BaseMember {
+  memberType: MemberType.CORPORATE;
+  companyInfo: CompanyInfo;
+  representative: RepresentativeInfo;
+  companyAddress: CompanyAddress;
+}
+
+/**
+ * 통합 회원 타입 (Discriminated Union)
+ */
+export type Member = IndividualMember | CorporateMember;
 
 export enum MemberStatus {
   PENDING = "pending",        // 승인 대기
@@ -334,10 +424,13 @@ export interface AddressFilters {
 }
 
 // Member management actions
-export interface CreateMemberRequest {
-  type: 'individual' | 'corporate'; // 회원 유형: 개인 또는 기업
-  companyName: string;
-  businessNumber: string;
+/**
+ * 개인 회원 생성 요청
+ */
+export interface CreateIndividualMemberRequest {
+  memberType: MemberType.INDIVIDUAL;
+  personalInfo: PersonalInfo;
+  address: AddressInfo;
   status: MemberStatus;
   contractInfo: MemberContract;
   contacts: MemberContact[];
@@ -351,6 +444,33 @@ export interface CreateMemberRequest {
     isActive: boolean;
   }>;
 }
+
+/**
+ * 기업 회원 생성 요청
+ */
+export interface CreateCorporateMemberRequest {
+  memberType: MemberType.CORPORATE;
+  companyInfo: CompanyInfo;
+  representative: RepresentativeInfo;
+  companyAddress: CompanyAddress;
+  status: MemberStatus;
+  contractInfo: MemberContract;
+  contacts: MemberContact[];
+  approvalSettings: MemberApprovalSettings;
+  notificationSettings: MemberNotificationSettings;
+  initialAssets?: Array<{ symbol: string }>;
+  generatedDepositAddresses?: Array<{
+    asset: string;
+    depositAddress: string;
+    balance: string;
+    isActive: boolean;
+  }>;
+}
+
+/**
+ * 통합 회원 생성 요청 타입
+ */
+export type CreateMemberRequest = CreateIndividualMemberRequest | CreateCorporateMemberRequest;
 
 export interface OnboardingApprovalRequest {
   contractInfo: MemberContract;
@@ -376,4 +496,78 @@ export interface SuspendMemberRequest {
 export enum SuspensionType {
   TEMPORARY = "temporary",
   INDEFINITE = "indefinite"
+}
+
+// ============================================================================
+// Type Guards and Helper Functions
+// ============================================================================
+
+/**
+ * Type Guard: 개인 회원 여부 확인
+ */
+export function isIndividualMember(
+  member: Member
+): member is IndividualMember {
+  return member.memberType === MemberType.INDIVIDUAL;
+}
+
+/**
+ * Type Guard: 기업 회원 여부 확인
+ */
+export function isCorporateMember(
+  member: Member
+): member is CorporateMember {
+  return member.memberType === MemberType.CORPORATE;
+}
+
+/**
+ * 회원 이름 추출 (개인/기업 모두 대응)
+ */
+export function getMemberName(member: Member): string {
+  if (isIndividualMember(member)) {
+    return member.personalInfo.fullName;
+  } else {
+    return member.companyInfo.companyName;
+  }
+}
+
+/**
+ * 회원 식별번호 추출 (마스킹 처리)
+ */
+export function getMemberIdNumber(member: Member): string {
+  if (isIndividualMember(member)) {
+    // 주민번호 마스킹: 123456-*******
+    const idNumber = member.personalInfo.idNumber;
+    return idNumber.replace(/(\d{6})-(\d{7})/, '$1-*******');
+  } else {
+    // 사업자번호: 123-45-67890
+    return member.companyInfo.businessNumber;
+  }
+}
+
+/**
+ * 회원 주소 추출
+ */
+export function getMemberAddress(member: Member): string {
+  const address = isIndividualMember(member)
+    ? member.address
+    : member.companyAddress;
+
+  return `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`;
+}
+
+/**
+ * 회원 주소 객체 추출
+ */
+export function getMemberAddressObject(member: Member): AddressInfo | CompanyAddress {
+  return isIndividualMember(member)
+    ? member.address
+    : member.companyAddress;
+}
+
+/**
+ * 회원 타입 표시명 반환
+ */
+export function getMemberTypeLabel(member: Member): string {
+  return isIndividualMember(member) ? '개인 회원' : '기업 회원';
 }
