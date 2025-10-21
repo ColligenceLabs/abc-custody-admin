@@ -189,44 +189,120 @@ export default function OnboardingAmlDashboardPage() {
             <CardTitle>위험도 분포</CardTitle>
             <CardDescription>외부 AML 시스템 평가 기준</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {/* LOW */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <RiskLevelBadge level="LOW" />
-                <span className="text-sm text-muted-foreground">낮은 위험도</span>
-              </div>
-              <span className="text-sm font-medium">{stats.byRiskLevel.low}건</span>
-            </div>
-
-            {/* MEDIUM */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <RiskLevelBadge level="MEDIUM" />
-                <span className="text-sm text-muted-foreground">중간 위험도</span>
-              </div>
-              <span className="text-sm font-medium">{stats.byRiskLevel.medium}건</span>
-            </div>
-
-            {/* HIGH */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <RiskLevelBadge level="HIGH" />
-                <span className="text-sm text-muted-foreground">높은 위험도</span>
-              </div>
-              <span className="text-sm font-medium">{stats.byRiskLevel.high}건</span>
-            </div>
-
-            {/* External AML Pending */}
-            <div className="pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">외부 AML 결과 대기</span>
+          <CardContent className="space-y-4">
+            {/* 시각적 차트 */}
+            <div className="space-y-3">
+              {/* LOW */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <RiskLevelBadge level="LOW" />
+                    <span className="text-sm font-medium">낮은 위험도</span>
+                  </div>
+                  <div className="text-sm font-medium">
+                    {stats.byRiskLevel.low}건
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({stats.total > 0 ? Math.round((stats.byRiskLevel.low / stats.total) * 100) : 0}%)
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium text-yellow-600">
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-sky-500 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? (stats.byRiskLevel.low / stats.total) * 100 : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* MEDIUM */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <RiskLevelBadge level="MEDIUM" />
+                    <span className="text-sm font-medium">중간 위험도</span>
+                  </div>
+                  <div className="text-sm font-medium">
+                    {stats.byRiskLevel.medium}건
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({stats.total > 0 ? Math.round((stats.byRiskLevel.medium / stats.total) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? (stats.byRiskLevel.medium / stats.total) * 100 : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* HIGH */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <RiskLevelBadge level="HIGH" />
+                    <span className="text-sm font-medium">높은 위험도</span>
+                  </div>
+                  <div className="text-sm font-medium">
+                    {stats.byRiskLevel.high}건
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({stats.total > 0 ? Math.round((stats.byRiskLevel.high / stats.total) * 100) : 0}%)
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${stats.total > 0 ? (stats.byRiskLevel.high / stats.total) * 100 : 0}%`
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 추가 통계 */}
+            <div className="pt-3 border-t space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-indigo-600" />
+                  <span className="text-muted-foreground">EDD 필요</span>
+                </div>
+                <span className="font-medium text-indigo-600">
+                  {stats.edd.required}건
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-yellow-600" />
+                  <span className="text-muted-foreground">외부 AML 결과 대기</span>
+                </div>
+                <span className="font-medium text-yellow-600">
                   {stats.externalAmlPending}건
                 </span>
+              </div>
+            </div>
+
+            {/* 타입별 분포 요약 */}
+            <div className="pt-3 border-t">
+              <div className="text-xs font-medium text-muted-foreground mb-2">타입별 분포</div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-blue-600" />
+                  <span className="text-muted-foreground">개인회원</span>
+                </div>
+                <span className="font-medium">{stats.byType.individual}건</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mt-1.5">
+                <div className="flex items-center gap-2">
+                  <Building className="h-3.5 w-3.5 text-purple-600" />
+                  <span className="text-muted-foreground">법인회원</span>
+                </div>
+                <span className="font-medium">{stats.byType.corporate}건</span>
               </div>
             </div>
           </CardContent>
