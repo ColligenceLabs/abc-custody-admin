@@ -24,7 +24,7 @@ import {
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
 import { RegistrationSourceBadge } from "../../components/RegistrationSourceBadge";
-import { ProcessStepIndicator } from "../../components/ProcessStepIndicator";
+import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
 import { ApprovalDialog } from "../../components/ApprovalDialog";
 import { RejectionDialog } from "../../components/RejectionDialog";
 import { OnHoldDialog } from "../../components/OnHoldDialog";
@@ -205,7 +205,7 @@ export default function OnboardingReviewPage() {
           </div>
           <div>
             <div className="text-sm font-medium text-muted-foreground mb-2">진행 단계</div>
-            <ProcessStepIndicator
+            <CompactProcessIndicator
               currentStep={application.adminReview.currentStep}
               totalSteps={5}
               type="individual"
