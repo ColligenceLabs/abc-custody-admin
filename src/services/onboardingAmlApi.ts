@@ -35,6 +35,8 @@ import {
   mockCorporateOnboardings,
 } from '@/data/mockData/onboardingAml';
 
+import { applyEDDAutoAssignment } from './helpers/eddAutoAssignment';
+
 // ===========================
 // 개인회원 온보딩 API
 // ===========================
@@ -297,6 +299,7 @@ export async function addIndividualOnboardingNote(
 
 /**
  * 외부 AML 재검증 요청
+ * 재검증 후 리스크 평가 결과에 따라 EDD 필요 여부 자동 설정
  */
 export async function requestIndividualAmlRescan(
   id: string
@@ -310,6 +313,11 @@ export async function requestIndividualAmlRescan(
 
   // Mock: 재검증 요청 ID 생성
   const requestId = `rescan-${Date.now()}`;
+
+  // 리스크 평가가 있으면 EDD 필요 여부 자동 설정
+  if (application.riskAssessment) {
+    applyEDDAutoAssignment(application);
+  }
 
   return {
     requestId,
@@ -583,6 +591,7 @@ export async function addCorporateOnboardingNote(
 
 /**
  * 외부 UBO 재검증 요청
+ * 재검증 후 리스크 평가 결과에 따라 EDD 필요 여부 자동 설정
  */
 export async function requestCorporateUboRescan(
   id: string
@@ -595,6 +604,11 @@ export async function requestCorporateUboRescan(
   }
 
   const requestId = `ubo-rescan-${Date.now()}`;
+
+  // 리스크 평가가 있으면 EDD 필요 여부 자동 설정
+  if (application.riskAssessment) {
+    applyEDDAutoAssignment(application);
+  }
 
   return {
     requestId,
@@ -649,8 +663,15 @@ export async function submitIndividualEDD(
     submittedAt: data.submittedAt,
   };
 
-  // 상태를 검토 중으로 변경
-  application.adminReview.status = 'UNDER_REVIEW';
+  // 상태 자동 전환: ON_HOLD 또는 PENDING → UNDER_REVIEW
+  if (application.adminReview.status === 'ON_HOLD' || application.adminReview.status === 'PENDING') {
+    application.adminReview.status = 'UNDER_REVIEW';
+    // 진행 단계도 업데이트 (EDD 제출 = 단계 4)
+    if (application.adminReview.currentStep < 4) {
+      application.adminReview.currentStep = 4;
+    }
+  }
+
   application.updatedAt = new Date().toISOString();
 
   // 검토 노트 추가
@@ -695,8 +716,15 @@ export async function submitCorporateEDD(
     submittedAt: data.submittedAt,
   };
 
-  // 상태를 검토 중으로 변경
-  application.adminReview.status = 'UNDER_REVIEW';
+  // 상태 자동 전환: ON_HOLD 또는 PENDING → UNDER_REVIEW
+  if (application.adminReview.status === 'ON_HOLD' || application.adminReview.status === 'PENDING') {
+    application.adminReview.status = 'UNDER_REVIEW';
+    // 진행 단계도 업데이트 (EDD 제출 = 단계 4)
+    if (application.adminReview.currentStep < 4) {
+      application.adminReview.currentStep = 4;
+    }
+  }
+
   application.updatedAt = new Date().toISOString();
 
   // 검토 노트 추가

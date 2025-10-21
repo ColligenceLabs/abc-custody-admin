@@ -215,7 +215,7 @@ export const mockIndividualOnboardings: IndividualOnboarding[] = [
       ],
     },
     edd: null,
-    eddRequired: false,
+    eddRequired: true,
     adminReview: {
       status: 'ON_HOLD',
       currentStep: 4,
@@ -637,7 +637,7 @@ export const mockCorporateOnboardings: CorporateOnboarding[] = [
       executiveInterviewCompleted: false,
     },
     edd: null,
-    eddRequired: false,
+    eddRequired: true,
     adminReview: {
       status: 'ON_HOLD',
       currentStep: 3,
