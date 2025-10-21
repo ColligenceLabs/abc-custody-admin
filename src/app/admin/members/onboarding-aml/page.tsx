@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   TrendingUp,
   Activity,
-  Calendar
+  Calendar,
+  FileText
 } from "lucide-react";
 import { OnboardingStats, ActivityFeedItem } from "@/types/onboardingAml";
 import { fetchOnboardingStats, fetchActivityFeed } from "@/services/onboardingAmlApi";
@@ -104,7 +105,7 @@ export default function OnboardingAmlDashboardPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {/* 전체 신청 */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -161,6 +162,20 @@ export default function OnboardingAmlDashboardPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               보류 {stats.onHold} | 거부 {stats.rejected}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* EDD 통계 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">EDD 현황</CardTitle>
+            <FileText className="h-4 w-4 text-indigo-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-600">{stats.edd.required}</div>
+            <p className="text-xs text-muted-foreground">
+              대기 {stats.edd.pending} | 완료 {stats.edd.submitted}
             </p>
           </CardContent>
         </Card>

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { CorporateEDDForm } from "@/app/admin/members/onboarding-aml/components/CorporateEDDForm";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getCorporateApplication, submitCorporateEDD } from "@/services/onboardingAmlApi";
+import { fetchCorporateOnboardingById, submitCorporateEDD } from "@/services/onboardingAmlApi";
 import { CorporateOnboarding, CorporateEDDSubmission } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "@/app/admin/members/onboarding-aml/components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "@/app/admin/members/onboarding-aml/components/OnboardingStatusBadge";
@@ -35,7 +35,7 @@ export default function CorporateEDDRequestPage() {
   const loadApplication = async () => {
     try {
       setLoading(true);
-      const data = await getCorporateApplication(applicationId);
+      const data = await fetchCorporateOnboardingById(applicationId);
       setApplication(data);
     } catch (error) {
       toast({
@@ -132,7 +132,7 @@ export default function CorporateEDDRequestPage() {
               <p className="text-sm text-muted-foreground">위험도</p>
               <div className="mt-1">
                 {application.riskAssessment && (
-                  <RiskLevelBadge riskLevel={application.riskAssessment.overallRiskLevel} />
+                  <RiskLevelBadge level={application.riskAssessment.overallRiskLevel} />
                 )}
               </div>
             </div>
@@ -149,19 +149,19 @@ export default function CorporateEDDRequestPage() {
               <div>
                 <p className="text-sm text-muted-foreground">업종 위험도</p>
                 <div className="mt-1">
-                  <RiskLevelBadge riskLevel={application.riskAssessment.industryRiskLevel} />
+                  <RiskLevelBadge level={application.riskAssessment.industryRiskLevel} />
                 </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">지역 위험도</p>
                 <div className="mt-1">
-                  <RiskLevelBadge riskLevel={application.riskAssessment.locationRiskLevel} />
+                  <RiskLevelBadge level={application.riskAssessment.locationRiskLevel} />
                 </div>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">UBO 위험도</p>
                 <div className="mt-1">
-                  <RiskLevelBadge riskLevel={application.riskAssessment.uboRiskLevel} />
+                  <RiskLevelBadge level={application.riskAssessment.uboRiskLevel} />
                 </div>
               </div>
             </div>

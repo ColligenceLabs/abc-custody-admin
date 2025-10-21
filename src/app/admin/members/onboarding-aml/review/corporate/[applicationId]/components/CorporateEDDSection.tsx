@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, CheckCircle2, Clock, User } from "lucide-react";
-import { CorporateEDD } from "@/types/onboardingAml";
+import { CorporateEDDSubmission } from "@/types/onboardingAml";
 
 interface CorporateEDDSectionProps {
-  edd: CorporateEDD | null;
+  edd: Omit<CorporateEDDSubmission, 'applicationId'> | null;
   eddRequired: boolean;
 }
 
@@ -119,7 +119,7 @@ export function CorporateEDDSection({ edd, eddRequired }: CorporateEDDSectionPro
               UBO 상세 정보
             </div>
             <div className="space-y-3">
-              {edd.detailedUboInfo.map((ubo, index) => (
+              {edd.detailedUboInfo.map((ubo: { uboId: string; idNumber: string; idImageUrl: string; fundSourceUrl?: string }, index: number) => (
                 <div key={index} className="p-4 bg-white rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-medium">{ubo.uboId}</div>
@@ -222,7 +222,7 @@ export function CorporateEDDSection({ edd, eddRequired }: CorporateEDDSectionPro
           <div>
             <div className="text-sm font-medium mb-3">기타 추가 서류</div>
             <div className="space-y-2">
-              {edd.additionalDocumentUrls.map((url, index) => (
+              {edd.additionalDocumentUrls.map((url: string, index: number) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-3 bg-white rounded-lg border"

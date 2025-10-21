@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, CheckCircle2, Clock } from "lucide-react";
-import { IndividualEDD } from "@/types/onboardingAml";
+import { IndividualEDDSubmission } from "@/types/onboardingAml";
 
 interface EDDSectionProps {
-  edd: IndividualEDD | null;
+  edd: Omit<IndividualEDDSubmission, 'applicationId'> | null;
   eddRequired: boolean;
 }
 
@@ -137,7 +137,7 @@ export function EDDSection({ edd, eddRequired }: EDDSectionProps) {
           <div>
             <div className="text-sm font-medium mb-3">기타 추가 서류</div>
             <div className="space-y-2">
-              {edd.additionalDocumentUrls.map((url, index) => (
+              {edd.additionalDocumentUrls.map((url: string, index: number) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-3 bg-white rounded-lg border"

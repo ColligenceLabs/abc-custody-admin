@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { IndividualEDDForm } from "@/app/admin/members/onboarding-aml/components/IndividualEDDForm";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getIndividualApplication, submitIndividualEDD } from "@/services/onboardingAmlApi";
+import { fetchIndividualOnboardingById, submitIndividualEDD } from "@/services/onboardingAmlApi";
 import { IndividualOnboarding, IndividualEDDSubmission } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "@/app/admin/members/onboarding-aml/components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "@/app/admin/members/onboarding-aml/components/OnboardingStatusBadge";
@@ -35,7 +35,7 @@ export default function IndividualEDDRequestPage() {
   const loadApplication = async () => {
     try {
       setLoading(true);
-      const data = await getIndividualApplication(applicationId);
+      const data = await fetchIndividualOnboardingById(applicationId);
       setApplication(data);
     } catch (error) {
       toast({
@@ -125,7 +125,7 @@ export default function IndividualEDDRequestPage() {
               <p className="text-sm text-muted-foreground">위험도</p>
               <div className="mt-1">
                 {application.riskAssessment && (
-                  <RiskLevelBadge riskLevel={application.riskAssessment.riskLevel} />
+                  <RiskLevelBadge level={application.riskAssessment.riskLevel} />
                 )}
               </div>
             </div>

@@ -177,7 +177,7 @@ export interface IndividualOnboarding {
   additionalProcedures: AdditionalProcedures | null;
 
   // EDD (Enhanced Due Diligence) 정보
-  edd: IndividualEDDSubmission | null;    // null: EDD 불필요 또는 미제출
+  edd: Omit<IndividualEDDSubmission, 'applicationId'> | null;    // null: EDD 불필요 또는 미제출
   eddRequired: boolean;             // EDD 필요 여부 (HIGH 리스크인 경우 true)
   eddRequestedAt?: string;          // EDD 요청 시각 (ISO 8601)
   eddSubmittedAt?: string;          // EDD 제출 시각 (ISO 8601)
@@ -297,7 +297,7 @@ export interface CorporateOnboarding {
   procedures: CorporateProcedures;
 
   // EDD (Enhanced Due Diligence) 정보
-  edd: CorporateEDDSubmission | null;     // null: EDD 불필요 또는 미제출
+  edd: Omit<CorporateEDDSubmission, 'applicationId'> | null;     // null: EDD 불필요 또는 미제출
   eddRequired: boolean;             // EDD 필요 여부 (HIGH 리스크인 경우 true)
   eddRequestedAt?: string;          // EDD 요청 시각 (ISO 8601)
   eddSubmittedAt?: string;          // EDD 제출 시각 (ISO 8601)
@@ -330,6 +330,11 @@ export interface OnboardingStats {
     corporate: number;
   };
   externalAmlPending: number;       // 외부 AML 결과 대기 중
+  edd: {
+    required: number;                // EDD가 필요한 전체 건수
+    pending: number;                 // EDD 제출 대기 중인 건수
+    submitted: number;               // EDD 제출 완료 건수
+  };
 }
 
 /**
@@ -386,6 +391,10 @@ export interface CorporateEDDSubmission {
   additionalDocumentUrls?: string[]; // 기타 추가 서류
   submittedAt: string;            // ISO 8601 형식
 }
+
+// Type aliases for compatibility
+export type IndividualEDD = IndividualEDDSubmission;
+export type CorporateEDD = CorporateEDDSubmission;
 
 // ===========================
 // API 요청/응답 타입

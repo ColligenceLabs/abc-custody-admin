@@ -669,24 +669,7 @@ export const mockCorporateOnboardings: CorporateOnboarding[] = [
 // 통계 데이터
 // ===========================
 
-export const mockOnboardingStats: OnboardingStats = {
-  total: 8,
-  pending: 1,
-  underReview: 2,
-  approved: 2,
-  rejected: 1,
-  onHold: 2,
-  byRiskLevel: {
-    low: 2,
-    medium: 3,
-    high: 3,
-  },
-  byType: {
-    individual: 5,
-    corporate: 3,
-  },
-  externalAmlPending: 1, // ind-004는 아직 AML 결과 대기 중
-};
+// 주석: mockOnboardingStats는 더 이상 사용하지 않음. getOnboardingStats()가 동적으로 계산함.
 
 // ===========================
 // 활동 피드
@@ -767,10 +750,70 @@ export function getCorporateOnboardingById(id: string): CorporateOnboarding | un
 }
 
 /**
- * 통계 조회
+ * 통계 조회 (동적 계산)
  */
 export function getOnboardingStats(): OnboardingStats {
-  return mockOnboardingStats;
+  const allApplications = [...mockIndividualOnboardings, ...mockCorporateOnboardings];
+
+  // 기본 통계
+  const total = allApplications.length;
+  const pending = allApplications.filter(app => app.adminReview.status === 'PENDING').length;
+  const underReview = allApplications.filter(app => app.adminReview.status === 'UNDER_REVIEW').length;
+  const approved = allApplications.filter(app => app.adminReview.status === 'APPROVED').length;
+  const rejected = allApplications.filter(app => app.adminReview.status === 'REJECTED').length;
+  const onHold = allApplications.filter(app => app.adminReview.status === 'ON_HOLD').length;
+
+  // 위험도별 통계
+  let low = 0, medium = 0, high = 0;
+  allApplications.forEach(app => {
+    if (!app.riskAssessment) return;
+    const riskLevel = 'riskLevel' in app.riskAssessment
+      ? app.riskAssessment.riskLevel
+      : app.riskAssessment.overallRiskLevel;
+
+    if (riskLevel === 'LOW') low++;
+    else if (riskLevel === 'MEDIUM') medium++;
+    else if (riskLevel === 'HIGH') high++;
+  });
+
+  // 타입별 통계
+  const individual = mockIndividualOnboardings.length;
+  const corporate = mockCorporateOnboardings.length;
+
+  // 외부 AML 결과 대기 건수
+  const externalAmlPending = allApplications.filter(app => {
+    if ('aml' in app) {
+      return !app.aml; // Individual - AML 결과 없음
+    } else {
+      return !app.ubo; // Corporate - UBO 결과 없음
+    }
+  }).length;
+
+  // EDD 통계
+  const eddRequired = allApplications.filter(app => app.eddRequired === true).length;
+  const eddPending = allApplications.filter(app =>
+    app.eddRequired === true && !app.edd?.submittedAt
+  ).length;
+  const eddSubmitted = allApplications.filter(app =>
+    app.eddRequired === true && app.edd?.submittedAt
+  ).length;
+
+  return {
+    total,
+    pending,
+    underReview,
+    approved,
+    rejected,
+    onHold,
+    byRiskLevel: { low, medium, high },
+    byType: { individual, corporate },
+    externalAmlPending,
+    edd: {
+      required: eddRequired,
+      pending: eddPending,
+      submitted: eddSubmitted,
+    },
+  };
 }
 
 /**

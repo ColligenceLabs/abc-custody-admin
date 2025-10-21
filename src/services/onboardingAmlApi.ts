@@ -653,14 +653,10 @@ export async function submitIndividualEDD(
     throw new Error(`Individual onboarding application not found: ${data.applicationId}`);
   }
 
-  // EDD 정보 업데이트
+  // EDD 정보 업데이트 (applicationId는 제외)
+  const { applicationId, ...eddData } = data;
   application.edd = {
-    incomeProofUrl: data.incomeProofUrl,
-    residenceProofUrl: data.residenceProofUrl,
-    fundSourceUrl: data.fundSourceUrl,
-    videoInterviewUrl: data.videoInterviewUrl,
-    additionalDocumentUrls: data.additionalDocumentUrls,
-    submittedAt: data.submittedAt,
+    ...eddData,
   };
 
   // 상태 자동 전환: ON_HOLD 또는 PENDING → UNDER_REVIEW
@@ -680,7 +676,7 @@ export async function submitIndividualEDD(
     createdBy: 'current-admin',
     createdAt: new Date().toISOString(),
     content: 'EDD 정보가 제출되었습니다. 검토를 시작합니다.',
-    type: 'GENERAL',
+    type: 'INFO',
   };
   application.adminReview.notes.push(note);
 
@@ -703,17 +699,10 @@ export async function submitCorporateEDD(
     throw new Error(`Corporate onboarding application not found: ${data.applicationId}`);
   }
 
-  // EDD 정보 업데이트
+  // EDD 정보 업데이트 (applicationId는 제외)
+  const { applicationId, ...eddData } = data;
   application.edd = {
-    detailedUboInfo: data.detailedUboInfo,
-    businessPlanUrl: data.businessPlanUrl,
-    financialStatementsUrl: data.financialStatementsUrl,
-    clientListUrl: data.clientListUrl,
-    backgroundCheckUrl: data.backgroundCheckUrl,
-    onSiteInspectionUrl: data.onSiteInspectionUrl,
-    executiveInterviewUrl: data.executiveInterviewUrl,
-    additionalDocumentUrls: data.additionalDocumentUrls,
-    submittedAt: data.submittedAt,
+    ...eddData,
   };
 
   // 상태 자동 전환: ON_HOLD 또는 PENDING → UNDER_REVIEW
@@ -733,7 +722,7 @@ export async function submitCorporateEDD(
     createdBy: 'current-admin',
     createdAt: new Date().toISOString(),
     content: 'EDD 정보가 제출되었습니다. UBO 상세 정보 및 추가 서류를 검토합니다.',
-    type: 'GENERAL',
+    type: 'INFO',
   };
   application.adminReview.notes.push(note);
 
