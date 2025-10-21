@@ -16,7 +16,7 @@ import { CorporateOnboarding } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
 import { RegistrationSourceBadge } from "../../components/RegistrationSourceBadge";
-import { ProcessStepIndicator } from "../../components/ProcessStepIndicator";
+import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
 
 interface CorporateTableProps {
   applications: CorporateOnboarding[];
@@ -100,7 +100,7 @@ export function CorporateTable({
 
                   {/* 진행 단계 */}
                   <td className="p-4">
-                    <ProcessStepIndicator
+                    <CompactProcessIndicator
                       currentStep={application.adminReview.currentStep}
                       totalSteps={5}
                       type="corporate"
