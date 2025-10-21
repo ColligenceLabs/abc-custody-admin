@@ -13,7 +13,8 @@ import {
   UserGroupIcon,
   ArrowUpOnSquareIcon,
   ArrowDownOnSquareIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -53,6 +54,9 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
     }
     if (pathname.startsWith('/security')) {
       return 'security'
+    }
+    if (pathname.startsWith('/mypage')) {
+      return 'mypage'
     }
     if (pathname.startsWith('/setting')) {
       return 'setting'
@@ -207,6 +211,13 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       available: true
     },
     {
+      id: 'mypage' as DashboardTab,
+      name: '마이페이지',
+      icon: UserCircleIcon,
+      path: '/mypage',
+      available: true
+    },
+    {
       id: 'setting' as DashboardTab,
       name: user?.memberType === 'corporate' ? '설정 및 구독' : '구독 관리',
       icon: WrenchScrewdriverIcon,
@@ -241,8 +252,8 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
                   onClick={(e) => {
                     e.preventDefault()
                     if (!isActive) {
-                      // 회사 설정의 경우 직접 라우팅
-                      if (item.id === 'setting') {
+                      // 마이페이지와 설정의 경우 직접 라우팅
+                      if (item.id === 'mypage' || item.id === 'setting') {
                         router.push(item.path)
                       } else {
                         onTabChange(item.id)

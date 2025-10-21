@@ -47,6 +47,7 @@ interface AuthContextType {
   resetAuth: () => void
   sendEmailPinCode: (email: string) => Promise<{ success: boolean; message?: string; expiresIn?: number }>
   verifyEmailPin: (email: string, pinCode: string, memberType: 'individual' | 'corporate', isSignup?: boolean) => Promise<{ success: boolean; message?: string; user?: any }>
+  updateUser: (updatedFields: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -716,6 +717,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    if (!user) return
+
+    const updatedUser = { ...user, ...updatedFields }
+    setUser(updatedUser)
+
+    // localStorage와 세션 스토리지 업데이트
+    try {
+      const token = localStorage.getItem('token')
+      const sessionData = localStorage.getItem('auth_session')
+
+      if (sessionData) {
+        const session = JSON.parse(sessionData)
+        const updatedSession = {
+          ...session,
+          user: updatedUser,
+          timestamp: Date.now()
+        }
+
+        localStorage.setItem('auth_session', JSON.stringify(updatedSession))
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+
+        const sessionTimeout = getSessionTimeoutMs()
+        document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(updatedSession))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
+      }
+    } catch (error) {
+      console.error('사용자 정보 업데이트 실패:', error)
+    }
+  }
+
   const completeGASetup = async (secretKey: string) => {
     if (!authStep.user) return
 
@@ -843,7 +874,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         resetAuth,
         sendEmailPinCode,
-        verifyEmailPin
+        verifyEmailPin,
+        updateUser
       }}
     >
       {children}

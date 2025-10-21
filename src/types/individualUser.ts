@@ -31,6 +31,12 @@ export interface IndividualUser {
   kycLevel: KYCLevel;
   kycVerifiedAt?: string;
 
+  // AML (자금세탁방지) 고객확인 관련 필드
+  fundSource?: string;
+  amlVerifiedAt?: string;
+  amlNextVerificationDate?: string;
+  amlVerificationCycle: number; // 재이행 주기 (개월 단위, 기본값 12개월)
+
   // 권한 및 한도
   permissions: string[];
   walletLimit: WalletLimit;
@@ -73,8 +79,21 @@ export const DEFAULT_WALLET_LIMITS: Record<KYCLevel, WalletLimit> = {
   }
 };
 
+// KYC 상태 타입
+export interface KYCStatus {
+  identityVerified: boolean;
+  kycLevel: KYCLevel | null;
+  kycVerifiedAt: string | null;
+}
+
+// AML 상태 타입
+export interface AMLStatus {
+  fundSource: string | null;
+  amlVerifiedAt: string | null;
+  amlNextVerificationDate: string | null;
+  amlVerificationCycle: number;
+}
+
 // TODO: 향후 개선 필요
 // - 주소 정보 추가
 // - 직업 정보 추가
-// - 자금 출처 정보 추가
-// - AML/CTF 관련 필드 추가

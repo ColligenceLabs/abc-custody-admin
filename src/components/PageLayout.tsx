@@ -28,6 +28,7 @@ export default function PageLayout({ children, activeTab }: PageLayoutProps) {
       withdrawal: '/withdrawal',
       services: '/services',
       security: '/security',
+      mypage: '/mypage',
       setting: '/setting'
     }
 

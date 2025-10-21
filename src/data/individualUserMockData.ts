@@ -22,6 +22,10 @@ export const MOCK_INDIVIDUAL_USERS: IndividualUser[] = [
     identityVerified: true,
     kycLevel: 'level3',
     kycVerifiedAt: '2025-01-10T13:00:00Z',
+    fundSource: '급여소득',
+    amlVerifiedAt: '2025-01-10T14:00:00Z',
+    amlNextVerificationDate: '2026-01-10T14:00:00Z',
+    amlVerificationCycle: 12,
     permissions: DEFAULT_INDIVIDUAL_PERMISSIONS,
     walletLimit: DEFAULT_WALLET_LIMITS.level3
   },
@@ -41,6 +45,10 @@ export const MOCK_INDIVIDUAL_USERS: IndividualUser[] = [
     identityVerified: true,
     kycLevel: 'level2',
     kycVerifiedAt: '2025-01-15T16:00:00Z',
+    fundSource: '사업소득',
+    amlVerifiedAt: '2025-01-15T17:00:00Z',
+    amlNextVerificationDate: '2026-01-15T17:00:00Z',
+    amlVerificationCycle: 12,
     permissions: DEFAULT_INDIVIDUAL_PERMISSIONS,
     walletLimit: DEFAULT_WALLET_LIMITS.level2
   },
@@ -59,6 +67,10 @@ export const MOCK_INDIVIDUAL_USERS: IndividualUser[] = [
     identityVerified: true,
     kycLevel: 'level1',
     kycVerifiedAt: '2025-01-20T17:00:00Z',
+    fundSource: '투자소득',
+    amlVerifiedAt: '2025-01-20T18:00:00Z',
+    amlNextVerificationDate: '2026-01-20T18:00:00Z',
+    amlVerificationCycle: 12,
     permissions: DEFAULT_INDIVIDUAL_PERMISSIONS,
     walletLimit: DEFAULT_WALLET_LIMITS.level1
   }

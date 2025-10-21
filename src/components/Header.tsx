@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   UserCircleIcon,
   ClockIcon,
@@ -188,6 +189,14 @@ export default function Header() {
 
                       {/* 메뉴 항목 */}
                       <div className="py-2">
+                        <Link
+                          href="/mypage"
+                          onClick={() => setShowProfileDropdown(false)}
+                          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <UserCircleIcon className="h-4 w-4 mr-3" />
+                          마이페이지
+                        </Link>
                         <button
                           onClick={() => {
                             setShowProfileDropdown(false);

@@ -15,6 +15,8 @@ interface IDAndAccountVerificationStepProps {
   initialData: SignupData;
   onComplete: (data: Partial<SignupData>) => void;
   onBack: () => void;
+  skipMethodSelection?: boolean; // true이면 모바일 QR 모드로 바로 시작
+  birthDate?: string; // 마이페이지에서 사용 (YYYY-MM-DD 형식)
 }
 
 // eKYC 응답 타입
@@ -59,8 +61,12 @@ export default function IDAndAccountVerificationStep({
   initialData,
   onComplete,
   onBack,
+  skipMethodSelection = false,
+  birthDate,
 }: IDAndAccountVerificationStepProps) {
-  const [currentPhase, setCurrentPhase] = useState<VerificationPhase>("intro");
+  const [currentPhase, setCurrentPhase] = useState<VerificationPhase>(
+    skipMethodSelection ? "qr" : "intro"
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -68,7 +74,9 @@ export default function IDAndAccountVerificationStep({
   } | null>(null);
   const [idVerified, setIdVerified] = useState(false);
   const [accountVerified, setAccountVerified] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<'mobile' | 'pc' | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<'mobile' | 'pc' | null>(
+    skipMethodSelection ? 'mobile' : null
+  );
   const [qrExpireTime, setQrExpireTime] = useState<number>(600); // 10분 = 600초
   const [showQrTimeoutPrompt, setShowQrTimeoutPrompt] = useState(false); // QR 타임아웃 프롬프트 표시 여부
   const [qrWaitingTime, setQrWaitingTime] = useState(0); // QR 대기 시간 (초)
@@ -168,7 +176,14 @@ export default function IDAndAccountVerificationStep({
           // close 처리
           console.log("KYC 중단");
           setMessage({ type: "error", text: "eKYC 인증이 중단되었습니다." });
-          setCurrentPhase("intro");
+
+          // skipMethodSelection이 true면 마이페이지이므로 onBack() 호출
+          // false면 회원가입이므로 intro로 돌아가기
+          if (skipMethodSelection) {
+            onBack();
+          } else {
+            setCurrentPhase("intro");
+          }
         } else {
           // invalid result
           console.log("알 수 없는 result:", json.result);
@@ -333,34 +348,41 @@ export default function IDAndAccountVerificationStep({
     console.log('QR iframe useEffect 시작');
     const iframe = iframeRef.current;
 
-    // 이미 src가 설정되어 있으면 중복 실행 방지
-    if (iframe.src && iframe.src !== 'about:blank' && iframe.src.includes('kyc.useb.co.kr/auth')) {
-      console.log('QR iframe 이미 초기화됨, 중복 실행 방지');
-      return;
-    }
-
-    const handleLoad = async () => {
-      console.log('QR iframe onload 이벤트 발생');
+    // postMessage 전송 함수
+    const sendQRParams = () => {
       try {
         // QR 파라미터 생성
-        // 주민번호에서 생년월일 추출 (YYYY-MM-DD 형식)
-        const residentNumber = initialData.residentNumber || "";
-        const parts = residentNumber.split("-");
-        const birthPart = parts[0] || "";
-        const genderPart = parts[1] || "";
+        console.log('='.repeat(60));
+        console.log('QR 파라미터 생성 시작');
+        console.log('birthDate prop:', birthDate);
+        console.log('initialData.name:', initialData.name);
+        console.log('initialData.phone:', initialData.phone);
+        console.log('initialData.email:', initialData.email);
+        console.log('='.repeat(60));
 
-        const yy = birthPart.substring(0, 2);
-        const mm = birthPart.substring(2, 4);
-        const dd = birthPart.substring(4, 6);
-        const genderCode = genderPart.substring(0, 1);
+        // 생년월일 결정: birthDate prop이 있으면 사용, 없으면 주민번호에서 추출
+        let birthday = birthDate || "";
 
-        // 세기 판단 (1,2,9,0: 1900년대 / 3,4,7,8: 2000년대 / 5,6: 1900년대 외국인)
-        const century = ["1", "2", "5", "6", "9", "0"].includes(genderCode)
-          ? "19"
-          : "20";
-        const birthday = `${century}${yy}-${mm}-${dd}`;
+        if (!birthday) {
+          console.log('birthDate prop이 없어서 주민번호에서 추출합니다.');
+          const residentNumber = initialData.residentNumber || "";
+          const parts = residentNumber.split("-");
+          const birthPart = parts[0] || "";
+          const genderPart = parts[1] || "";
 
-        // 전화번호에서 하이픈 제거 (01012345678 형식)
+          const yy = birthPart.substring(0, 2);
+          const mm = birthPart.substring(2, 4);
+          const dd = birthPart.substring(4, 6);
+          const genderCode = genderPart.substring(0, 1);
+
+          const century = ["1", "2", "5", "6", "9", "0"].includes(genderCode) ? "19" : "20";
+          birthday = `${century}${yy}-${mm}-${dd}`;
+          console.log('주민번호에서 추출한 생년월일:', birthday);
+        } else {
+          console.log('birthDate prop 사용:', birthday);
+        }
+
+        // 전화번호에서 하이픈 제거
         const phoneNumber = (initialData.phone || "").replace(/-/g, "");
 
         // QR 모드: 환경변수 credential 사용
@@ -374,48 +396,67 @@ export default function IDAndAccountVerificationStep({
           email: initialData.email || "",
         };
 
-        console.log("=".repeat(60));
-        console.log("📋 QR eKYC Credentials (디버깅용 - 전체 출력)");
-        console.log("=".repeat(60));
-        console.log("customer_id:", qrParams.customer_id);
-        console.log("id:", qrParams.id);
-        console.log("key:", qrParams.key);
+        console.log("📋 QR eKYC 파라미터:");
         console.log("name:", qrParams.name);
         console.log("birthday:", qrParams.birthday);
         console.log("phone_number:", qrParams.phone_number);
         console.log("email:", qrParams.email);
-        console.log("=".repeat(60));
 
         const encodedParams = btoa(encodeURIComponent(JSON.stringify(qrParams)));
-        iframe.contentWindow?.postMessage(encodedParams, KYC_TARGET_ORIGIN);
-        console.log("postMessage sent to:", KYC_TARGET_ORIGIN);
 
+        if (iframe.contentWindow) {
+          iframe.contentWindow.postMessage(encodedParams, KYC_TARGET_ORIGIN);
+          console.log("✅ postMessage 전송 완료:", KYC_TARGET_ORIGIN);
+          return true;
+        } else {
+          console.warn("⚠️ iframe.contentWindow가 아직 준비되지 않음");
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ postMessage 전송 오류:', error);
+        return false;
+      }
+    };
+
+    // iframe src 설정
+    if (!iframe.src || iframe.src === 'about:blank') {
+      console.log('QR iframe src 설정:', KYC_URL);
+      iframe.src = KYC_URL;
+    }
+
+    // 재시도 로직: 1초마다 최대 10번 시도
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const retryInterval = setInterval(() => {
+      retryCount++;
+      console.log(`🔄 postMessage 전송 시도 ${retryCount}/${maxRetries}`);
+
+      const success = sendQRParams();
+
+      if (success) {
+        console.log('✅ postMessage 전송 성공, 재시도 중단');
+        clearInterval(retryInterval);
         setLoading(false);
         setMessage({
           type: 'success',
           text: '모바일에서 QR 코드를 스캔하여 인증을 시작하세요.'
         });
-      } catch (error) {
-        console.error('QR 코드 생성 오류:', error);
+      } else if (retryCount >= maxRetries) {
+        console.log('❌ 최대 재시도 횟수 도달, 중단');
+        clearInterval(retryInterval);
         setMessage({
           type: 'error',
-          text: 'QR 코드 생성 중 오류가 발생했습니다.'
+          text: 'QR 코드 생성 중 오류가 발생했습니다. 페이지를 새로고침해주세요.'
         });
         setLoading(false);
       }
-    };
-
-    // onload 핸들러 먼저 등록
-    iframe.addEventListener('load', handleLoad);
-
-    // 그 다음 src 설정 (일반 AUTH URL 사용, QR은 postMessage로 생성)
-    console.log('QR iframe src 설정:', KYC_URL);
-    iframe.src = KYC_URL;
+    }, 1000);
 
     return () => {
-      iframe.removeEventListener('load', handleLoad);
+      clearInterval(retryInterval);
     };
-  }, [currentPhase, initialData]);
+  }, [currentPhase]);
 
   // QR 코드 타임아웃 타이머
   useEffect(() => {
@@ -537,17 +578,25 @@ export default function IDAndAccountVerificationStep({
   };
 
   const handleQrRetry = () => {
-    // QR 재시도 - 초기 화면으로 돌아가기
+    // QR 재시도
     console.log("=== QR 재시도 버튼 클릭 ===");
-    setCurrentPhase('intro');
-    setSelectedMethod(null);
+
+    // skipMethodSelection이 true면 바로 qr phase로, 아니면 intro로
+    if (skipMethodSelection) {
+      setCurrentPhase('qr');
+      setSelectedMethod('mobile');
+    } else {
+      setCurrentPhase('intro');
+      setSelectedMethod(null);
+    }
+
     setMessage(null);
     setShowQrTimeoutPrompt(false);
     setQrWaitingTime(0);
   };
 
-  // 인증 방식 선택 화면
-  if (currentPhase === "intro") {
+  // 인증 방식 선택 화면 (skipMethodSelection이 false일 때만)
+  if (currentPhase === "intro" && !skipMethodSelection) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         {/* 헤더 */}
@@ -666,12 +715,14 @@ export default function IDAndAccountVerificationStep({
             이전
           </button>
 
-          <button
-            onClick={handleSkipVerification}
-            className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-          >
-            다음에 하기
-          </button>
+          {!skipMethodSelection && (
+            <button
+              onClick={handleSkipVerification}
+              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+            >
+              다음에 하기
+            </button>
+          )}
         </div>
       </div>
     );
@@ -858,12 +909,22 @@ export default function IDAndAccountVerificationStep({
 
         {/* 버튼 */}
         <div className="flex space-x-3">
-          <button
-            onClick={handleBackToMethodSelection}
-            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            방식 다시 선택
-          </button>
+          {/* skipMethodSelection이 true일 때는 뒤로 가기 버튼 표시 */}
+          {skipMethodSelection ? (
+            <button
+              onClick={onBack}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              뒤로 가기
+            </button>
+          ) : (
+            <button
+              onClick={handleBackToMethodSelection}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              방식 다시 선택
+            </button>
+          )}
 
           {idVerified && accountVerified ? (
             <button
@@ -873,12 +934,14 @@ export default function IDAndAccountVerificationStep({
               인증 완료
             </button>
           ) : (
-            <button
-              onClick={handleSkipVerification}
-              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-            >
-              다음에 하기
-            </button>
+            !skipMethodSelection && (
+              <button
+                onClick={handleSkipVerification}
+                className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+              >
+                다음에 하기
+              </button>
+            )
           )}
         </div>
       </div>
@@ -913,7 +976,7 @@ export default function IDAndAccountVerificationStep({
               )}
             </div>
           </div>
-          {currentPhase !== "complete" && (
+          {currentPhase !== "complete" && !skipMethodSelection && (
             <button
               onClick={handleSkipVerification}
               className="text-sm text-gray-600 hover:text-gray-800 underline"
@@ -982,12 +1045,14 @@ export default function IDAndAccountVerificationStep({
       {/* 하단 버튼 */}
       {currentPhase !== "complete" && (
         <div className="flex space-x-3 mt-4">
-          <button
-            onClick={handleBackToMethodSelection}
-            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            방식 다시 선택
-          </button>
+          {!skipMethodSelection && (
+            <button
+              onClick={handleBackToMethodSelection}
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              방식 다시 선택
+            </button>
+          )}
 
           {idVerified && accountVerified ? (
             <button
@@ -997,12 +1062,14 @@ export default function IDAndAccountVerificationStep({
               인증 완료
             </button>
           ) : (
-            <button
-              onClick={handleSkipVerification}
-              className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-            >
-              다음에 하기
-            </button>
+            !skipMethodSelection && (
+              <button
+                onClick={handleSkipVerification}
+                className="flex-1 px-4 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+              >
+                다음에 하기
+              </button>
+            )
           )}
         </div>
       )}
