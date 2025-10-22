@@ -5,7 +5,6 @@ import {
   ClockIcon,
   UsersIcon,
   CogIcon,
-  ShieldCheckIcon,
   BuildingOfficeIcon,
   UserIcon,
   GiftIcon,
@@ -51,9 +50,6 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
     }
     if (pathname.startsWith('/services')) {
       return 'services'
-    }
-    if (pathname.startsWith('/security')) {
-      return 'security'
     }
     if (pathname.startsWith('/mypage')) {
       return 'mypage'
@@ -104,7 +100,7 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       default:
         return {
           name: t('plan.default.name'),
-          icon: ShieldCheckIcon,
+          icon: BuildingOfficeIcon,
           color: 'text-gray-600 bg-gray-50'
         }
     }
@@ -201,13 +197,6 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       name: t('menu.services'),
       icon: CogIcon,
       path: '/services',
-      available: true
-    },
-    {
-      id: 'security' as DashboardTab,
-      name: t('menu.security'),
-      icon: ShieldCheckIcon,
-      path: '/security',
       available: true
     },
     {

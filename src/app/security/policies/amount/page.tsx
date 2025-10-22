@@ -1,19 +1,14 @@
 'use client'
 
-import PageLayout from '@/components/PageLayout'
-import SecuritySettings from '@/components/SecuritySettings'
-import { useServicePlan } from '@/contexts/ServicePlanContext'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function PolicyAmountPage() {
-  const { selectedPlan } = useServicePlan()
+  const router = useRouter()
 
-  return (
-    <PageLayout activeTab="security">
-      <SecuritySettings
-        plan={selectedPlan}
-        initialTab="policies"
-        policySubtab="amount"
-      />
-    </PageLayout>
-  )
+  useEffect(() => {
+    router.replace('/mypage/security')
+  }, [router])
+
+  return null
 }

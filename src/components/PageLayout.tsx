@@ -27,7 +27,6 @@ export default function PageLayout({ children, activeTab }: PageLayoutProps) {
       deposit: '/deposit',
       withdrawal: '/withdrawal',
       services: '/services',
-      security: '/security',
       mypage: '/mypage',
       setting: '/setting'
     }

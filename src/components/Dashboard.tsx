@@ -31,7 +31,6 @@ export default function Dashboard({ plan, onPlanChange }: DashboardProps) {
       if (pathname.startsWith('/withdrawal')) return 'withdrawal'
       if (pathname.startsWith('/groups')) return 'groups'
       if (pathname.startsWith('/services')) return 'services'
-      if (pathname.startsWith('/security')) return 'security'
 
       switch (pathname) {
         case '/overview': return 'overview'
@@ -62,8 +61,6 @@ export default function Dashboard({ plan, onPlanChange }: DashboardProps) {
         return <WithdrawalManagement plan={plan} />
       case 'services':
         return <AdditionalServices plan={plan} />
-      case 'security':
-        return <SecuritySettings plan={plan} />
       default:
         return <AssetOverview plan={plan} />
     }

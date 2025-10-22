@@ -4,7 +4,7 @@ import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import PageLayout from '@/components/PageLayout'
 
-type MyPageTab = 'profile' | 'verification' | 'security' | 'addresses'
+type MyPageTab = 'profile' | 'verification' | 'security' | 'addresses' | 'accounts'
 
 interface MyPageLayoutProps {
   children: ReactNode
@@ -18,7 +18,8 @@ export default function MyPageLayout({ children, activeTab }: MyPageLayoutProps)
     { id: 'profile', name: '개인정보', path: '/mypage/profile' },
     { id: 'verification', name: '본인인증', path: '/mypage/verification' },
     { id: 'security', name: '보안 설정', path: '/mypage/security' },
-    { id: 'addresses', name: '주소 관리', path: '/mypage/addresses' }
+    { id: 'addresses', name: '주소 관리', path: '/mypage/addresses' },
+    { id: 'accounts', name: '계좌 연동', path: '/mypage/accounts' }
   ]
 
   return (

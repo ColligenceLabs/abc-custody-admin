@@ -7,8 +7,7 @@ export default function NotificationsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // 기본 서브탭으로 리다이렉트
-    router.replace('/security/notifications/templates')
+    router.replace('/mypage/security')
   }, [router])
 
   return null

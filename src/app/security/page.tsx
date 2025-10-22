@@ -7,8 +7,8 @@ export default function SecurityPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // 기본 탭으로 리다이렉트
-    router.replace('/security/security')
+    // 보안 설정은 마이페이지로 이동
+    router.replace('/mypage/security')
   }, [router])
 
   return null
