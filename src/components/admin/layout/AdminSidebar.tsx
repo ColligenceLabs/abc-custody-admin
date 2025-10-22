@@ -221,29 +221,29 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
       // },
     ],
   },
-  {
-    id: 'vault',
-    label: '볼트 관리',
-    href: '/admin/vault',
-    icon: Vault,
-    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-    children: [
-      {
-        id: 'vault-monitoring',
-        label: '모니터링',
-        href: '/admin/vault/monitoring',
-        icon: LayoutDashboard,
-        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-      },
-      {
-        id: 'vault-rebalancing',
-        label: '리밸런싱',
-        href: '/admin/vault/rebalancing',
-        icon: ArrowDownUp,
-        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
-      },
-    ],
-  },
+  // {
+  //   id: 'vault',
+  //   label: '볼트 관리',
+  //   href: '/admin/vault',
+  //   icon: Vault,
+  //   requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+  //   children: [
+  //     {
+  //       id: 'vault-monitoring',
+  //       label: '모니터링',
+  //       href: '/admin/vault/monitoring',
+  //       icon: LayoutDashboard,
+  //       requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+  //     },
+  //     {
+  //       id: 'vault-rebalancing',
+  //       label: '리밸런싱',
+  //       href: '/admin/vault/rebalancing',
+  //       icon: ArrowDownUp,
+  //       requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
+  //     },
+  //   ],
+  // },
   {
     id: 'compliance',
     label: '컴플라이언스',
