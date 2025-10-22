@@ -1,38 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useOTPAuth } from '@/contexts/OTPAuthContext'
-import { OTPVerificationModal } from '@/components/auth/OTPVerificationModal'
 
 export default function MyPage() {
   const router = useRouter()
-  const { isVerified, isExpired } = useOTPAuth()
-  const [showOTPModal, setShowOTPModal] = useState(false)
 
   useEffect(() => {
-    // OTP 인증 확인
-    if (!isVerified || isExpired()) {
-      setShowOTPModal(true)
-      return
-    }
-
+    // OTP 인증은 layout에서 처리
     // 마이페이지 기본 탭인 profile로 리다이렉트
     router.replace('/mypage/profile')
-  }, [router, isVerified, isExpired])
+  }, [router])
 
-  const handleOTPSuccess = () => {
-    setShowOTPModal(false)
-    router.replace('/mypage/profile')
-  }
-
-  return (
-    <>
-      <OTPVerificationModal
-        isOpen={showOTPModal}
-        onClose={() => {}} // 닫기 방지 (인증 필수)
-        onSuccess={handleOTPSuccess}
-      />
-    </>
-  )
+  return null
 }
