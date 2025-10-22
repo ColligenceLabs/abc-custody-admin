@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export interface VerifyOTPParams {
   email: string;
@@ -54,7 +54,7 @@ export async function verifyOTP({
   otpCode
 }: VerifyOTPParams): Promise<VerifyOTPResult> {
   try {
-    const url = `${API_BASE_URL}/auth/verify-otp`;
+    const url = `${API_BASE_URL}/api/auth/verify-otp`;
     console.log('[OTP Service] 요청 시작:', { url, email, memberType });
 
     const response = await fetch(url, {
