@@ -1,7 +1,7 @@
 /**
- * Withdrawal Requests Management Page (V2 - Redesigned)
+ * Withdrawal Monitoring Page (V2 - Redesigned)
  *
- * 출금 요청 관리 페이지 (개선된 7-상태 모델)
+ * 출금 모니터링 페이지 (개선된 7-상태 모델)
  * Hot/Cold 지갑 선택 기능 통합
  * 백엔드 API 연결
  */
@@ -178,7 +178,7 @@ export default function WithdrawalRequestsPage() {
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">출금 요청 관리</h1>
+          <h1 className="text-3xl font-bold">출금 모니터링</h1>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
           {isLoading ? (
