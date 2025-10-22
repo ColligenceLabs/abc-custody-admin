@@ -12,8 +12,8 @@ interface OTPAuthContextType {
 
 const OTPAuthContext = createContext<OTPAuthContextType | undefined>(undefined);
 
-const OTP_TIMEOUT = 30 * 60 * 1000; // 30분
-const STORAGE_KEY = 'otp_verified_at';
+const OTP_TIMEOUT = 15 * 60 * 1000; // 15분 (마이페이지 전용, 보안 강화)
+const STORAGE_KEY = 'mypage_otp_verified_at'; // 로그인 OTP와 별개
 
 // sessionStorage에서 초기 상태를 동기적으로 읽는 함수
 function getInitialVerificationState(): { isVerified: boolean; verifiedAt: number | null } {
