@@ -3,6 +3,7 @@
 import { useEffect, useState, ReactNode } from 'react'
 import { useOTPAuth } from '@/contexts/OTPAuthContext'
 import { OTPVerificationContent } from '@/components/auth/OTPVerificationContent'
+import PageLayout from '@/components/PageLayout'
 
 interface MyPageLayoutProps {
   children: ReactNode
@@ -30,9 +31,13 @@ export default function MyPageLayout({ children }: MyPageLayoutProps) {
     return null
   }
 
-  // OTP 인증이 완료되지 않으면 인증 화면 표시
+  // OTP 인증이 완료되지 않으면 인증 화면 표시 (PageLayout 안쪽에)
   if (!isOTPChecked) {
-    return <OTPVerificationContent onSuccess={handleOTPSuccess} />
+    return (
+      <PageLayout activeTab="mypage">
+        <OTPVerificationContent onSuccess={handleOTPSuccess} />
+      </PageLayout>
+    )
   }
 
   return <>{children}</>
