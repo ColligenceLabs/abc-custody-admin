@@ -200,9 +200,9 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
       // },
       {
         id: 'withdrawal-v2-requests',
-        label: '출금 요청 관리',
+        label: '출금 모니터링',
         href: '/admin/withdrawal-v2/requests',
-        icon: CheckSquare,
+        icon: Activity,
         requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.UPDATE }],
       },
       // {
