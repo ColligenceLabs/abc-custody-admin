@@ -54,12 +54,20 @@ export async function verifyOTP({
   otpCode
 }: VerifyOTPParams): Promise<VerifyOTPResult> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+    const url = `${API_BASE_URL}/auth/verify-otp`;
+    console.log('[OTP Service] 요청 시작:', { url, email, memberType });
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, memberType, otpCode }),
+    });
+
+    console.log('[OTP Service] 응답 받음:', {
+      status: response.status,
+      ok: response.ok
     });
 
     const data = await response.json();
@@ -104,6 +112,7 @@ export async function verifyOTP({
     }
 
     // 네트워크 오류 등
+    console.error('[OTP Service] 네트워크 오류:', error);
     throw new OTPServiceError(
       'NETWORK_ERROR',
       '네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',

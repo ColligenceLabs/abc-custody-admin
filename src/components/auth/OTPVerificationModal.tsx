@@ -64,11 +64,19 @@ export function OTPVerificationModal({
     setRemainingSeconds(undefined);
 
     try {
+      console.log('[OTP] 인증 요청:', {
+        email: user.email,
+        memberType: user.memberType,
+        otpCodeLength: otpCode.length
+      });
+
       const result = await verifyOTP({
         email: user.email,
         memberType: user.memberType as 'individual' | 'corporate',
         otpCode
       });
+
+      console.log('[OTP] 인증 성공:', result);
 
       if (result.success) {
         setVerified();
@@ -76,7 +84,15 @@ export function OTPVerificationModal({
         onClose();
       }
     } catch (err) {
+      console.error('[OTP] 인증 실패:', err);
+
       if (err instanceof OTPServiceError) {
+        console.error('[OTP] 서비스 오류:', {
+          code: err.code,
+          message: err.message,
+          details: err.details
+        });
+
         setError(err.message);
 
         if (err.code === 'ACCOUNT_LOCKED') {
@@ -89,6 +105,7 @@ export function OTPVerificationModal({
           setRemainingAttempts(err.details.remainingAttempts);
         }
       } else {
+        console.error('[OTP] 알 수 없는 오류:', err);
         setError('알 수 없는 오류가 발생했습니다.');
         setErrorType('error');
       }
