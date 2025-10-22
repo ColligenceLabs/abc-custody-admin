@@ -14,21 +14,14 @@ export default function SettingLayout({ children }: SettingLayoutProps) {
 
   useEffect(() => {
     // OTP 인증 확인
-    const checkOTP = () => {
-      if (!isVerified || isExpired()) {
-        console.log('[Setting Layout] OTP 인증 필요:', { isVerified, expired: isExpired() })
-        setIsOTPChecked(false)
-      } else {
-        console.log('[Setting Layout] OTP 인증 완료:', { isVerified })
-        setIsOTPChecked(true)
-      }
+    if (!isVerified || isExpired()) {
+      setIsOTPChecked(false)
+    } else {
+      setIsOTPChecked(true)
     }
-
-    checkOTP()
   }, [isVerified, isExpired])
 
   const handleOTPSuccess = () => {
-    console.log('[Setting Layout] OTP 인증 성공')
     setIsOTPChecked(true)
   }
 
