@@ -26,7 +26,7 @@ export const adminAccessLogs: AccessLogEntry[] = [
     ip: '192.168.1.100',
     location: 'Seoul, KR',
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    action: '관리자 페이지 접근',
+    action: '관리 콘솔 접근',
     status: 'success'
   },
   {

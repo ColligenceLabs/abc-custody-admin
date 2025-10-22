@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 import {
   QrCodeIcon,
   CheckCircleIcon,
@@ -8,18 +8,18 @@ import {
   ClipboardDocumentIcon,
   InformationCircleIcon,
   XMarkIcon,
-  KeyIcon
-} from '@heroicons/react/24/outline'
-import { QRCodeSVG } from 'qrcode.react'
-import * as OTPAuth from 'otpauth'
-import { Modal } from '@/components/common/Modal'
+  KeyIcon,
+} from "@heroicons/react/24/outline";
+import { QRCodeSVG } from "qrcode.react";
+import * as OTPAuth from "otpauth";
+import { Modal } from "@/components/common/Modal";
 
 interface AuthenticatorManagementProps {
-  isVisible: boolean
-  onClose: () => void
-  initialEnabled: boolean
-  onStatusChange: (enabled: boolean) => void
-  policyEnabled: boolean
+  isVisible: boolean;
+  onClose: () => void;
+  initialEnabled: boolean;
+  onStatusChange: (enabled: boolean) => void;
+  policyEnabled: boolean;
 }
 
 export default function AuthenticatorManagement({
@@ -27,131 +27,148 @@ export default function AuthenticatorManagement({
   onClose,
   initialEnabled,
   onStatusChange,
-  policyEnabled
+  policyEnabled,
 }: AuthenticatorManagementProps) {
-  const [isEnabled, setIsEnabled] = useState(initialEnabled)
-  const [showSetupModal, setShowSetupModal] = useState(false)
-  const [verificationCode, setVerificationCode] = useState('')
-  const [backupCodes, setBackupCodes] = useState<string[]>([])
-  const [showBackupCodes, setShowBackupCodes] = useState(false)
-  const [backupCodesGeneratedAt, setBackupCodesGeneratedAt] = useState<string>('2025-01-15 14:30:00')
-  const [isGeneratingCodes, setIsGeneratingCodes] = useState(false)
-  const [isNewlyGenerated, setIsNewlyGenerated] = useState(false)
-  const [totp, setTotp] = useState<OTPAuth.TOTP | null>(null)
-  const [secretKey, setSecretKey] = useState('')
+  const [isEnabled, setIsEnabled] = useState(initialEnabled);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [showBackupCodes, setShowBackupCodes] = useState(false);
+  const [backupCodesGeneratedAt, setBackupCodesGeneratedAt] = useState<string>(
+    "2025-01-15 14:30:00"
+  );
+  const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
+  const [isNewlyGenerated, setIsNewlyGenerated] = useState(false);
+  const [totp, setTotp] = useState<OTPAuth.TOTP | null>(null);
+  const [secretKey, setSecretKey] = useState("");
 
   // 설정 모달 열릴 때 시크릿 키 생성
   useEffect(() => {
     if (showSetupModal && !totp) {
-      const secret = new OTPAuth.Secret({ size: 20 })
+      const secret = new OTPAuth.Secret({ size: 20 });
       const newTotp = new OTPAuth.TOTP({
-        issuer: 'CustodyDashboard',
-        label: 'user@example.com',
-        algorithm: 'SHA1',
+        issuer: "CustodyDashboard",
+        label: "user@example.com",
+        algorithm: "SHA1",
         digits: 6,
         period: 30,
-        secret: secret
-      })
-      setTotp(newTotp)
-      setSecretKey(secret.base32)
+        secret: secret,
+      });
+      setTotp(newTotp);
+      setSecretKey(secret.base32);
     }
-  }, [showSetupModal, totp])
+  }, [showSetupModal, totp]);
 
-  const qrCodeUrl = totp?.toString() || ''
+  const qrCodeUrl = totp?.toString() || "";
 
   const generateBackupCodes = () => {
-    const codes: string[] = []
+    const codes: string[] = [];
     // 10개의 백업 코드 생성 (각 8자리, 4-4 형식)
     for (let i = 0; i < 10; i++) {
       // 암호학적으로 안전한 랜덤 생성
-      const array = new Uint8Array(4)
-      crypto.getRandomValues(array)
+      const array = new Uint8Array(4);
+      crypto.getRandomValues(array);
 
       // 16진수로 변환하여 8자리 코드 생성
       const hex = Array.from(array)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase()
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase();
 
       // 4-4 형식으로 포맷팅 (예: ABCD-EFGH)
-      const formatted = `${hex.substring(0, 4)}-${hex.substring(4, 8)}`
-      codes.push(formatted)
+      const formatted = `${hex.substring(0, 4)}-${hex.substring(4, 8)}`;
+      codes.push(formatted);
     }
-    return codes
-  }
+    return codes;
+  };
 
   const handleEnable = () => {
-    setShowSetupModal(true)
-  }
+    setShowSetupModal(true);
+  };
 
   const handleVerify = () => {
     if (verificationCode.length !== 6) {
-      alert('6자리 인증번호를 입력해주세요.')
-      return
+      alert("6자리 인증번호를 입력해주세요.");
+      return;
     }
 
     if (!totp) {
-      alert('TOTP 인스턴스가 생성되지 않았습니다. 모달을 닫고 다시 열어주세요.')
-      return
+      alert(
+        "TOTP 인스턴스가 생성되지 않았습니다. 모달을 닫고 다시 열어주세요."
+      );
+      return;
     }
 
     try {
       // TOTP 검증 (±2 윈도우 = ±60초)
       const delta = totp.validate({
         token: verificationCode,
-        window: 2
-      })
+        window: 2,
+      });
 
-      console.log('TOTP 검증 결과:', delta, '시크릿 키:', secretKey, '입력 코드:', verificationCode)
-      console.log('현재 생성되는 코드:', totp.generate())
+      console.log(
+        "TOTP 검증 결과:",
+        delta,
+        "시크릿 키:",
+        secretKey,
+        "입력 코드:",
+        verificationCode
+      );
+      console.log("현재 생성되는 코드:", totp.generate());
 
       // delta가 null이 아니면 유효한 토큰
       if (delta !== null) {
-        setIsEnabled(true)
-        onStatusChange(true)
-        setShowSetupModal(false)
-        const codes = generateBackupCodes()
-        setBackupCodes(codes)
-        setShowBackupCodes(true)
-        setVerificationCode('')
+        setIsEnabled(true);
+        onStatusChange(true);
+        setShowSetupModal(false);
+        const codes = generateBackupCodes();
+        setBackupCodes(codes);
+        setShowBackupCodes(true);
+        setVerificationCode("");
       } else {
-        alert('인증번호가 올바르지 않습니다.')
+        alert("인증번호가 올바르지 않습니다.");
       }
     } catch (error) {
-      console.error('TOTP 검증 오류:', error)
-      alert('인증번호 검증 중 오류가 발생했습니다.')
+      console.error("TOTP 검증 오류:", error);
+      alert("인증번호 검증 중 오류가 발생했습니다.");
     }
-  }
+  };
 
   const handleDisable = () => {
     if (policyEnabled) {
-      if (confirm('시스템 정책에 의해 Google Authenticator가 필수로 설정되어 있습니다.\n\n연동을 해제하면 다음 로그인 시 Google Authenticator 코드를 요구받지만 입력할 수 없어 로그인이 불가능합니다.\n\n정말 연동을 해제하시겠습니까?')) {
-        setIsEnabled(false)
-        onStatusChange(false)
-        setBackupCodes([])
-        alert('연동이 해제되었습니다. 다음 로그인 시 문제가 발생할 수 있으니 시스템 관리자에게 문의하세요.')
+      if (
+        confirm(
+          "시스템 정책에 의해 Google Authenticator가 필수로 설정되어 있습니다.\n\n연동을 해제하면 다음 로그인 시 Google Authenticator 코드를 요구받지만 입력할 수 없어 로그인이 불가능합니다.\n\n정말 연동을 해제하시겠습니까?"
+        )
+      ) {
+        setIsEnabled(false);
+        onStatusChange(false);
+        setBackupCodes([]);
+        alert(
+          "연동이 해제되었습니다. 다음 로그인 시 문제가 발생할 수 있으니 시스템 관리자에게 문의하세요."
+        );
       }
     } else {
-      if (confirm('Google Authenticator 연동을 해제하시겠습니까?')) {
-        setIsEnabled(false)
-        onStatusChange(false)
-        setBackupCodes([])
+      if (confirm("Google Authenticator 연동을 해제하시겠습니까?")) {
+        setIsEnabled(false);
+        onStatusChange(false);
+        setBackupCodes([]);
       }
     }
-  }
+  };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    alert('클립보드에 복사되었습니다.')
-  }
+    navigator.clipboard.writeText(text);
+    alert("클립보드에 복사되었습니다.");
+  };
 
   const copyAllBackupCodes = () => {
-    const allCodes = backupCodes.join('\n')
-    navigator.clipboard.writeText(allCodes)
-    alert('모든 백업 코드가 클립보드에 복사되었습니다.')
-  }
+    const allCodes = backupCodes.join("\n");
+    navigator.clipboard.writeText(allCodes);
+    alert("모든 백업 코드가 클립보드에 복사되었습니다.");
+  };
 
-  if (!isVisible) return null
+  if (!isVisible) return null;
 
   return (
     <div className="space-y-6">
@@ -159,11 +176,11 @@ export default function AuthenticatorManagement({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <QrCodeIcon className="h-6 w-6 mr-2 text-primary-600" />
-              내 Google Authenticator 설정
+              <QrCodeIcon className="h-6 w-6 mr-2 text-primary-600" />내 Google
+              Authenticator 설정
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              현재 로그인한 관리자 계정의 Google Authenticator 연동을 설정합니다
+              현재 로그인한 계정의 Google Authenticator 연동을 설정합니다
             </p>
           </div>
           <div className="flex items-center space-x-3">
@@ -189,8 +206,9 @@ export default function AuthenticatorManagement({
                 <div className="text-sm text-gray-700">
                   <p className="font-medium mb-1">Google Authenticator란?</p>
                   <p>
-                    시간 기반 일회용 비밀번호(TOTP)를 생성하는 앱입니다.
-                    인터넷 연결 없이도 30초마다 새로운 6자리 코드를 생성하여 높은 보안성을 제공합니다.
+                    시간 기반 일회용 비밀번호(TOTP)를 생성하는 앱입니다. 인터넷
+                    연결 없이도 30초마다 새로운 6자리 코드를 생성하여 높은
+                    보안성을 제공합니다.
                   </p>
                 </div>
               </div>
@@ -210,7 +228,8 @@ export default function AuthenticatorManagement({
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h4 className="font-medium text-gray-800 mb-2">연동 완료</h4>
               <p className="text-sm text-gray-700">
-                내 계정에 Google Authenticator가 연동되어 로그인 시 6자리 코드가 필요합니다.
+                내 계정에 Google Authenticator가 연동되어 로그인 시 6자리 코드가
+                필요합니다.
               </p>
             </div>
 
@@ -230,7 +249,9 @@ export default function AuthenticatorManagement({
       <Modal isOpen={showSetupModal}>
         <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">Google Authenticator 설정</h3>
+            <h3 className="text-xl font-semibold text-gray-900">
+              Google Authenticator 설정
+            </h3>
             <button
               onClick={() => setShowSetupModal(false)}
               className="text-gray-400 hover:text-gray-600"
@@ -250,7 +271,9 @@ export default function AuthenticatorManagement({
                     includeMargin={true}
                   />
                 ) : (
-                  <div className="text-sm text-gray-500">QR 코드 생성 중...</div>
+                  <div className="text-sm text-gray-500">
+                    QR 코드 생성 중...
+                  </div>
                 )}
               </div>
               <p className="text-sm text-gray-600 mb-2">
@@ -265,7 +288,11 @@ export default function AuthenticatorManagement({
               <input
                 type="text"
                 value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setVerificationCode(
+                    e.target.value.replace(/\D/g, "").slice(0, 6)
+                  )
+                }
                 placeholder="123456"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-center text-lg tracking-widest"
                 maxLength={6}
@@ -315,8 +342,8 @@ export default function AuthenticatorManagement({
                 <div className="text-sm text-gray-700">
                   <p className="font-medium mb-1">중요!</p>
                   <p>
-                    아래 백업 코드를 안전한 곳에 저장하세요.
-                    휴대폰을 분실했을 때 이 코드로 로그인할 수 있습니다.
+                    아래 백업 코드를 안전한 곳에 저장하세요. 휴대폰을 분실했을
+                    때 이 코드로 로그인할 수 있습니다.
                   </p>
                 </div>
               </div>
@@ -324,7 +351,9 @@ export default function AuthenticatorManagement({
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">백업 코드</span>
+                <span className="text-sm font-medium text-gray-700">
+                  백업 코드
+                </span>
                 <button
                   onClick={copyAllBackupCodes}
                   className="text-xs text-primary-600 hover:text-primary-700 flex items-center"
@@ -358,5 +387,5 @@ export default function AuthenticatorManagement({
         </div>
       </Modal>
     </div>
-  )
+  );
 }
