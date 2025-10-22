@@ -267,13 +267,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   //     },
   //   ],
   // },
-  {
-    id: 'reports',
-    label: '보고서',
-    href: '/admin/reports',
-    icon: FileText,
-    requiredPermissions: [{ resource: AdminResource.REPORTS, action: AdminAction.READ }],
-  },
+  // {
+  //   id: 'reports',
+  //   label: '보고서',
+  //   href: '/admin/reports',
+  //   icon: FileText,
+  //   requiredPermissions: [{ resource: AdminResource.REPORTS, action: AdminAction.READ }],
+  // },
   {
     id: 'settings',
     label: '설정',
