@@ -10,19 +10,31 @@ interface SettingLayoutProps {
 
 export default function SettingLayout({ children }: SettingLayoutProps) {
   const { isVerified, isExpired } = useOTPAuth()
-  const [isOTPChecked, setIsOTPChecked] = useState(false)
+  const [isOTPChecked, setIsOTPChecked] = useState<boolean | null>(null)
 
   useEffect(() => {
     // OTP 인증 확인
-    if (!isVerified || isExpired()) {
-      setIsOTPChecked(false)
-    } else {
-      setIsOTPChecked(true)
+    const checkOTP = () => {
+      if (!isVerified || isExpired()) {
+        console.log('[Setting Layout] OTP 인증 필요:', { isVerified, expired: isExpired() })
+        setIsOTPChecked(false)
+      } else {
+        console.log('[Setting Layout] OTP 인증 완료:', { isVerified })
+        setIsOTPChecked(true)
+      }
     }
+
+    checkOTP()
   }, [isVerified, isExpired])
 
   const handleOTPSuccess = () => {
+    console.log('[Setting Layout] OTP 인증 성공')
     setIsOTPChecked(true)
+  }
+
+  // 초기 로딩 중
+  if (isOTPChecked === null) {
+    return null
   }
 
   // OTP 인증이 완료되지 않으면 인증 화면 표시
