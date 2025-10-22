@@ -161,12 +161,11 @@ export function RequestTable({
       </div>
 
       {/* 결과 요약 및 페이징 */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground whitespace-nowrap">
-          전체 {filteredRequests.length}건 중 {startIndex + 1}-{Math.min(endIndex, filteredRequests.length)}건 표시
-        </div>
-
-        {filteredRequests.length > 0 && (
+      {filteredRequests.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground whitespace-nowrap">
+            전체 {filteredRequests.length}건 중 {startIndex + 1}-{Math.min(endIndex, filteredRequests.length)}건 표시
+          </div>
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -212,8 +211,8 @@ export function RequestTable({
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
