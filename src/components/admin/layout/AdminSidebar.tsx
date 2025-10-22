@@ -244,29 +244,29 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   //     },
   //   ],
   // },
-  {
-    id: 'compliance',
-    label: '컴플라이언스',
-    href: '/admin/compliance',
-    icon: Shield,
-    requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
-    children: [
-      {
-        id: 'compliance-reports',
-        label: '규제 보고서',
-        href: '/admin/compliance/reports',
-        icon: FileText,
-        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
-      },
-      {
-        id: 'compliance-policies',
-        label: 'AML 정책',
-        href: '/admin/compliance/policies',
-        icon: Settings,
-        requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.UPDATE }],
-      },
-    ],
-  },
+  // {
+  //   id: 'compliance',
+  //   label: '컴플라이언스',
+  //   href: '/admin/compliance',
+  //   icon: Shield,
+  //   requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+  //   children: [
+  //     {
+  //       id: 'compliance-reports',
+  //       label: '규제 보고서',
+  //       href: '/admin/compliance/reports',
+  //       icon: FileText,
+  //       requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+  //     },
+  //     {
+  //       id: 'compliance-policies',
+  //       label: 'AML 정책',
+  //       href: '/admin/compliance/policies',
+  //       icon: Settings,
+  //       requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.UPDATE }],
+  //     },
+  //   ],
+  // },
   {
     id: 'reports',
     label: '보고서',
