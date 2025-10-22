@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SecurityPolicyProvider } from "@/contexts/SecurityPolicyContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { OTPAuthProvider } from "@/contexts/OTPAuthContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ErrorGuard from "@/components/ErrorGuard";
 import MetaMaskErrorHandler from "@/components/MetaMaskErrorHandler";
@@ -129,9 +130,11 @@ export default function RootLayout({
               <SecurityPolicyProvider>
                 <ServicePlanProvider>
                   <AuthProvider>
-                    <CompanyProvider>
-                      <SidebarProvider>{children}</SidebarProvider>
-                    </CompanyProvider>
+                    <OTPAuthProvider>
+                      <CompanyProvider>
+                        <SidebarProvider>{children}</SidebarProvider>
+                      </CompanyProvider>
+                    </OTPAuthProvider>
                   </AuthProvider>
                 </ServicePlanProvider>
               </SecurityPolicyProvider>
