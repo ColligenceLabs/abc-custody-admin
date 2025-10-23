@@ -279,22 +279,22 @@ export default function DepositHistoryTable({
               <table className="w-full min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-36">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-32">
                       일시
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
                       자산
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-36">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
                       수량
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-56">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-64">
                       트랜잭션 해시
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-24">
                       발신지 검증
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-20">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
                       상태
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-20">
@@ -353,13 +353,13 @@ export default function DepositHistoryTable({
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-1">
                           <code
                             ref={(el) => {
                               txHashRefs.current[deposit.id] = el;
                             }}
-                            className="text-xs font-mono text-gray-700 break-all flex-1"
+                            className="text-xs font-mono text-gray-700 flex-1 overflow-hidden"
                             title={deposit.txHash}
                           >
                             {truncateDynamic(
