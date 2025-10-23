@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOTPAuth } from '@/contexts/OTPAuthContext';
 import { verifyOTP, OTPServiceError } from '@/services/otpService';
@@ -35,7 +35,7 @@ export function OTPVerificationContent({ onSuccess }: OTPVerificationContentProp
     }
   }, [remainingSeconds]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (otpCode.length !== 6) {
       setError('OTP 코드는 6자리 숫자여야 합니다.');
       setErrorType('error');
@@ -102,7 +102,17 @@ export function OTPVerificationContent({ onSuccess }: OTPVerificationContentProp
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [otpCode, user, setVerified, onSuccess]);
+
+  // 6자리 입력 완료 시 자동 인증
+  useEffect(() => {
+    if (otpCode.length === 6 && !isLoading && errorType !== 'locked') {
+      const timer = setTimeout(() => {
+        handleSubmit();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCode, isLoading, errorType, handleSubmit]);
 
   const handleOTPChange = (value: string) => {
     setOTPCode(value);
