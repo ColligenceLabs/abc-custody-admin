@@ -133,6 +133,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
   const pieData = mockAssets.map((asset, index) => ({
     name: asset.symbol,
     value: asset.value,
+    balance: asset.balance,
     color: colors[index]
   }))
 
@@ -193,12 +194,22 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           fill="#6B7280"
           style={{ fontSize: '12px' }}
         >
-          {formatKRW(value)}
+          {formatCryptoAmount(payload.balance, payload.name)}
         </text>
         <text
           x={ex + (cos >= 0 ? 1 : -1) * 12}
           y={ey}
           dy={33}
+          textAnchor={textAnchor}
+          fill="#6B7280"
+          style={{ fontSize: '12px' }}
+        >
+          {formatKRW(value)}
+        </text>
+        <text
+          x={ex + (cos >= 0 ? 1 : -1) * 12}
+          y={ey}
+          dy={48}
           textAnchor={textAnchor}
           fill="#6B7280"
           style={{ fontSize: '12px' }}
@@ -653,6 +664,9 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-medium text-gray-900">
+                        {showBalances ? formatCryptoAmount(entry.balance, entry.name) : '***'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
                         {showBalances ? `₩${entry.value.toLocaleString()}` : '₩***,***'}
                       </div>
                     </div>
