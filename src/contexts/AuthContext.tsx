@@ -515,10 +515,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: '전화번호가 등록되지 않았습니다.' }
     }
 
+    console.log('[sendSms] 전화번호:', authStep.user.phone)
+
     try {
       // Backend API 사용 (Naver SMS)
       const { sendSmsPin } = await import('@/lib/api/auth')
+      console.log('[sendSms] API 호출 전')
       const result = await sendSmsPin(authStep.user.phone)
+      console.log('[sendSms] API 응답:', result)
 
       if (result.success) {
         return { success: true, message: `${authStep.user.phone}로 인증 코드를 발송했습니다.` }
@@ -526,7 +530,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, message: 'SMS 발송에 실패했습니다.' }
       }
     } catch (error) {
-      console.error('SMS 발송 오류:', error)
+      console.error('[sendSms] SMS 발송 오류:', error)
       return { success: false, message: 'SMS 발송 중 오류가 발생했습니다.' }
     }
   }

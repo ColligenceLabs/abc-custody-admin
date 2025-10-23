@@ -1,6 +1,25 @@
 import { OrganizationUser, UserRole, DEFAULT_PERMISSIONS_BY_ROLE } from '@/types/organizationUser';
 
 export const MOCK_ORGANIZATION_USERS: OrganizationUser[] = [
+  // 테스트 계정 (간편 로그인용)
+  {
+    id: '0',
+    organizationUserId: 'OU000',
+    organizationId: 'ORG001',
+    memberId: 'M001',
+    name: '테스트관리자',
+    email: 'test@company.com',
+    phone: '+82 010-1234-5678',
+    role: 'admin',
+    status: 'active',
+    lastLogin: '2025-10-22T10:00:00Z',
+    permissions: DEFAULT_PERMISSIONS_BY_ROLE.admin,
+    department: '경영진',
+    position: '테스트계정',
+    hasGASetup: true,
+    gaSetupDate: '2025-10-01T09:00:00Z',
+    isFirstLogin: false
+  },
   // ORG001 소속 사용자 (10명)
   {
     id: '1',
@@ -9,7 +28,7 @@ export const MOCK_ORGANIZATION_USERS: OrganizationUser[] = [
     memberId: 'M001',
     name: '김대표',
     email: 'ceo@company.com',
-    phone: '+82 010-1111-1111',
+    phone: '+82 010-2345-6789',
     role: 'admin',
     status: 'active',
     lastLogin: '2025-09-15T10:30:00Z',
@@ -27,7 +46,7 @@ export const MOCK_ORGANIZATION_USERS: OrganizationUser[] = [
     memberId: 'M001',
     name: '박재무',
     email: 'cfo@company.com',
-    phone: '+82 010-1111-2222',
+    phone: '+82 010-3456-7890',
     role: 'manager',
     status: 'active',
     lastLogin: '2025-09-14T09:15:00Z',
@@ -45,7 +64,7 @@ export const MOCK_ORGANIZATION_USERS: OrganizationUser[] = [
     memberId: 'M001',
     name: '이기술',
     email: 'cto@company.com',
-    phone: '+82 010-1111-3333',
+    phone: '+82 010-4567-8901',
     role: 'manager',
     status: 'active',
     lastLogin: '2025-09-13T08:45:00Z',
