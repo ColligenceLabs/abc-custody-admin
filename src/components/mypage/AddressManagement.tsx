@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { WhitelistedAddress, AddressFormData } from "@/types/address";
 import AddressModal from "./address/AddressModal";
 import AddressTable from "./address/AddressTable";
@@ -280,18 +280,19 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">주소 관리</h2>
-          <p className="text-gray-600 mt-1">지갑 주소를 등록하고 입출금 내역을 관리합니다</p>
-        </div>
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+          <MapPinIcon className="h-6 w-6 mr-2 text-primary-600" />
+          주소 관리
+        </h2>
+        <p className="text-sm text-gray-600 mt-1">지갑 주소를 등록하고 관리합니다</p>
       </div>
 
       {/* 로딩 상태 */}
       {isLoading && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-primary-600"></div>
           <p className="mt-4 text-gray-600">주소 목록을 불러오는 중...</p>
         </div>
@@ -299,7 +300,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
 
       {/* 에러 상태 */}
       {error && !isLoading && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
@@ -313,9 +314,9 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
         </div>
       )}
 
-      {/* 탭 네비게이션 */}
+      {/* 탭 네비게이션 및 컨텐츠 */}
       {!isLoading && (
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="border-b border-gray-200">
           <nav className="flex">
             <button
@@ -440,8 +441,6 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
             />
           </>
         )}
-
-
       </div>
       )}
 
