@@ -282,11 +282,9 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">주소 관리</h2>
-          <p className="text-gray-600 mt-1">지갑 주소를 등록하고 입출금 내역을 관리합니다</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">주소 관리</h1>
+        <p className="text-gray-600 mt-1">지갑 주소를 등록하고 입출금 내역을 관리합니다</p>
       </div>
 
       {/* 로딩 상태 */}
@@ -315,12 +313,12 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
 
       {/* 탭 네비게이션 */}
       {!isLoading && (
-      <div className="bg-white rounded-lg border border-gray-200">
+      <>
         <div className="border-b border-gray-200">
-          <nav className="flex">
+          <nav className="flex space-x-8">
             <button
               onClick={() => handleTabChange("personal")}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "personal"
                   ? "border-primary-500 text-primary-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -330,7 +328,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
             </button>
             <button
               onClick={() => handleTabChange("vasp")}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "vasp"
                   ? "border-primary-500 text-primary-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -343,7 +341,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
 
         {/* 개인 지갑 탭 컨텐츠 */}
         {activeTab === "personal" && (
-          <>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -388,12 +386,12 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
               tabKey="personal"
               onPageChange={handlePageChange}
             />
-          </>
+          </div>
         )}
 
         {/* VASP 지갑 탭 컨텐츠 */}
         {activeTab === "vasp" && (
-          <>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -438,11 +436,9 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
               tabKey="vasp"
               onPageChange={handlePageChange}
             />
-          </>
+          </div>
         )}
-
-
-      </div>
+      </>
       )}
 
       {/* 주소 추가 모달 */}
