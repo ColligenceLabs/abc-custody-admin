@@ -1,8 +1,8 @@
 /**
  * RenewalDueList Component
- * 갱신 예정 목록
+ * 고객확인 재이행 목록
  *
- * 정기 갱신이 필요한 회원 목록 표시
+ * 고객확인 재이행이 필요한 회원 목록 표시
  */
 
 "use client";
@@ -56,7 +56,7 @@ export function RenewalDueList({
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            갱신 예정 목록
+            고객확인 재이행 목록
           </CardTitle>
           <Select
             value={daysThreshold.toString()}
@@ -84,7 +84,7 @@ export function RenewalDueList({
         ) : items.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>갱신 예정인 회원이 없습니다.</p>
+            <p>고객확인 재이행이 필요한 회원이 없습니다.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -93,7 +93,7 @@ export function RenewalDueList({
                 <tr>
                   <th className="text-left p-4 font-medium text-sm">회원명 / 타입</th>
                   <th className="text-left p-4 font-medium text-sm">승인일</th>
-                  <th className="text-left p-4 font-medium text-sm">갱신 예정일</th>
+                  <th className="text-left p-4 font-medium text-sm">재이행 예정일</th>
                   <th className="text-left p-4 font-medium text-sm">긴급도</th>
                   <th className="text-left p-4 font-medium text-sm">현재 위험도</th>
                   <th className="text-left p-4 font-medium text-sm">최근 평가</th>

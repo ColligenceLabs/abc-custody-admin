@@ -1,0 +1,120 @@
+{
+  "totalLoanAmount": 146000000,
+  "totalCollateralValue": 222000000,
+  "averageHealthFactor": 1.51,
+  "liquidationRiskCount": 1,
+  "riskDistribution": {
+    "safe": 3,
+    "caution": 1,
+    "danger": 1,
+    "liquidation": 0
+  },
+  "recentActivities": [
+    {
+      "id": "act-001",
+      "type": "loan_created",
+      "loanId": "loan-001",
+      "customerId": "user_1760578269269_rsdgdq6xz",
+      "customerName": "김철수",
+      "description": "비트코인 담보 단기대출 실행",
+      "amount": 30000000,
+      "asset": "BTC",
+      "timestamp": "2025-10-22T09:30:00Z"
+    },
+    {
+      "id": "act-002",
+      "type": "collateral_added",
+      "loanId": "loan-004",
+      "customerId": "user_1760578269272_ghi789rst",
+      "customerName": "최지훈",
+      "description": "담보 추가 (0.05 BTC)",
+      "amount": 0.05,
+      "asset": "BTC",
+      "timestamp": "2025-10-22T08:15:00Z"
+    },
+    {
+      "id": "act-003",
+      "type": "repayment",
+      "loanId": "loan-003",
+      "customerId": "user_1760578269271_def456uvw",
+      "customerName": "이민수",
+      "description": "부분 상환 (5,000,000원)",
+      "amount": 5000000,
+      "timestamp": "2025-10-21T16:45:00Z"
+    },
+    {
+      "id": "act-004",
+      "type": "liquidation",
+      "loanId": "loan-006",
+      "customerId": "user_1760578269274_pqr345stu",
+      "customerName": "강민지",
+      "description": "청산 프로세스 시작 (HF: 0.98)",
+      "amount": 15000000,
+      "asset": "ETH",
+      "timestamp": "2025-10-21T14:20:00Z"
+    },
+    {
+      "id": "act-005",
+      "type": "liquidation_completed",
+      "loanId": "loan-006",
+      "customerId": "user_1760578269274_pqr345stu",
+      "customerName": "강민지",
+      "description": "청산 완료 - 고객 반환: 3,250,000원",
+      "amount": 3250000,
+      "timestamp": "2025-10-21T14:35:00Z"
+    },
+    {
+      "id": "act-006",
+      "type": "repayment",
+      "loanId": "loan-005",
+      "customerId": "user_1760578269273_jkl012mno",
+      "customerName": "정수진",
+      "description": "이자 납부 (400,000원)",
+      "amount": 400000,
+      "timestamp": "2025-10-20T11:30:00Z"
+    },
+    {
+      "id": "act-007",
+      "type": "loan_created",
+      "loanId": "loan-002",
+      "customerId": "user_1760578269270_abc123xyz",
+      "customerName": "박영희",
+      "description": "이더리움 담보 단기대출 실행",
+      "amount": 20000000,
+      "asset": "ETH",
+      "timestamp": "2025-10-20T10:00:00Z"
+    },
+    {
+      "id": "act-008",
+      "type": "collateral_added",
+      "loanId": "loan-002",
+      "customerId": "user_1760578269270_abc123xyz",
+      "customerName": "박영희",
+      "description": "담보 추가 (2 ETH)",
+      "amount": 2,
+      "asset": "ETH",
+      "timestamp": "2025-10-19T15:20:00Z"
+    },
+    {
+      "id": "act-009",
+      "type": "repayment",
+      "loanId": "loan-001",
+      "customerId": "user_1760578269269_rsdgdq6xz",
+      "customerName": "김철수",
+      "description": "이자 납부 (125,000원)",
+      "amount": 125000,
+      "timestamp": "2025-10-18T09:45:00Z"
+    },
+    {
+      "id": "act-010",
+      "type": "loan_created",
+      "loanId": "loan-004",
+      "customerId": "user_1760578269272_ghi789rst",
+      "customerName": "최지훈",
+      "description": "비트코인 담보 중기대출 실행",
+      "amount": 18000000,
+      "asset": "BTC",
+      "timestamp": "2025-10-17T13:00:00Z"
+    }
+  ]
+}

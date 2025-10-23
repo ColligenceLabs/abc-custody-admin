@@ -2,7 +2,7 @@
  * Monitoring Page
  * 온보딩 모니터링 페이지
  *
- * Phase 6: 갱신 일정 관리 및 재평가 큐
+ * Phase 6: 고객확인 재이행 관리 및 위험 고객 재평가
  */
 
 "use client";
@@ -60,7 +60,7 @@ export default function MonitoringPage() {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">온보딩 모니터링</h2>
             <p className="text-muted-foreground">
-              갱신 예정 및 재평가 큐 관리
+              고객확인 재이행 및 위험 고객 재평가 관리
             </p>
           </div>
         </div>
@@ -74,20 +74,20 @@ export default function MonitoringPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">갱신 예정 (30일 이내)</CardTitle>
+            <CardTitle className="text-sm font-medium">고객확인 재이행 (30일 이내)</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{renewalItems.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              정기 갱신이 필요한 회원
+              고객확인 재이행이 필요한 회원
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">재평가 대기</CardTitle>
+            <CardTitle className="text-sm font-medium">위험 고객 재평가 대기</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>

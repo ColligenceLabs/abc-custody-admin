@@ -1,8 +1,8 @@
 /**
  * ReassessmentQueue Component
- * 재평가 큐
+ * 위험 고객 재평가
  *
- * 재평가가 필요한 회원의 외부 시스템 처리 상태 표시
+ * 재평가가 필요한 위험 고객의 외부 시스템 처리 상태 표시
  */
 
 "use client";
@@ -103,7 +103,7 @@ export function ReassessmentQueue({
       <CardHeader>
         <CardTitle className="text-xl font-semibold flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />
-          재평가 큐
+          위험 고객 재평가
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -116,7 +116,7 @@ export function ReassessmentQueue({
         ) : items.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>재평가 대기 중인 항목이 없습니다.</p>
+            <p>위험 고객 재평가 대기 중인 항목이 없습니다.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

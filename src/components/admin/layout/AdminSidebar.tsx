@@ -28,6 +28,7 @@ import {
   TrendingUp,
   FileSignature,
   CheckSquare,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,7 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   },
   {
     id: 'members',
-    label: '회원사 관리',
+    label: '회원 관리',
     href: '/admin/members',
     icon: Building2,
     requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.READ }],
@@ -274,6 +275,50 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   //   icon: FileText,
   //   requiredPermissions: [{ resource: AdminResource.REPORTS, action: AdminAction.READ }],
   // },
+  {
+    id: 'lending',
+    label: '대출 관리',
+    href: '/admin/lending',
+    icon: TrendingUp,
+    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'lending-dashboard',
+        label: '대출 대시보드',
+        href: '/admin/lending/dashboard',
+        icon: LayoutDashboard,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'lending-loans',
+        label: '대출 목록',
+        href: '/admin/lending/loans',
+        icon: FileText,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'lending-liquidation',
+        label: '청산 관리',
+        href: '/admin/lending/liquidation',
+        icon: AlertTriangle,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'lending-liquidation-history',
+        label: '청산 내역',
+        href: '/admin/lending/liquidation-history',
+        icon: CheckSquare,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'lending-products',
+        label: '상품 관리',
+        href: '/admin/lending/products',
+        icon: BadgeIcon,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+    ],
+  },
   {
     id: 'settings',
     label: '설정',

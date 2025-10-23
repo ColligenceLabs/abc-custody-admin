@@ -1,0 +1,40 @@
+[
+  {
+    "id": "liq-call-001",
+    "loanId": "loan-002",
+    "customerId": "user_1760578269270_abc123xyz",
+    "customerName": "박영희",
+    "collateralAsset": {
+      "asset": "ETH",
+      "amount": 10,
+      "currentPrice": 3200000,
+      "value": 32000000,
+      "volatility": 0.055,
+      "supportedLTV": 70
+    },
+    "loanAmount": 20000000,
+    "healthFactor": 1.12,
+    "receivedAt": "2025-10-22T08:30:00Z",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "id": "liq-call-002",
+    "loanId": "loan-004",
+    "customerId": "user_1760578269272_ghi789rst",
+    "customerName": "최지훈",
+    "collateralAsset": {
+      "asset": "BTC",
+      "amount": 0.3,
+      "currentPrice": 95000000,
+      "value": 28500000,
+      "volatility": 0.045,
+      "supportedLTV": 75
+    },
+    "loanAmount": 18000000,
+    "healthFactor": 1.15,
+    "receivedAt": "2025-10-22T07:15:00Z",
+    "status": "processing",
+    "priority": "high"
+  }
+]

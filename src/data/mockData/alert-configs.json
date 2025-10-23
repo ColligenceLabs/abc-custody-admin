@@ -1,0 +1,37 @@
+[
+  {
+    "id": "alert-hf-1.5",
+    "type": "health_factor",
+    "threshold": 1.5,
+    "channels": ["system"],
+    "enabled": true
+  },
+  {
+    "id": "alert-hf-1.2",
+    "type": "health_factor",
+    "threshold": 1.2,
+    "channels": ["email", "system"],
+    "enabled": true
+  },
+  {
+    "id": "alert-hf-1.0",
+    "type": "health_factor",
+    "threshold": 1.0,
+    "channels": ["email", "sms", "system"],
+    "enabled": true
+  },
+  {
+    "id": "alert-price-change",
+    "type": "price_change",
+    "threshold": 5.0,
+    "channels": ["system"],
+    "enabled": true
+  },
+  {
+    "id": "alert-liquidation",
+    "type": "liquidation",
+    "threshold": 0,
+    "channels": ["email", "sms", "system"],
+    "enabled": true
+  }
+]

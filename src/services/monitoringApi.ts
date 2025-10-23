@@ -4,93 +4,197 @@
  */
 
 import { RenewalDueItem, ReassessmentQueueItem, RescanRequest } from '@/types/onboardingAml';
+import { getIndividualOnboardings, getCorporateOnboardings } from '@/data/mockData/onboardingAml';
 
 const API_BASE = '/api/admin/onboarding/monitoring';
 
 /**
- * 갱신 예정 목록 조회
+ * 고객확인 재이행 목록 조회
+ * 승인된 회원 중 1년 주기 재이행이 필요한 회원 반환
  */
 export async function fetchRenewalDue(daysThreshold: number = 30): Promise<RenewalDueItem[]> {
-  // Mock 데이터 반환
   return new Promise((resolve) => {
     setTimeout(() => {
-      const mockData: RenewalDueItem[] = [
-        {
-          id: 'renewal_1',
-          applicantName: '김철수',
-          memberType: 'individual',
-          approvedAt: '2024-06-15T09:00:00Z',
-          nextRenewalDue: '2025-06-15T09:00:00Z',
-          daysUntilRenewal: 45,
-          currentRiskLevel: 'LOW',
-          lastAssessmentDate: '2024-12-01T10:00:00Z',
-        },
-        {
-          id: 'renewal_2',
-          applicantName: '주식회사 테크노',
-          memberType: 'corporate',
-          approvedAt: '2024-05-20T14:30:00Z',
-          nextRenewalDue: '2025-05-20T14:30:00Z',
-          daysUntilRenewal: 20,
-          currentRiskLevel: 'MEDIUM',
-          lastAssessmentDate: '2024-11-15T11:00:00Z',
-        },
-        {
-          id: 'renewal_3',
-          applicantName: '이영희',
-          memberType: 'individual',
-          approvedAt: '2024-07-10T16:00:00Z',
-          nextRenewalDue: '2025-07-10T16:00:00Z',
-          daysUntilRenewal: 70,
-          currentRiskLevel: 'LOW',
-          lastAssessmentDate: '2024-12-05T09:30:00Z',
-        },
-      ];
-      resolve(mockData.filter(item => item.daysUntilRenewal <= daysThreshold));
+      const today = new Date();
+      const renewalItems: RenewalDueItem[] = [];
+
+      // 개인회원 처리
+      const individualApps = getIndividualOnboardings();
+      individualApps
+        .filter((app) => app.adminReview.status === 'APPROVED' && app.adminReview.reviewedAt)
+        .forEach((app) => {
+          const approvedAt = new Date(app.adminReview.reviewedAt!);
+          const nextRenewalDue = new Date(approvedAt);
+          nextRenewalDue.setFullYear(nextRenewalDue.getFullYear() + 1); // 1년 후
+
+          const daysUntilRenewal = Math.ceil(
+            (nextRenewalDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (daysUntilRenewal <= daysThreshold && daysUntilRenewal > 0) {
+            renewalItems.push({
+              id: app.id,
+              applicantName: app.userName,
+              memberType: 'individual',
+              approvedAt: app.adminReview.reviewedAt!,
+              nextRenewalDue: nextRenewalDue.toISOString(),
+              daysUntilRenewal,
+              currentRiskLevel: app.riskAssessment?.riskLevel || 'LOW',
+              lastAssessmentDate: app.riskAssessment?.assessedAt || app.createdAt,
+            });
+          }
+        });
+
+      // 법인회원 처리
+      const corporateApps = getCorporateOnboardings();
+      corporateApps
+        .filter((app) => app.adminReview.status === 'APPROVED' && app.adminReview.reviewedAt)
+        .forEach((app) => {
+          const approvedAt = new Date(app.adminReview.reviewedAt!);
+          const nextRenewalDue = new Date(approvedAt);
+          nextRenewalDue.setFullYear(nextRenewalDue.getFullYear() + 1);
+
+          const daysUntilRenewal = Math.ceil(
+            (nextRenewalDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (daysUntilRenewal <= daysThreshold && daysUntilRenewal > 0) {
+            renewalItems.push({
+              id: app.id,
+              applicantName: app.companyName,
+              memberType: 'corporate',
+              approvedAt: app.adminReview.reviewedAt!,
+              nextRenewalDue: nextRenewalDue.toISOString(),
+              daysUntilRenewal,
+              currentRiskLevel: app.riskAssessment?.overallRiskLevel || 'LOW',
+              lastAssessmentDate: app.riskAssessment?.assessedAt || app.createdAt,
+            });
+          }
+        });
+
+      // 재이행 예정일 가까운 순으로 정렬
+      renewalItems.sort((a, b) => a.daysUntilRenewal - b.daysUntilRenewal);
+
+      resolve(renewalItems);
     }, 300);
   });
 }
 
 /**
- * 재평가 큐 조회
+ * 위험 고객 재평가 큐 조회
+ * MEDIUM/HIGH 위험도 회원 중 재평가가 필요한 회원 반환
  */
 export async function fetchReassessmentQueue(): Promise<ReassessmentQueueItem[]> {
-  // Mock 데이터 반환
   return new Promise((resolve) => {
     setTimeout(() => {
-      const mockData: ReassessmentQueueItem[] = [
-        {
-          id: 'queue_1',
-          applicantName: '박지성',
-          memberType: 'individual',
-          currentRiskLevel: 'MEDIUM',
-          reassessmentReason: '고위험 국가 거래 이력 발견',
-          requestedAt: '2025-04-25T10:30:00Z',
-          priority: 'HIGH',
-          externalSystemStatus: 'IN_PROGRESS',
-        },
-        {
-          id: 'queue_2',
-          applicantName: '주식회사 글로벌트레이드',
-          memberType: 'corporate',
-          currentRiskLevel: 'HIGH',
-          reassessmentReason: 'UBO 변경 신고',
-          requestedAt: '2025-04-26T14:00:00Z',
-          priority: 'HIGH',
-          externalSystemStatus: 'PENDING',
-        },
-        {
-          id: 'queue_3',
-          applicantName: '최민수',
-          memberType: 'individual',
-          currentRiskLevel: 'LOW',
-          reassessmentReason: '정기 재평가 (1년 주기)',
-          requestedAt: '2025-04-27T09:00:00Z',
-          priority: 'LOW',
-          externalSystemStatus: 'COMPLETED',
-        },
+      const queueItems: ReassessmentQueueItem[] = [];
+
+      // 외부 시스템 상태 시뮬레이션
+      const statuses: Array<'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'> = [
+        'PENDING',
+        'IN_PROGRESS',
+        'COMPLETED',
+        'FAILED',
       ];
-      resolve(mockData);
+
+      // 개인회원 처리 - MEDIUM/HIGH 위험도만
+      const individualApps = getIndividualOnboardings();
+      individualApps
+        .filter(
+          (app) =>
+            app.riskAssessment &&
+            (app.riskAssessment.riskLevel === 'MEDIUM' || app.riskAssessment.riskLevel === 'HIGH') &&
+            app.adminReview.status !== 'REJECTED'
+        )
+        .forEach((app) => {
+          // 재평가 사유 생성
+          let reason = '';
+          if (app.riskAssessment!.riskLevel === 'HIGH') {
+            reason = app.aml?.countryRiskLevel === 'HIGH'
+              ? '고위험 국가 거래 이력'
+              : 'EDD 필요 고위험 고객';
+          } else {
+            reason = app.aml?.pepStatus === 'POSSIBLE_MATCH'
+              ? 'PEP 유사 매칭 확인 필요'
+              : '중위험 고객 정기 재평가';
+          }
+
+          // 상태에 따라 외부 시스템 상태 결정
+          let externalStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' = 'PENDING';
+          if (app.adminReview.status === 'UNDER_REVIEW') {
+            externalStatus = 'IN_PROGRESS';
+          } else if (app.adminReview.status === 'APPROVED') {
+            externalStatus = 'COMPLETED';
+          } else if (app.adminReview.status === 'ON_HOLD') {
+            externalStatus = 'FAILED';
+          }
+
+          queueItems.push({
+            id: app.id,
+            applicantName: app.userName,
+            memberType: 'individual',
+            currentRiskLevel: app.riskAssessment!.riskLevel,
+            reassessmentReason: reason,
+            requestedAt: app.riskAssessment!.assessedAt,
+            priority: app.riskAssessment!.riskLevel === 'HIGH' ? 'HIGH' : 'MEDIUM',
+            externalSystemStatus: externalStatus,
+          });
+        });
+
+      // 법인회원 처리 - MEDIUM/HIGH 위험도만
+      const corporateApps = getCorporateOnboardings();
+      corporateApps
+        .filter(
+          (app) =>
+            app.riskAssessment &&
+            (app.riskAssessment.overallRiskLevel === 'MEDIUM' ||
+              app.riskAssessment.overallRiskLevel === 'HIGH') &&
+            app.adminReview.status !== 'REJECTED'
+        )
+        .forEach((app) => {
+          // 재평가 사유 생성
+          let reason = '';
+          if (app.riskAssessment!.overallRiskLevel === 'HIGH') {
+            reason = app.ubo?.complexStructure || app.ubo?.trustStructure
+              ? 'UBO 구조 복잡, 재검증 필요'
+              : '고위험 업종 정밀 재평가';
+          } else {
+            reason = app.riskAssessment!.industryRiskLevel === 'MEDIUM'
+              ? '중위험 업종 정기 재평가'
+              : 'UBO 변경 확인 필요';
+          }
+
+          // 상태에 따라 외부 시스템 상태 결정
+          let externalStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' = 'PENDING';
+          if (app.adminReview.status === 'UNDER_REVIEW') {
+            externalStatus = 'IN_PROGRESS';
+          } else if (app.adminReview.status === 'APPROVED') {
+            externalStatus = 'COMPLETED';
+          } else if (app.adminReview.status === 'ON_HOLD') {
+            externalStatus = 'FAILED';
+          }
+
+          queueItems.push({
+            id: app.id,
+            applicantName: app.companyName,
+            memberType: 'corporate',
+            currentRiskLevel: app.riskAssessment!.overallRiskLevel,
+            reassessmentReason: reason,
+            requestedAt: app.riskAssessment!.assessedAt,
+            priority: app.riskAssessment!.overallRiskLevel === 'HIGH' ? 'HIGH' : 'MEDIUM',
+            externalSystemStatus: externalStatus,
+          });
+        });
+
+      // 우선순위 높은 순, 요청일 오래된 순으로 정렬
+      queueItems.sort((a, b) => {
+        if (a.priority !== b.priority) {
+          return a.priority === 'HIGH' ? -1 : 1;
+        }
+        return new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime();
+      });
+
+      resolve(queueItems);
     }, 300);
   });
 }

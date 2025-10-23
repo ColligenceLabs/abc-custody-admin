@@ -1,0 +1,114 @@
+[
+  {
+    "id": "liq-exec-001",
+    "liquidationCallId": "liq-call-002",
+    "loanId": "loan-004",
+    "steps": [
+      {
+        "step": 1,
+        "name": "담보 자산 확인",
+        "status": "completed",
+        "startedAt": "2025-10-22T07:20:00Z",
+        "completedAt": "2025-10-22T07:20:30Z",
+        "error": null
+      },
+      {
+        "step": 2,
+        "name": "거래소 선택",
+        "status": "completed",
+        "startedAt": "2025-10-22T07:20:30Z",
+        "completedAt": "2025-10-22T07:21:00Z",
+        "error": null
+      },
+      {
+        "step": 3,
+        "name": "자산 매각",
+        "status": "in_progress",
+        "startedAt": "2025-10-22T07:21:00Z",
+        "completedAt": null,
+        "error": null
+      },
+      {
+        "step": 4,
+        "name": "은행 상환",
+        "status": "pending",
+        "startedAt": null,
+        "completedAt": null,
+        "error": null
+      },
+      {
+        "step": 5,
+        "name": "고객 환급",
+        "status": "pending",
+        "startedAt": null,
+        "completedAt": null,
+        "error": null
+      }
+    ],
+    "selectedExchange": "upbit",
+    "estimatedAmount": 28000000,
+    "actualAmount": 0,
+    "bankRepayment": 0,
+    "customerRefund": 0,
+    "startedAt": "2025-10-22T07:20:00Z",
+    "completedAt": null,
+    "status": "in_progress",
+    "error": null
+  },
+  {
+    "id": "liq-exec-002",
+    "liquidationCallId": "liq-call-003",
+    "loanId": "loan-006",
+    "steps": [
+      {
+        "step": 1,
+        "name": "담보 자산 확인",
+        "status": "completed",
+        "startedAt": "2025-10-21T14:20:00Z",
+        "completedAt": "2025-10-21T14:20:25Z",
+        "error": null
+      },
+      {
+        "step": 2,
+        "name": "거래소 선택",
+        "status": "completed",
+        "startedAt": "2025-10-21T14:20:25Z",
+        "completedAt": "2025-10-21T14:20:50Z",
+        "error": null
+      },
+      {
+        "step": 3,
+        "name": "자산 매각",
+        "status": "completed",
+        "startedAt": "2025-10-21T14:20:50Z",
+        "completedAt": "2025-10-21T14:28:00Z",
+        "error": null
+      },
+      {
+        "step": 4,
+        "name": "은행 상환",
+        "status": "completed",
+        "startedAt": "2025-10-21T14:28:00Z",
+        "completedAt": "2025-10-21T14:32:00Z",
+        "error": null
+      },
+      {
+        "step": 5,
+        "name": "고객 환급",
+        "status": "completed",
+        "startedAt": "2025-10-21T14:32:00Z",
+        "completedAt": "2025-10-21T14:35:00Z",
+        "error": null
+      }
+    ],
+    "selectedExchange": "bithumb",
+    "estimatedAmount": 18250000,
+    "actualAmount": 18250000,
+    "bankRepayment": 15000000,
+    "customerRefund": 3250000,
+    "startedAt": "2025-10-21T14:20:00Z",
+    "completedAt": "2025-10-21T14:35:00Z",
+    "status": "completed",
+    "error": null
+  }
+]

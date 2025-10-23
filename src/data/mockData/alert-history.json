@@ -1,0 +1,170 @@
+[
+  {
+    "id": "alert-001",
+    "type": "health_factor",
+    "severity": "critical",
+    "loanId": "loan-002",
+    "customerId": "user_1760578269270_abc123",
+    "customerName": "박영희",
+    "message": "헬스팩터가 1.0 이하로 하락했습니다",
+    "details": {
+      "healthFactor": 0.95,
+      "threshold": 1.0,
+      "collateralAsset": "ETH",
+      "loanAmount": 20000000
+    },
+    "sentAt": "2025-10-22T14:25:00Z",
+    "channels": ["email", "sms", "system"],
+    "read": false
+  },
+  {
+    "id": "alert-002",
+    "type": "price_change",
+    "severity": "info",
+    "message": "BTC 가격이 5.2% 상승했습니다",
+    "details": {
+      "asset": "BTC",
+      "previousPrice": 90000000,
+      "currentPrice": 94680000,
+      "changePercent": 5.2
+    },
+    "sentAt": "2025-10-22T14:15:00Z",
+    "channels": ["system"],
+    "read": true
+  },
+  {
+    "id": "alert-003",
+    "type": "liquidation",
+    "severity": "critical",
+    "loanId": "loan-002",
+    "customerId": "user_1760578269270_abc123",
+    "customerName": "박영희",
+    "message": "청산 프로세스가 시작되었습니다",
+    "details": {
+      "liquidationCallId": "liq-call-001",
+      "healthFactor": 0.95,
+      "collateralAsset": "ETH",
+      "loanAmount": 20000000
+    },
+    "sentAt": "2025-10-22T13:45:00Z",
+    "channels": ["email", "sms", "system"],
+    "read": true
+  },
+  {
+    "id": "alert-004",
+    "type": "health_factor",
+    "severity": "warning",
+    "loanId": "loan-003",
+    "customerId": "user_1760578269271_def456",
+    "customerName": "이민수",
+    "message": "헬스팩터가 1.2 이하로 하락했습니다",
+    "details": {
+      "healthFactor": 1.08,
+      "threshold": 1.2,
+      "collateralAsset": "BTC",
+      "loanAmount": 15000000
+    },
+    "sentAt": "2025-10-22T12:30:00Z",
+    "channels": ["email", "system"],
+    "read": false
+  },
+  {
+    "id": "alert-005",
+    "type": "price_change",
+    "severity": "warning",
+    "message": "ETH 가격이 6.1% 하락했습니다",
+    "details": {
+      "asset": "ETH",
+      "previousPrice": 3400000,
+      "currentPrice": 3192600,
+      "changePercent": -6.1
+    },
+    "sentAt": "2025-10-22T11:20:00Z",
+    "channels": ["system"],
+    "read": true
+  },
+  {
+    "id": "alert-006",
+    "type": "health_factor",
+    "severity": "warning",
+    "loanId": "loan-005",
+    "customerId": "user_1760578269272_ghi789",
+    "customerName": "최지훈",
+    "message": "헬스팩터가 1.5 이하로 하락했습니다",
+    "details": {
+      "healthFactor": 1.42,
+      "threshold": 1.5,
+      "collateralAsset": "SOL",
+      "loanAmount": 10000000
+    },
+    "sentAt": "2025-10-22T10:15:00Z",
+    "channels": ["system"],
+    "read": true
+  },
+  {
+    "id": "alert-007",
+    "type": "liquidation",
+    "severity": "info",
+    "loanId": "loan-006",
+    "customerId": "user_1760578269273_jkl012",
+    "customerName": "강민지",
+    "message": "청산이 완료되었습니다",
+    "details": {
+      "liquidationExecutionId": "liq-exec-001",
+      "actualAmount": 31800000,
+      "bankRepayment": 20125000,
+      "customerRefund": 11675000
+    },
+    "sentAt": "2025-10-22T09:50:00Z",
+    "channels": ["email", "system"],
+    "read": true
+  },
+  {
+    "id": "alert-008",
+    "type": "price_change",
+    "severity": "info",
+    "message": "USDT 가격이 안정적으로 유지되고 있습니다",
+    "details": {
+      "asset": "USDT",
+      "previousPrice": 1320,
+      "currentPrice": 1322,
+      "changePercent": 0.15
+    },
+    "sentAt": "2025-10-22T09:00:00Z",
+    "channels": ["system"],
+    "read": true
+  },
+  {
+    "id": "alert-009",
+    "type": "health_factor",
+    "severity": "warning",
+    "loanId": "loan-007",
+    "customerId": "user_1760578269274_mno345",
+    "customerName": "정수연",
+    "message": "헬스팩터가 1.2 이하로 하락했습니다",
+    "details": {
+      "healthFactor": 1.18,
+      "threshold": 1.2,
+      "collateralAsset": "USDC",
+      "loanAmount": 12000000
+    },
+    "sentAt": "2025-10-21T18:30:00Z",
+    "channels": ["email", "system"],
+    "read": true
+  },
+  {
+    "id": "alert-010",
+    "type": "price_change",
+    "severity": "warning",
+    "message": "SOL 가격이 7.3% 상승했습니다",
+    "details": {
+      "asset": "SOL",
+      "previousPrice": 230000,
+      "currentPrice": 246790,
+      "changePercent": 7.3
+    },
+    "sentAt": "2025-10-21T16:45:00Z",
+    "channels": ["system"],
+    "read": true
+  }
+]

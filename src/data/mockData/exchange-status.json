@@ -1,0 +1,28 @@
+[
+  {
+    "exchange": "upbit",
+    "connected": true,
+    "latency": 45,
+    "lastChecked": "2025-10-22T10:00:00Z",
+    "currentPrice": {
+      "BTC": 95000000,
+      "ETH": 3200000,
+      "USDT": 1320,
+      "USDC": 1318,
+      "SOL": 180000
+    }
+  },
+  {
+    "exchange": "bithumb",
+    "connected": true,
+    "latency": 52,
+    "lastChecked": "2025-10-22T10:00:00Z",
+    "currentPrice": {
+      "BTC": 94950000,
+      "ETH": 3195000,
+      "USDT": 1322,
+      "USDC": 1320,
+      "SOL": 179500
+    }
+  }
+]

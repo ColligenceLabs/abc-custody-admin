@@ -43,24 +43,26 @@ export default function SettingsPage() {
         </Card>
 
         {/* 알림 설정 */}
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardHeader>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+        <Link href="/admin/settings/notifications">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                  <Bell className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">알림 설정</CardTitle>
+                  <CardDescription>알림 및 이메일 설정</CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-lg">알림 설정</CardTitle>
-                <CardDescription>알림 및 이메일 설정</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              시스템 알림, 이메일 알림, 중요 이벤트 알림 설정
-            </p>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                이메일, SMS 알림, 대출 리스크 알림 설정
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
         {/* 보안 설정 */}
         <Link href="/admin/settings/security">
