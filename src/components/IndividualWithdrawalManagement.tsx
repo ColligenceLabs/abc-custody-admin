@@ -238,6 +238,7 @@ export default function IndividualWithdrawalManagement({
         toAddress: newRequest.toAddress,
         amount: newRequest.amount,
         currency: newRequest.currency as any,
+        network: newRequest.network,
         userId: user?.id || "0",
         memberType: "individual" as const,
         groupId: "",
