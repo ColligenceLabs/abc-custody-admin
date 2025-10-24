@@ -24,14 +24,13 @@ export type Currency = 'BTC' | 'ETH' | 'USDT' | 'USDC' | 'SOL';
 // ============================================================================
 
 /**
- * 입금 상태
+ * 입금 상태 (백엔드와 일치)
  */
 export type DepositStatus =
-  | 'pending'      // 대기 (블록체인 컨펌 대기)
-  | 'verifying'    // 검증중 (주소 검증, AML, Travel Rule 등)
-  | 'completed'    // 완료 (Hot/Cold 배분 완료)
-  | 'returned'     // 환불 (검증 실패로 인한 반환)
-  | 'flagged';     // 플래그됨 (수동 검토 필요)
+  | 'detected'     // 입금 감지됨 (블록체인에서 트랜잭션 발견)
+  | 'confirming'   // 블록체인 검증중 (컨펌 수 증가 중)
+  | 'confirmed'    // 검증 완료 (필요 컨펌 수 도달)
+  | 'credited';    // 잔액 반영 완료 (사용자 계정에 입금)
 
 /**
  * 입금 우선순위
@@ -48,24 +47,44 @@ export type DepositPriority =
 export type MemberType = 'Individual' | 'Corporate';
 
 /**
- * 입금 거래
+ * 입금 거래 (백엔드 모델과 일치)
  */
 export interface DepositTransaction {
   id: string;
-  txHash: string;                    // 블록체인 트랜잭션 해시
-  memberId: string;
-  memberName: string;
-  memberType: MemberType;            // 회원 유형 (개인/기업)
-  asset: Currency;
-  amount: string;                    // 원본 자산 수량
-  amountKRW: string;                 // KRW 환산 금액
-  fromAddress: string;               // 송신 주소
-  toAddress: string;                 // 수신 주소 (자동 생성된 입금 주소)
+  userId: string;
+  depositAddressId: string;
+  txHash: string;
+  asset: string;
+  network: string;
+  amount: string;
+  fromAddress: string;
+  toAddress: string;
   status: DepositStatus;
-  priority: DepositPriority;
-  timestamp: string;
-  confirmations: number;             // 블록체인 컨펌 수
-  requiredConfirmations: number;     // 필요 컨펌 수
+  senderVerified: boolean;
+  currentConfirmations: number;
+  requiredConfirmations: number;
+  blockHeight: number;
+  detectedAt: string;
+  confirmedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+
+  // 사용자 정보 (백엔드 JOIN)
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    memberType: string; // 'individual' | 'corporate'
+  };
+
+  // 선택적 UI 전용 필드
+  memberId?: string;
+  memberName?: string;
+  memberType?: MemberType;
+  amountKRW?: string;
+  priority?: DepositPriority;
+  timestamp?: string;
+  confirmations?: number;
 
   // 검증 정보
   addressVerification: AddressVerification;
@@ -270,27 +289,8 @@ export interface ReturnTransaction {
 // ============================================================================
 
 /**
- * 입금 통계
+ * 입금 통계 (백엔드 응답과 일치)
  */
-export interface DepositStats {
-  today: DepositStatItem;
-  verifying: DepositStatItem;
-  toReturn: DepositStatItem;
-  completed: DepositStatItem;
-
-  // 추가 통계
-  totalToday: {
-    count: number;
-    volumeKRW: string;
-  };
-  averageAmount: string;
-  largestDeposit: {
-    amount: string;
-    currency: Currency;
-    memberName: string;
-  };
-}
-
 /**
  * 통계 항목
  */
@@ -299,6 +299,16 @@ export interface DepositStatItem {
   totalKRW: string;
   trend?: 'up' | 'down' | 'stable';  // 트렌드
   changePercent?: number;             // 변화율
+}
+
+/**
+ * 입금 통계 (4단계 상태별)
+ */
+export interface DepositStats {
+  detected: DepositStatItem;
+  confirming: DepositStatItem;
+  confirmed: DepositStatItem;
+  credited: DepositStatItem;
 }
 
 // ============================================================================
@@ -310,9 +320,10 @@ export interface DepositStatItem {
  */
 export interface DepositFilter {
   status?: DepositStatus[];
+  userId?: string;                   // 백엔드와 일치
   memberId?: string;
   memberType?: MemberType[];         // 회원 유형 필터
-  asset?: Currency[];
+  asset?: string;                    // 백엔드와 일치 (단일 값)
   priority?: DepositPriority[];
   dateRange?: {
     start: string;

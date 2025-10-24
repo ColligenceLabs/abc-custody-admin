@@ -44,44 +44,44 @@ export function DepositStats({ stats, isLoading }: DepositStatsProps) {
 
   const statCards = [
     {
-      title: '오늘 입금',
-      count: stats.today.count,
-      amount: stats.today.totalKRW,
-      trend: stats.today.trend,
-      changePercent: stats.today.changePercent,
-      icon: ArrowDownUp,
+      title: '입금 감지',
+      count: stats.detected.count,
+      amount: stats.detected.totalKRW,
+      trend: stats.detected.trend,
+      changePercent: stats.detected.changePercent,
+      icon: Clock,
       iconColor: 'text-blue-500',
       bgColor: 'bg-blue-50 dark:bg-blue-950',
     },
     {
-      title: '검증 대기',
-      count: stats.verifying.count,
-      amount: stats.verifying.totalKRW,
-      trend: stats.verifying.trend,
-      changePercent: stats.verifying.changePercent,
+      title: '검증중',
+      count: stats.confirming.count,
+      amount: stats.confirming.totalKRW,
+      trend: stats.confirming.trend,
+      changePercent: stats.confirming.changePercent,
       icon: Clock,
       iconColor: 'text-yellow-500',
       bgColor: 'bg-yellow-50 dark:bg-yellow-950',
     },
     {
-      title: '환불 예정',
-      count: stats.toReturn.count,
-      amount: stats.toReturn.totalKRW,
-      trend: stats.toReturn.trend,
-      changePercent: stats.toReturn.changePercent,
-      icon: XCircle,
-      iconColor: 'text-red-500',
-      bgColor: 'bg-red-50 dark:bg-red-950',
+      title: '검증 완료',
+      count: stats.confirmed.count,
+      amount: stats.confirmed.totalKRW,
+      trend: stats.confirmed.trend,
+      changePercent: stats.confirmed.changePercent,
+      icon: CheckCircle,
+      iconColor: 'text-sky-500',
+      bgColor: 'bg-sky-50 dark:bg-sky-950',
     },
     {
-      title: '완료',
-      count: stats.completed.count,
-      amount: stats.completed.totalKRW,
-      trend: stats.completed.trend,
-      changePercent: stats.completed.changePercent,
+      title: '반영 완료',
+      count: stats.credited.count,
+      amount: stats.credited.totalKRW,
+      trend: stats.credited.trend,
+      changePercent: stats.credited.changePercent,
       icon: CheckCircle,
-      iconColor: 'text-green-500',
-      bgColor: 'bg-green-50 dark:bg-green-950',
+      iconColor: 'text-indigo-500',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-950',
     },
   ];
 
@@ -114,8 +114,8 @@ export function DepositStats({ stats, isLoading }: DepositStatsProps) {
                 <div className="flex items-center space-x-1 text-xs">
                   {stat.trend === 'up' ? (
                     <>
-                      <TrendingUp className="h-3 w-3 text-green-500" />
-                      <span className="text-green-500">
+                      <TrendingUp className="h-3 w-3 text-sky-500" />
+                      <span className="text-sky-500">
                         +{stat.changePercent.toFixed(1)}%
                       </span>
                     </>

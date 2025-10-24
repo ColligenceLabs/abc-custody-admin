@@ -3,10 +3,10 @@
 /**
  * 입금 모니터링 메인 페이지
  *
- * 실시간 입금 감지, 통계, 필터링, 상세 정보 표시를 통합합니다.
+ * 실제 백엔드 DB 연동 + WebSocket 실시간 업데이트
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
-import { getDeposits, getDepositStats, getDepositById, generateMockDeposits, initializeMockDeposits } from '@/services/depositApi';
+import { getDeposits, getDepositStats, getDepositById } from '@/services/depositApiService';
+import { useDepositSocket } from '@/hooks/useDepositSocket';
 import { DepositFilter, DepositTransaction, DepositDetails } from '@/types/deposit';
 
 import { DepositStats } from './components/DepositStats';
@@ -29,36 +30,27 @@ import { DepositFeed } from './components/DepositFeed';
 import { DepositDetailModal } from './components/DepositDetailModal';
 
 export default function DepositMonitoringPage() {
-  // 필터 상태
-  const [filter, setFilter] = useState<DepositFilter>({});
+  // WebSocket 연결 및 실시간 업데이트
+  useDepositSocket();
 
-  // 페이징 상태
+  const [filter, setFilter] = useState<DepositFilter>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
-
-  // 선택된 입금 (상세 모달용)
   const [selectedDepositId, setSelectedDepositId] = useState<string | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Mock 데이터 초기화 (클라이언트 사이드에서만)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      initializeMockDeposits();
-    }
-  }, []);
-
-  // 통계 조회 (5초마다 자동 refetch)
+  // 통계 조회 (5분마다 백그라운드 동기화)
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['depositStats'],
     queryFn: getDepositStats,
-    refetchInterval: 5000,
+    refetchInterval: 5 * 60 * 1000, // 5분
   });
 
-  // 입금 목록 조회 (필터 변경 시 refetch, 5초마다 자동 refetch)
+  // 입금 목록 조회 (5분마다 백그라운드 동기화)
   const { data: depositsData, isLoading: isDepositsLoading, refetch } = useQuery({
     queryKey: ['deposits', filter, currentPage, pageSize],
     queryFn: () => getDeposits({ filter, page: currentPage, pageSize }),
-    refetchInterval: 5000,
+    refetchInterval: 5 * 60 * 1000, // 5분
   });
 
   // 선택된 입금 상세 조회
@@ -92,27 +84,8 @@ export default function DepositMonitoringPage() {
     setSelectedDepositId(null);
   };
 
-  // 수동 새로고침
   const handleManualRefresh = () => {
     refetch();
-  };
-
-  // Mock 데이터 강제 생성 (개발용)
-  const handleGenerateMockData = () => {
-    if (typeof window !== 'undefined') {
-      // 기존 데이터 삭제 후 새로 생성
-      localStorage.removeItem('deposits');
-      const mockDeposits = generateMockDeposits(50);
-
-      if (mockDeposits.length === 0) {
-        alert('⚠️ 회원사 데이터가 없습니다. 먼저 회원사 온보딩을 확인하세요.');
-        return;
-      }
-
-      localStorage.setItem('deposits', JSON.stringify(mockDeposits));
-      refetch();
-      alert(`✅ ${mockDeposits.length}개의 입금 데이터가 생성되었습니다!\n실제 회원사명으로 표시됩니다.`);
-    }
   };
 
   return (
@@ -128,30 +101,14 @@ export default function DepositMonitoringPage() {
           </p>
         </div>
 
-        {/* 버튼 그룹 */}
-        <div className="flex items-center space-x-2">
-          {/* Mock 데이터 생성 버튼 (개발용) */}
-          {process.env.NODE_ENV === 'development' && (
-            <Button
-              variant="outline"
-              onClick={handleGenerateMockData}
-              className="flex items-center space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Mock 데이터 생성</span>
-            </Button>
-          )}
-
-          {/* 새로고침 버튼 */}
-          <Button
-            variant="outline"
-            onClick={handleManualRefresh}
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>새로고침</span>
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={handleManualRefresh}
+          className="flex items-center space-x-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>새로고침</span>
+        </Button>
       </div>
 
       {/* 통계 카드 */}
@@ -160,19 +117,10 @@ export default function DepositMonitoringPage() {
       {/* 메인 콘텐츠 */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>실시간 입금 피드</CardTitle>
-              <CardDescription>
-                총 {depositsData?.total || 0}건
-                {depositsData?.total === 0 && (
-                  <span className="ml-2 text-yellow-600">
-                    - Mock 데이터가 없습니다. 위의 "Mock 데이터 생성" 버튼을 클릭하세요.
-                  </span>
-                )}
-              </CardDescription>
-            </div>
-          </div>
+          <CardTitle>실시간 입금 피드</CardTitle>
+          <CardDescription>
+            총 {depositsData?.total || 0}건 (자동 업데이트)
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 필터 영역 */}

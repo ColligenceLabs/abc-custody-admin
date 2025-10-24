@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Eye, AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { formatCryptoAmount } from '@/lib/format';
 
 interface DepositFeedProps {
   deposits: DepositTransaction[];
@@ -83,7 +84,7 @@ export function DepositFeed({
               {/* 시간 */}
               <td className="p-3">
                 <div className="text-sm text-gray-900 dark:text-gray-100">
-                  {new Date(deposit.timestamp).toLocaleString('ko-KR', {
+                  {new Date(deposit.detectedAt).toLocaleString('ko-KR', {
                     month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
@@ -94,18 +95,26 @@ export function DepositFeed({
 
               {/* 회원유형 */}
               <td className="p-3">
-                <MemberTypeBadge type={deposit.memberType} />
+                {deposit.user?.memberType ? (
+                  <MemberTypeBadge type={deposit.user.memberType} />
+                ) : (
+                  <span className="text-xs text-gray-500">-</span>
+                )}
               </td>
 
               {/* 회원명 */}
               <td className="p-3">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {deposit.memberName}
+                  {deposit.user?.name || deposit.userId || '알 수 없음'}
                 </div>
-                {(deposit.priority === 'high' || deposit.priority === 'urgent') && (
-                  <div className="flex items-center space-x-1 text-xs text-red-500 mt-1">
+                {deposit.senderVerified ? (
+                  <div className="flex items-center space-x-1 text-xs text-sky-600 mt-1">
+                    <span>검증됨</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1 text-xs text-yellow-600 mt-1">
                     <AlertTriangle className="h-3 w-3" />
-                    <span>{deposit.priority === 'urgent' ? '긴급' : '높음'}</span>
+                    <span>미검증</span>
                   </div>
                 )}
               </td>
@@ -113,18 +122,22 @@ export function DepositFeed({
               {/* 자산/금액 */}
               <td className="p-3">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {deposit.amount} {deposit.asset}
+                  {formatCryptoAmount(deposit.amount, deposit.asset)} {deposit.asset}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {deposit.confirmations}/{deposit.requiredConfirmations} 컨펌
+                  {deposit.currentConfirmations}/{deposit.requiredConfirmations} 컨펌
                 </div>
               </td>
 
               {/* 금액 (KRW) */}
               <td className="p-3 text-right">
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  ₩{parseInt(deposit.amountKRW).toLocaleString()}
-                </div>
+                {deposit.amountKRW ? (
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    ₩{parseInt(deposit.amountKRW).toLocaleString()}
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500">-</span>
+                )}
               </td>
 
               {/* 상태 */}
@@ -161,22 +174,22 @@ export function DepositFeed({
 /**
  * 회원 유형 배지
  */
-function MemberTypeBadge({ type }: { type: MemberType }) {
-  const typeConfig: Record<
-    MemberType,
-    { label: string; className: string }
-  > = {
-    Individual: {
+function MemberTypeBadge({ type }: { type: string }) {
+  // 백엔드에서 소문자로 반환하므로 대소문자 무관하게 처리
+  const normalizedType = type?.toLowerCase();
+
+  const typeConfig: Record<string, { label: string; className: string }> = {
+    individual: {
       label: '개인',
       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
     },
-    Corporate: {
+    corporate: {
       label: '기업',
       className: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
     },
   };
 
-  const config = typeConfig[type];
+  const config = typeConfig[normalizedType];
 
   // type이 유효하지 않은 경우 기본값 사용
   if (!config) {
@@ -195,48 +208,43 @@ function MemberTypeBadge({ type }: { type: MemberType }) {
 }
 
 /**
- * 입금 상태 배지
+ * 입금 상태 배지 (백엔드 4단계 상태)
  */
 function DepositStatusBadge({ status }: { status: DepositStatus }) {
   const statusConfig: Record<
     DepositStatus,
-    { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+    { label: string; className: string }
   > = {
-    pending: {
-      label: '대기중',
-      variant: 'outline',
+    detected: {
+      label: '입금 감지',
+      className: 'text-blue-600 bg-blue-50 border-blue-200',
     },
-    verifying: {
+    confirming: {
       label: '검증중',
-      variant: 'default',
+      className: 'text-yellow-600 bg-yellow-50 border-yellow-200',
     },
-    completed: {
-      label: '완료',
-      variant: 'secondary',
+    confirmed: {
+      label: '검증 완료',
+      className: 'text-sky-600 bg-sky-50 border-sky-200',
     },
-    returned: {
-      label: '환불',
-      variant: 'destructive',
-    },
-    flagged: {
-      label: '플래그',
-      variant: 'destructive',
+    credited: {
+      label: '반영 완료',
+      className: 'text-indigo-600 bg-indigo-50 border-indigo-200',
     },
   };
 
   const config = statusConfig[status];
 
-  // status가 유효하지 않은 경우 기본값 사용
   if (!config) {
     return (
-      <Badge variant="outline" className="min-w-[60px]">
+      <Badge className="min-w-[80px] text-gray-600 bg-gray-50 border-gray-200">
         {status || '알 수 없음'}
       </Badge>
     );
   }
 
   return (
-    <Badge variant={config.variant} className="min-w-[60px]">
+    <Badge className={`min-w-[80px] border ${config.className}`}>
       {config.label}
     </Badge>
   );

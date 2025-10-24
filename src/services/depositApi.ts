@@ -1,8 +1,13 @@
 /**
- * 입금 모니터링 API 서비스
+ * 입금 모니터링 API 서비스 (LEGACY - Mock Data)
  *
- * 실시간 입금 감지, AML 검증, Travel Rule 준수, 환불 처리 등
- * 모든 입금 관련 API를 처리합니다.
+ * ⚠️ DEPRECATED: 이 파일은 구형 Mock 데이터 API입니다.
+ *
+ * 새로운 개발에는 depositApiService.ts를 사용하세요.
+ * - depositApiService.ts는 실제 백엔드 API와 연동됩니다.
+ * - 이 파일은 다른 페이지 (returns, travel-rule, aml-screening 등)에서 임시로 사용 중입니다.
+ *
+ * @deprecated Use depositApiService.ts for new development
  */
 
 import {
@@ -116,7 +121,7 @@ const applyFilters = (
 
   // 회원 유형 필터
   if (filter.memberType && filter.memberType.length > 0) {
-    filtered = filtered.filter((d) => filter.memberType!.includes(d.memberType));
+    filtered = filtered.filter((d) => d.memberType && filter.memberType!.includes(d.memberType));
   }
 
   // 자산 필터
@@ -126,7 +131,7 @@ const applyFilters = (
 
   // 우선순위 필터
   if (filter.priority && filter.priority.length > 0) {
-    filtered = filtered.filter((d) => filter.priority!.includes(d.priority));
+    filtered = filtered.filter((d) => d.priority && filter.priority!.includes(d.priority));
   }
 
   // 날짜 범위 필터
@@ -134,7 +139,7 @@ const applyFilters = (
     const startTime = new Date(filter.dateRange.start).getTime();
     const endTime = new Date(filter.dateRange.end).getTime();
     filtered = filtered.filter((d) => {
-      const depositTime = new Date(d.timestamp).getTime();
+      const depositTime = new Date(d.detectedAt || d.createdAt).getTime();
       return depositTime >= startTime && depositTime <= endTime;
     });
   }
@@ -144,6 +149,7 @@ const applyFilters = (
     const minAmount = parseFloat(filter.amountRange.min);
     const maxAmount = parseFloat(filter.amountRange.max);
     filtered = filtered.filter((d) => {
+      if (!d.amountKRW) return false;
       const amount = parseFloat(d.amountKRW);
       return amount >= minAmount && amount <= maxAmount;
     });
@@ -157,7 +163,7 @@ const applyFilters = (
         d.txHash.toLowerCase().includes(query) ||
         d.fromAddress.toLowerCase().includes(query) ||
         d.toAddress.toLowerCase().includes(query) ||
-        d.memberName.toLowerCase().includes(query)
+        (d.memberName && d.memberName.toLowerCase().includes(query))
     );
   }
 
@@ -215,10 +221,10 @@ export const getDeposits = async (
     switch (sortBy) {
       case 'timestamp':
         comparison =
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+          new Date(a.detectedAt || a.createdAt).getTime() - new Date(b.detectedAt || b.createdAt).getTime();
         break;
       case 'amount':
-        comparison = parseFloat(a.amountKRW) - parseFloat(b.amountKRW);
+        comparison = parseFloat(a.amountKRW || '0') - parseFloat(b.amountKRW || '0');
         break;
       case 'status':
         comparison = a.status.localeCompare(b.status);
@@ -264,18 +270,18 @@ export const getDepositById = async (id: string): Promise<DepositDetails | null>
   const details: DepositDetails = {
     ...deposit,
     blockNumber: Math.floor(Math.random() * 1000000),
-    blockTime: deposit.timestamp,
+    blockTime: deposit.detectedAt || deposit.createdAt,
     networkFee: (parseFloat(deposit.amount) * 0.0001).toFixed(8),
     memberInfo: {
-      id: deposit.memberId,
-      companyName: deposit.memberName,
-      contactEmail: `contact@${deposit.memberName.toLowerCase().replace(/\s/g, '')}.com`,
+      id: deposit.memberId || deposit.userId,
+      companyName: deposit.memberName || 'Unknown',
+      contactEmail: `contact@${(deposit.memberName || 'unknown').toLowerCase().replace(/\s/g, '')}.com`,
       riskScore: deposit.amlCheck?.riskScore || 0,
     },
     verificationTimeline: generateVerificationTimeline(deposit),
     relatedTransactions: {
       previousDeposits: Math.floor(Math.random() * 50),
-      suspiciousActivity: deposit.status === 'flagged',
+      suspiciousActivity: false,
     },
   };
 
@@ -294,78 +300,53 @@ export const getDepositStats = async (): Promise<DepositStats> => {
 
   // 오늘 입금
   const todayDeposits = deposits.filter(
-    (d) => new Date(d.timestamp) >= todayStart
+    (d) => new Date(d.detectedAt || d.createdAt) >= todayStart
   );
   const todayTotal = todayDeposits.reduce(
-    (sum, d) => sum + parseFloat(d.amountKRW),
+    (sum, d) => sum + parseFloat(d.amountKRW || '0'),
     0
   );
 
-  // 검증중
-  const verifying = deposits.filter((d) => d.status === 'verifying');
+  // 검증중 (confirming)
+  const verifying = deposits.filter((d) => d.status === 'confirming');
   const verifyingTotal = verifying.reduce(
-    (sum, d) => sum + parseFloat(d.amountKRW),
+    (sum, d) => sum + parseFloat(d.amountKRW || '0'),
     0
   );
 
-  // 환불 예정
+  // 환불 예정 (travelRuleCheck가 requiresReturn인 경우)
   const toReturn = deposits.filter(
-    (d) => d.status === 'returned' || (d.travelRuleCheck?.requiresReturn && d.status === 'verifying')
+    (d) => d.travelRuleCheck?.requiresReturn
   );
   const toReturnTotal = toReturn.reduce(
-    (sum, d) => sum + parseFloat(d.amountKRW),
+    (sum, d) => sum + parseFloat(d.amountKRW || '0'),
     0
   );
 
-  // 완료
-  const completed = deposits.filter((d) => d.status === 'completed');
+  // 완료 (credited)
+  const completed = deposits.filter((d) => d.status === 'credited');
   const completedTotal = completed.reduce(
-    (sum, d) => sum + parseFloat(d.amountKRW),
+    (sum, d) => sum + parseFloat(d.amountKRW || '0'),
     0
   );
 
   // 가장 큰 입금
-  const largestDeposit = deposits.reduce((max, d) =>
-    parseFloat(d.amountKRW) > parseFloat(max.amountKRW) ? d : max
-  , deposits[0] || { amountKRW: '0', amount: '0', asset: 'BTC' as Currency, memberName: '-' });
+  const largestDeposit = deposits.length > 0 ? deposits.reduce((max, d) =>
+    parseFloat(d.amountKRW || '0') > parseFloat(max.amountKRW || '0') ? d : max
+  , deposits[0]) : { amountKRW: '0', amount: '0', asset: 'BTC' as Currency, memberName: '-' };
+
+  // 각 상태별 카운트
+  const detected = deposits.filter((d) => d.status === 'detected');
+  const confirming = deposits.filter((d) => d.status === 'confirming');
+  const confirmed = deposits.filter((d) => d.status === 'confirmed');
+  const credited = deposits.filter((d) => d.status === 'credited');
 
   return {
-    today: {
-      count: todayDeposits.length,
-      totalKRW: todayTotal.toFixed(0),
-      trend: 'up',
-      changePercent: 12.5,
-    },
-    verifying: {
-      count: verifying.length,
-      totalKRW: verifyingTotal.toFixed(0),
-      trend: 'stable',
-      changePercent: 0,
-    },
-    toReturn: {
-      count: toReturn.length,
-      totalKRW: toReturnTotal.toFixed(0),
-      trend: 'down',
-      changePercent: -5.2,
-    },
-    completed: {
-      count: completed.length,
-      totalKRW: completedTotal.toFixed(0),
-      trend: 'up',
-      changePercent: 8.3,
-    },
-    totalToday: {
-      count: todayDeposits.length,
-      volumeKRW: todayTotal.toFixed(0),
-    },
-    averageAmount: deposits.length > 0
-      ? (deposits.reduce((sum, d) => sum + parseFloat(d.amountKRW), 0) / deposits.length).toFixed(0)
-      : '0',
-    largestDeposit: {
-      amount: largestDeposit.amount,
-      currency: largestDeposit.asset,
-      memberName: largestDeposit.memberName,
-    },
+    total: deposits.length,
+    detected: detected.length,
+    confirming: confirming.length,
+    confirmed: confirmed.length,
+    credited: credited.length,
   };
 };
 

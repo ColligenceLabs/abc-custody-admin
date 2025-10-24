@@ -24,9 +24,8 @@ export function DepositFilters({
   onFilterChange,
   onReset,
 }: DepositFiltersProps) {
-  const statuses: DepositStatus[] = ['pending', 'verifying', 'completed', 'returned', 'flagged'];
-  // CLAUDE.md에 명시된 지원 자산만 포함 (XRP, ADA 제외)
-  const assets: Currency[] = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL'];
+  const statuses: DepositStatus[] = ['detected', 'confirming', 'confirmed', 'credited'];
+  const assets = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL'];
   const memberTypes: MemberType[] = ['Individual', 'Corporate'];
 
   const toggleStatus = (status: DepositStatus) => {
@@ -37,12 +36,8 @@ export function DepositFilters({
     onFilterChange({ ...filter, status: updated.length > 0 ? updated : undefined });
   };
 
-  const toggleAsset = (asset: Currency) => {
-    const current = filter.asset || [];
-    const updated = current.includes(asset)
-      ? current.filter((a) => a !== asset)
-      : [...current, asset];
-    onFilterChange({ ...filter, asset: updated.length > 0 ? updated : undefined });
+  const toggleAsset = (asset: string) => {
+    onFilterChange({ ...filter, asset: filter.asset === asset ? undefined : asset });
   };
 
   const toggleMemberType = (type: MemberType) => {
@@ -54,24 +49,22 @@ export function DepositFilters({
   };
 
   const getStatusLabel = (status: DepositStatus) => {
-    const labels = {
-      pending: '대기중',
-      verifying: '검증중',
-      completed: '완료',
-      returned: '환불',
-      flagged: '플래그',
+    const labels: Record<DepositStatus, string> = {
+      detected: '입금 감지',
+      confirming: '검증중',
+      confirmed: '검증 완료',
+      credited: '반영 완료',
     };
     return labels[status];
   };
 
   const getStatusVariant = (status: DepositStatus, isSelected: boolean) => {
     if (!isSelected) return 'outline' as const;
-    const variants = {
-      pending: 'outline' as const,
-      verifying: 'default' as const,
-      completed: 'secondary' as const,
-      returned: 'destructive' as const,
-      flagged: 'destructive' as const,
+    const variants: Record<DepositStatus, 'outline' | 'default' | 'secondary' | 'destructive'> = {
+      detected: 'outline' as const,
+      confirming: 'default' as const,
+      confirmed: 'secondary' as const,
+      credited: 'secondary' as const,
     };
     return variants[status];
   };
@@ -87,7 +80,7 @@ export function DepositFilters({
   const hasActiveFilters =
     filter.status?.length ||
     filter.memberType?.length ||
-    filter.asset?.length ||
+    filter.asset ||
     filter.searchQuery;
 
   return (

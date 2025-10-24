@@ -73,27 +73,25 @@ export function DepositDetailModal({
                 <InfoRow label="수량" value={deposit.amount} />
                 <InfoRow
                   label="금액 (KRW)"
-                  value={`₩${parseInt(deposit.amountKRW).toLocaleString()}`}
+                  value={deposit.amountKRW ? `₩${parseInt(deposit.amountKRW).toLocaleString()}` : '-'}
                 />
                 <InfoRow
                   label="상태"
                   value={
                     <Badge>
-                      {deposit.status === 'pending'
-                        ? '대기중'
-                        : deposit.status === 'verifying'
+                      {deposit.status === 'detected'
+                        ? '입금 감지'
+                        : deposit.status === 'confirming'
                         ? '검증중'
-                        : deposit.status === 'completed'
-                        ? '완료'
-                        : deposit.status === 'returned'
-                        ? '환불'
-                        : '플래그'}
+                        : deposit.status === 'confirmed'
+                        ? '검증 완료'
+                        : '반영 완료'}
                     </Badge>
                   }
                 />
                 <InfoRow
                   label="입금 시간"
-                  value={new Date(deposit.timestamp).toLocaleString('ko-KR')}
+                  value={new Date(deposit.detectedAt).toLocaleString('ko-KR')}
                 />
               </CardContent>
             </Card>
@@ -145,7 +143,7 @@ export function DepositDetailModal({
                     <div key={index} className="flex items-start space-x-3">
                       <div className="mt-1">
                         {item.status === 'success' ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
+                          <CheckCircle className="h-5 w-5 text-sky-500" />
                         ) : item.status === 'error' ? (
                           <XCircle className="h-5 w-5 text-red-500" />
                         ) : item.status === 'warning' ? (
@@ -231,11 +229,11 @@ export function DepositDetailModal({
                 />
                 <InfoRow
                   label="컨펌"
-                  value={`${deposit.confirmations}/${deposit.requiredConfirmations}`}
+                  value={`${deposit.currentConfirmations}/${deposit.requiredConfirmations}`}
                 />
                 <InfoRow
                   label="네트워크 수수료"
-                  value={`${deposit.networkFee} ${deposit.asset}`}
+                  value={deposit.networkFee ? `${deposit.networkFee} ${deposit.asset}` : '-'}
                 />
               </CardContent>
             </Card>
