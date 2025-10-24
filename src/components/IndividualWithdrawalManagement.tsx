@@ -161,7 +161,7 @@ export default function IndividualWithdrawalManagement({
       let fromAddress = newRequest.fromAddress;
       if (!fromAddress) {
         // 임시: 개인 출금의 경우 시스템 자동 설정
-        fromAddress = "개인지갑";
+        fromAddress = "Custody wallet";
       }
 
       const withdrawalData = {
