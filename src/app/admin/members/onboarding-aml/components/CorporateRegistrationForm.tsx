@@ -18,6 +18,10 @@ import { ManualRegisterCorporateRequest, RegistrationSource, IdType, AddressProo
 import { Upload, Loader2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmailVerificationInput } from "@/components/ui/EmailVerificationInput";
+import { NationalitySelectField } from "./NationalitySelectField";
+import { AddressSearchField } from "./AddressSearchField";
+import { InternationalAddressField } from "./InternationalAddressField";
+import { UserAddress, AddressKorea, AddressInternational } from "@/types/address";
 
 interface CorporateRegistrationFormProps {
   onSubmit: (data: ManualRegisterCorporateRequest) => Promise<void>;
@@ -42,6 +46,12 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
   // 법인 정보
   const [companyName, setCompanyName] = useState("");
   const [businessNumber, setBusinessNumber] = useState("");
+  const [corporateRegistryNumber, setCorporateRegistryNumber] = useState("");
+
+  // 법인 국적 및 주소
+  const [corporateNationality, setCorporateNationality] = useState("");
+  const [corporateCountryCode, setCorporateCountryCode] = useState("");
+  const [corporateAddress, setCorporateAddress] = useState<UserAddress>(null);
 
   // 법인 서류
   const [businessLicenseUrl, setBusinessLicenseUrl] = useState("");
@@ -109,6 +119,14 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
     setUboList(newList);
   };
 
+  // 법인 국적 변경 핸들러
+  const handleCorporateNationalityChange = (newNationality: string, newCountryCode: string) => {
+    setCorporateNationality(newNationality);
+    setCorporateCountryCode(newCountryCode);
+    // 국적 변경 시 주소 초기화
+    setCorporateAddress(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -117,6 +135,30 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
       toast({
         variant: "destructive",
         description: "회사명과 사업자번호는 필수 입력 항목입니다.",
+      });
+      return;
+    }
+
+    if (!corporateRegistryNumber) {
+      toast({
+        variant: "destructive",
+        description: "법인 등록번호는 필수 입력 항목입니다.",
+      });
+      return;
+    }
+
+    if (!corporateNationality || !corporateCountryCode) {
+      toast({
+        variant: "destructive",
+        description: "법인 국가는 필수 입력 항목입니다.",
+      });
+      return;
+    }
+
+    if (!corporateAddress) {
+      toast({
+        variant: "destructive",
+        description: "사업장 소재지 주소는 필수 입력 항목입니다.",
       });
       return;
     }
@@ -152,6 +194,25 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
         description: "담당자 이메일 인증을 완료해주세요.",
       });
       return;
+    }
+
+    // 주소 형식 검증 (필수)
+    if (corporateAddress.type === 'korea') {
+      if (!corporateAddress.postalCode || !corporateAddress.address) {
+        toast({
+          variant: "destructive",
+          description: "사업장 주소를 완전히 입력해주세요.",
+        });
+        return;
+      }
+    } else if (corporateAddress.type === 'international') {
+      if (!corporateAddress.fullAddress) {
+        toast({
+          variant: "destructive",
+          description: "사업장 주소를 입력해주세요.",
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -192,6 +253,12 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
         },
         registrationSource,
         registrationNote: registrationNote || undefined,
+
+        // 신규 필드 추가 (필수)
+        corporateRegistryNumber,
+        corporateNationality,
+        corporateCountryCode,
+        corporateAddress,
       };
 
       await onSubmit(data);
@@ -235,6 +302,45 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
               required
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="corporateRegistryNumber">법인 등록번호 *</Label>
+            <Input
+              id="corporateRegistryNumber"
+              value={corporateRegistryNumber}
+              onChange={(e) => setCorporateRegistryNumber(e.target.value)}
+              placeholder="110111-0000001"
+              required
+            />
+          </div>
+
+          {/* 신규 추가: 법인 국적 선택 (필수) */}
+          <NationalitySelectField
+            value={corporateNationality}
+            countryCode={corporateCountryCode}
+            onChange={handleCorporateNationalityChange}
+            label="국가"
+            required={true}
+          />
+
+          {/* 신규 추가: 사업장 소재지 주소 입력 (조건부 렌더링, 필수) */}
+          {corporateCountryCode && (
+            corporateCountryCode === 'KR' ? (
+              <AddressSearchField
+                value={corporateAddress as AddressKorea | null}
+                onChange={(addr) => setCorporateAddress(addr)}
+                label="사업장 소재지 주소"
+                required={true}
+              />
+            ) : (
+              <InternationalAddressField
+                value={corporateAddress as AddressInternational | null}
+                onChange={(addr) => setCorporateAddress(addr)}
+                label="사업장 소재지 주소"
+                required={true}
+              />
+            )
+          )}
         </CardContent>
       </Card>
 

@@ -20,6 +20,10 @@ import { Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmailVerificationInput } from "@/components/ui/EmailVerificationInput";
 import { PhoneVerificationInput } from "@/components/ui/PhoneVerificationInput";
+import { NationalitySelectField } from "./NationalitySelectField";
+import { AddressSearchField } from "./AddressSearchField";
+import { InternationalAddressField } from "./InternationalAddressField";
+import { UserAddress, AddressKorea, AddressInternational } from "@/types/address";
 
 interface IndividualRegistrationFormProps {
   onSubmit: (data: ManualRegisterIndividualRequest) => Promise<void>;
@@ -43,6 +47,11 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
   const [emailVerified, setEmailVerified] = useState(false);
   const [registrationSource, setRegistrationSource] = useState<Exclude<RegistrationSource, 'ONLINE'>>("OFFLINE_BRANCH");
   const [registrationNote, setRegistrationNote] = useState("");
+
+  // 신규 추가: 국적 및 주소
+  const [nationality, setNationality] = useState("");
+  const [countryCode, setCountryCode] = useState("");
+  const [address, setAddress] = useState<UserAddress>(null);
 
   // 파일 업로드 시뮬레이션 (Mock)
   const handleFileUpload = async (fieldName: string): Promise<string> => {
@@ -76,6 +85,14 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
         description: "파일 업로드에 실패했습니다.",
       });
     }
+  };
+
+  // 국적 변경 핸들러
+  const handleNationalityChange = (newNationality: string, newCountryCode: string) => {
+    setNationality(newNationality);
+    setCountryCode(newCountryCode);
+    // 국적 변경 시 주소 초기화
+    setAddress(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,6 +139,42 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
       return;
     }
 
+    // 국적 및 주소 유효성 검사 (필수)
+    if (!nationality || !countryCode) {
+      toast({
+        variant: "destructive",
+        description: "국적은 필수 입력 항목입니다.",
+      });
+      return;
+    }
+
+    if (!address) {
+      toast({
+        variant: "destructive",
+        description: "주소는 필수 입력 항목입니다.",
+      });
+      return;
+    }
+
+    // 주소 형식 검증
+    if (address.type === 'korea') {
+      if (!address.postalCode || !address.address) {
+        toast({
+          variant: "destructive",
+          description: "주소를 완전히 입력해주세요.",
+        });
+        return;
+      }
+    } else if (address.type === 'international') {
+      if (!address.fullAddress) {
+        toast({
+          variant: "destructive",
+          description: "주소를 입력해주세요.",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -139,6 +192,11 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
         },
         registrationSource,
         registrationNote: registrationNote || undefined,
+
+        // 신규 필드 추가 (필수)
+        nationality,
+        countryCode,
+        address,
       };
 
       await onSubmit(data);
@@ -188,6 +246,34 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
             required
             method="SMS"
           />
+
+          {/* 신규 추가: 국적 선택 (필수) */}
+          <NationalitySelectField
+            value={nationality}
+            countryCode={countryCode}
+            onChange={handleNationalityChange}
+            label="국적"
+            required={true}
+          />
+
+          {/* 신규 추가: 주소 입력 (조건부 렌더링, 필수) */}
+          {countryCode && (
+            countryCode === 'KR' ? (
+              <AddressSearchField
+                value={address as AddressKorea | null}
+                onChange={(addr) => setAddress(addr)}
+                label="주소"
+                required={true}
+              />
+            ) : (
+              <InternationalAddressField
+                value={address as AddressInternational | null}
+                onChange={(addr) => setAddress(addr)}
+                label="주소"
+                required={true}
+              />
+            )
+          )}
         </CardContent>
       </Card>
 

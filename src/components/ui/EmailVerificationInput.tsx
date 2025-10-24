@@ -212,7 +212,7 @@ export function EmailVerificationInput({
       <div className="space-y-2">
         {showLabel && (
           <Label htmlFor="email-verification-input">
-            {label} {required && <span className="text-red-600">*</span>}
+            {label} {required && '*'}
             {isVerified && (
               <Badge className="ml-2 text-sky-600 bg-sky-50 border-sky-200">
                 <Check className="h-3 w-3 mr-1" />
@@ -274,7 +274,7 @@ export function EmailVerificationInput({
       {codeSent && !isVerified && (
         <div className="space-y-2">
           <Label htmlFor="verification-code-input">
-            인증 코드 {required && <span className="text-red-600">*</span>}
+            인증 코드 {required && '*'}
             {timeLeft > 0 && (
               <span className="ml-2 text-sm text-muted-foreground">
                 {formatTime(timeLeft)} 남음

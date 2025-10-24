@@ -409,6 +409,11 @@ export interface ManualRegisterIndividualRequest {
   kyc: Omit<KYCInfo, 'completedAt'>;
   registrationSource: Exclude<RegistrationSource, 'ONLINE'>;
   registrationNote?: string;
+
+  // 신규 추가 필드 (필수)
+  nationality: string;       // 국적 (필수)
+  countryCode: string;       // ISO 국가 코드 (필수)
+  address: import('@/types/address').UserAddress;  // 주소 정보 (필수)
 }
 
 /**
@@ -420,6 +425,12 @@ export interface ManualRegisterCorporateRequest {
   companyName: string;
   businessNumber: string;
   corporateInfo: Omit<CorporateInfo, 'completedAt'>;
+
+  // 신규 추가 필드 (필수)
+  corporateRegistryNumber: string;  // 법인 등록번호 (필수)
+  corporateNationality: string;     // 법인 국가 (필수)
+  corporateCountryCode: string;     // ISO 국가 코드 (필수)
+  corporateAddress: import('@/types/address').UserAddress;  // 사업장 주소 (필수)
 
   // 대표자 KYC (Phase 6 수정: 추가됨)
   representativeKyc: Omit<KYCInfo, 'completedAt'>;
