@@ -594,3 +594,50 @@ export async function verifySmsPin(
 
   return data;
 }
+
+/**
+ * PASS 본인인증 정보 검증 및 중복 확인
+ * POST /api/auth/verify-pass-auth
+ */
+export async function verifyPassAuth(
+  identityVerificationId: string
+): Promise<{
+  success: boolean;
+  verifiedInfo?: {
+    name: string;
+    phoneNumber: string;
+    birthDate: string;
+    gender: string;
+    ci: string;
+    di: string;
+  };
+  isDuplicate?: boolean;
+  message?: string;
+}> {
+  const response = await fetch(`${API_URL}/api/auth/verify-pass-auth`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ identityVerificationId }),
+  });
+
+  const data = await response.json();
+
+  console.log('[verifyPassAuth] 응답:', { status: response.status, data });
+
+  if (response.status === 409) {
+    // 중복 가입
+    return {
+      success: false,
+      isDuplicate: true,
+      message: data.message || '이미 가입된 계정이 있습니다.'
+    };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.message || 'PASS 인증 검증에 실패했습니다.');
+  }
+
+  return data;
+}

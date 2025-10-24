@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline'
 import MemberTypeSelection from '@/components/signup/MemberTypeSelection'
 import EmailVerificationStep from '@/components/signup/EmailVerificationStep'
-import PhoneVerificationStep from '@/components/signup/PhoneVerificationStep'
+import PassVerificationStep from '@/components/signup/PassVerificationStep'
 import IDAndAccountVerificationStep from '@/components/signup/IDAndAccountVerificationStep'
 import FundSourceStep from '@/components/signup/FundSourceStep'
 
@@ -40,6 +40,15 @@ export interface SignupData {
   accountHolder?: string
   fundSource?: string
   fundSourceDetail?: string
+  // PASS 본인인증 관련 (신규)
+  passVerified?: boolean
+  passName?: string
+  passPhone?: string
+  passBirthDate?: string
+  passGender?: string
+  passCi?: string
+  passDi?: string
+  passIdentityId?: string
 }
 
 export default function SignupPage() {
@@ -159,9 +168,22 @@ export default function SignupPage() {
         )}
 
         {currentStep === 'phone' && (
-          <PhoneVerificationStep
+          <PassVerificationStep
             initialData={signupData}
-            onComplete={(data) => handleStepComplete('phone', data)}
+            onComplete={(data) => {
+              console.log('[Signup] PASS 정보 저장:', data);
+              // PASS 정보를 signupData에 저장
+              setSignupData(prev => ({
+                ...prev,
+                ...data,
+                name: data.passName,
+                phone: data.passPhone,
+                residentNumber: data.passBirthDate ?
+                  `${data.passBirthDate.replace(/-/g, '').substring(2)}-${data.passGender === 'MALE' ? '1' : '2'}******` :
+                  prev.residentNumber
+              }));
+              handleStepComplete('phone', data);
+            }}
             onBack={handleBack}
           />
         )}

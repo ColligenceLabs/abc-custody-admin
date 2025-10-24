@@ -41,6 +41,8 @@ export default function RootLayout({
     <html lang="ko">
       <head>
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        {/* PortOne PASS 본인인증 SDK */}
+        <script src="https://cdn.portone.io/v2/browser-sdk.js" async></script>
       </head>
       <body>
         <Script id="error-suppression" strategy="beforeInteractive">
