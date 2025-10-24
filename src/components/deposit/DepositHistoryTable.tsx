@@ -9,18 +9,23 @@ import { FunnelIcon, EyeIcon, XMarkIcon, ClipboardDocumentIcon, CheckIcon } from
 
 interface DepositHistoryTableProps {
   deposits: DepositHistory[];
+  currentPage?: number;
   itemsPerPage?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export default function DepositHistoryTable({
   deposits,
-  itemsPerPage = 10
+  currentPage = 1,
+  itemsPerPage = 10,
+  totalItems = 0,
+  onPageChange
 }: DepositHistoryTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [assetFilter, setAssetFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedDeposit, setSelectedDeposit] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string>("");
 
@@ -76,21 +81,29 @@ export default function DepositHistoryTable({
     });
   };
 
-  // 페이지네이션 로직
+  // 서버 사이드 페이징 - 필터링만 클라이언트에서 수행
   const getPaginatedDeposits = () => {
     const filtered = getFilteredDeposits();
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    // 서버에서 이미 페이징된 데이터를 받으므로 추가 슬라이싱 불필요
     return {
-      items: filtered.slice(startIndex, endIndex),
-      totalItems: filtered.length,
-      totalPages: Math.ceil(filtered.length / itemsPerPage),
+      items: filtered,
+      totalItems: totalItems,
+      totalPages: Math.ceil(totalItems / itemsPerPage),
       currentPage: currentPage,
       itemsPerPage: itemsPerPage,
     };
   };
 
   const paginatedData = getPaginatedDeposits();
+
+  // 페이지 변경 핸들러 (서버 사이드 페이징)
+  const handlePageChange = (newPage: number) => {
+    if (onPageChange) {
+      onPageChange(newPage);
+    }
+    // 페이지 변경 시 맨 위로 스크롤
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // 고유 자산 목록 생성
   const uniqueAssets = Array.from(new Set(deposits.map(d => d.asset)));
@@ -429,7 +442,7 @@ export default function DepositHistoryTable({
             </div>
 
             {/* 페이지네이션 */}
-            {paginatedData.totalPages > 1 && (
+            {paginatedData.totalItems > 0 && (
               <div className="px-6 py-4 border-t border-gray-200">
                 <div className="flex flex-col sm:flex-row justify-between items-center">
                   <div className="text-sm text-gray-700 mb-4 sm:mb-0">
@@ -442,21 +455,21 @@ export default function DepositHistoryTable({
                   </div>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setCurrentPage(Math.max(1, paginatedData.currentPage - 1))}
+                      onClick={() => handlePageChange(Math.max(1, paginatedData.currentPage - 1))}
                       disabled={paginatedData.currentPage === 1}
                       className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       이전
                     </button>
-                    
-                    {[...Array(paginatedData.totalPages)].map((_, index) => {
+
+                    {[...Array(Math.max(1, paginatedData.totalPages))].map((_, index) => {
                       const pageNumber = index + 1;
                       const isCurrentPage = pageNumber === paginatedData.currentPage;
-                      
+
                       return (
                         <button
                           key={pageNumber}
-                          onClick={() => setCurrentPage(pageNumber)}
+                          onClick={() => handlePageChange(pageNumber)}
                           className={`px-3 py-1 text-sm border rounded-md ${
                             isCurrentPage
                               ? "bg-primary-600 text-white border-primary-600"
@@ -467,9 +480,9 @@ export default function DepositHistoryTable({
                         </button>
                       );
                     })}
-                    
+
                     <button
-                      onClick={() => setCurrentPage(Math.min(paginatedData.totalPages, paginatedData.currentPage + 1))}
+                      onClick={() => handlePageChange(Math.min(paginatedData.totalPages, paginatedData.currentPage + 1))}
                       disabled={paginatedData.currentPage === paginatedData.totalPages}
                       className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >

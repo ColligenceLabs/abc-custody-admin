@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   PlusIcon,
   ClipboardDocumentIcon,
@@ -29,6 +29,8 @@ import { Tabs, TabItem } from "@/components/common/Tabs";
 import { RequestHistoryList } from "@/components/deposit/RequestHistoryList";
 import { RequestDetailModal } from "@/components/deposit/RequestDetailModal";
 import { AssetAddRequest } from "@/types/assetRequest";
+import { useDepositSocket } from "@/hooks/useDepositSocket";
+import { useVaultTransferSocket } from "@/hooks/useVaultTransferSocket";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -69,6 +71,11 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   );
   // 입금 히스토리 상태
   const [depositHistory, setDepositHistory] = useState<DepositHistory[]>([]);
+  // 입금 히스토리 페이징 상태
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLimit] = useState(10);
+  const [historyTotal, setHistoryTotal] = useState(0);
+  const [historyTotalPages, setHistoryTotalPages] = useState(0);
 
   const [assets, setAssets] = useState<Asset[]>([]);
 
@@ -496,40 +503,195 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   //   return () => clearInterval(interval);
   // }, []);
 
-  // 진행 중인 입금 및 히스토리 조회 (30초 주기 polling)
+  // 초기 데이터 로드 (polling 제거)
   useEffect(() => {
-    const fetchDeposits = async () => {
+    const fetchInitialDeposits = async () => {
       if (!isAuthenticated || !user) {
         return;
       }
 
       try {
-        // 1. 진행 중인 입금 조회 (백엔드 크롤러가 자동으로 모니터링)
+        // 1. 진행 중인 입금 조회
         const activeRes = await fetch(`${API_BASE_URL}/api/deposits/active?userId=${user.id}`);
         if (activeRes.ok) {
           const activeData = await activeRes.json();
           setActiveDeposits(activeData);
         }
 
-        // 2. 입금 히스토리 조회
-        const historyRes = await fetch(`${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=1&limit=20`);
+        // 2. 입금 히스토리 조회 (서버 사이드 페이징)
+        const historyRes = await fetch(
+          `${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=${historyPage}&limit=${historyLimit}`
+        );
         if (historyRes.ok) {
           const historyData = await historyRes.json();
           setDepositHistory(historyData.deposits || []);
+          setHistoryTotal(historyData.total || 0);
+          setHistoryTotalPages(historyData.totalPages || 0);
         }
       } catch (error) {
         console.error('입금 데이터 조회 실패:', error);
       }
     };
 
-    // 초기 로드
-    fetchDeposits();
+    fetchInitialDeposits();
+  }, [user, isAuthenticated, historyPage, historyLimit]);
 
-    // 30초마다 polling (백엔드 크롤러가 3분마다 실행되므로 30초면 충분)
-    const interval = setInterval(fetchDeposits, 30000);
+  // WebSocket 실시간 업데이트 핸들러
+  const handleDepositDetected = useCallback((newDeposit: any) => {
+    console.log('신규 입금 감지:', newDeposit);
+    setActiveDeposits((prev) => [newDeposit, ...prev]);
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [user, isAuthenticated]);
+  const handleDepositUpdate = useCallback((updatedDeposit: any) => {
+    console.log('입금 업데이트:', updatedDeposit);
+
+    setActiveDeposits((prev) => {
+      const index = prev.findIndex((d) => d.id === updatedDeposit.id);
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = updatedDeposit;
+        return updated;
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleDepositCredited = useCallback((creditedDeposit: any) => {
+    console.log('입금 완료:', creditedDeposit);
+
+    // 진행 중 목록에서 제거
+    setActiveDeposits((prev) => prev.filter((d) => d.id !== creditedDeposit.id));
+
+    // 히스토리 재조회 (credited 상태는 히스토리에 표시)
+    const fetchHistory = async () => {
+      if (!user) return;
+
+      try {
+        const historyRes = await fetch(
+          `${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=${historyPage}&limit=${historyLimit}`
+        );
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setDepositHistory(historyData.deposits || []);
+          setHistoryTotal(historyData.total || 0);
+          setHistoryTotalPages(historyData.totalPages || 0);
+        }
+      } catch (error) {
+        console.error('히스토리 재조회 실패:', error);
+      }
+    };
+
+    fetchHistory();
+  }, [user, historyPage, historyLimit]);
+
+  // WebSocket 연결
+  useDepositSocket({
+    userId: user?.id || null,
+    onDepositDetected: handleDepositDetected,
+    onDepositUpdate: handleDepositUpdate,
+    onDepositCredited: handleDepositCredited,
+  });
+
+  // VaultTransfer 상태 관리 (depositId를 키로 사용)
+  const [vaultTransfers, setVaultTransfers] = useState<Map<string, any>>(new Map());
+
+  // VaultTransfer 시작 핸들러
+  const handleVaultTransferInitiated = useCallback((data: any) => {
+    console.log('Vault 전송 시작:', data);
+
+    const { vaultTransfer, deposit } = data;
+
+    // VaultTransfer 상태 저장
+    setVaultTransfers((prev) => {
+      const updated = new Map(prev);
+      updated.set(deposit.id, vaultTransfer);
+      return updated;
+    });
+
+    // Deposit 상태 업데이트 (confirmed → credited로 변경될 예정)
+    setActiveDeposits((prev) => {
+      const index = prev.findIndex((d) => d.id === deposit.id);
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = { ...deposit, vaultTransferStatus: 'pending' };
+        return updated;
+      }
+      return prev;
+    });
+  }, []);
+
+  // VaultTransfer 업데이트 핸들러
+  const handleVaultTransferUpdate = useCallback((data: any) => {
+    console.log('Vault 전송 업데이트:', data);
+
+    const { vaultTransfer, deposit } = data;
+
+    // VaultTransfer 상태 업데이트
+    setVaultTransfers((prev) => {
+      const updated = new Map(prev);
+      updated.set(deposit.id, vaultTransfer);
+      return updated;
+    });
+
+    // Deposit 상태 업데이트
+    if (deposit) {
+      setActiveDeposits((prev) => {
+        const index = prev.findIndex((d) => d.id === deposit.id);
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = { ...deposit, vaultTransferStatus: vaultTransfer.status };
+          return updated;
+        }
+        return prev;
+      });
+    }
+  }, []);
+
+  // VaultTransfer 완료 핸들러
+  const handleVaultTransferCompleted = useCallback((data: any) => {
+    console.log('Vault 전송 완료:', data);
+
+    const { vaultTransfer, deposit } = data;
+
+    // VaultTransfer 상태 제거 (완료됨)
+    setVaultTransfers((prev) => {
+      const updated = new Map(prev);
+      updated.delete(deposit.id);
+      return updated;
+    });
+
+    // Deposit가 credited 상태이므로 진행 중 목록에서 제거
+    setActiveDeposits((prev) => prev.filter((d) => d.id !== deposit.id));
+
+    // 히스토리 재조회
+    const fetchHistory = async () => {
+      if (!user) return;
+
+      try {
+        const historyRes = await fetch(
+          `${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=${historyPage}&limit=${historyLimit}`
+        );
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setDepositHistory(historyData.deposits || []);
+          setHistoryTotal(historyData.total || 0);
+          setHistoryTotalPages(historyData.totalPages || 0);
+        }
+      } catch (error) {
+        console.error('히스토리 재조회 실패:', error);
+      }
+    };
+
+    fetchHistory();
+  }, [user, historyPage, historyLimit]);
+
+  // VaultTransfer WebSocket 연결
+  useVaultTransferSocket({
+    userId: user?.id || null,
+    onVaultTransferInitiated: handleVaultTransferInitiated,
+    onVaultTransferUpdate: handleVaultTransferUpdate,
+    onVaultTransferCompleted: handleVaultTransferCompleted,
+  });
 
   // 중복 자산 추가도 허용 (동일 자산의 다른 주소 생성 등의 용도)
   const filteredAvailableAssets = availableAssets;
@@ -595,6 +757,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                 <DepositProgressCard
                   key={deposit.id}
                   deposit={deposit}
+                  vaultTransfer={vaultTransfers.get(deposit.id)}
                   onViewDetails={(depositId) => {
                     // 상세 정보 모달 열기 로직
                     console.log("View details for:", depositId);
@@ -754,7 +917,13 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
       {/* 입금 히스토리 섹션 */}
       <div>
-        <DepositHistoryTable deposits={depositHistory} />
+        <DepositHistoryTable
+          deposits={depositHistory}
+          currentPage={historyPage}
+          itemsPerPage={historyLimit}
+          totalItems={historyTotal}
+          onPageChange={setHistoryPage}
+        />
       </div>
 
       {/* Add Asset Modal */}

@@ -7,11 +7,13 @@ import { ClockIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon } 
 
 interface DepositProgressCardProps {
   deposit: DepositTransaction;
+  vaultTransfer?: any; // VaultTransfer 정보 (optional)
   onViewDetails?: (depositId: string) => void;
 }
 
 export default function DepositProgressCard({
   deposit,
+  vaultTransfer,
   onViewDetails
 }: DepositProgressCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -20,6 +22,24 @@ export default function DepositProgressCard({
     deposit.currentConfirmations,
     deposit.requiredConfirmations
   );
+
+  // Vault Transfer 진행률 계산 (confirmed 상태일 때 vault transfer 진행 중)
+  const getVaultTransferProgress = () => {
+    if (deposit.status !== 'confirmed' || !vaultTransfer) return null;
+
+    switch (vaultTransfer.status) {
+      case 'pending':
+        return { text: 'Vault 전송 준비 중', percentage: 33, color: 'bg-blue-500' };
+      case 'sent':
+        return { text: 'Vault 전송 중 (블록체인 확인 대기)', percentage: 66, color: 'bg-yellow-500' };
+      case 'confirmed':
+        return { text: 'Vault 전송 완료', percentage: 100, color: 'bg-sky-500' };
+      default:
+        return null;
+    }
+  };
+
+  const vaultProgress = getVaultTransferProgress();
 
   const getProgressBarColor = () => {
     switch (deposit.status) {
@@ -106,8 +126,8 @@ export default function DepositProgressCard({
           </div>
         </div>
 
-        {/* Progress Bar */}
-        {deposit.status !== "failed" && (
+        {/* Progress Bar - 컨펌 진행도 */}
+        {deposit.status !== "failed" && deposit.status !== "confirmed" && (
           <div className="mb-3">
             <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
               <span>컨펌 진행도</span>
@@ -119,6 +139,22 @@ export default function DepositProgressCard({
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor()}`}
                 style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Vault Transfer Progress Bar */}
+        {vaultProgress && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+              <span>{vaultProgress.text}</span>
+              <span>{vaultProgress.percentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${vaultProgress.color}`}
+                style={{ width: `${vaultProgress.percentage}%` }}
               />
             </div>
           </div>

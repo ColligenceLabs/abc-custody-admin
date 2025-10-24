@@ -34,8 +34,8 @@ export default function TransactionHistory({
 }: TransactionHistoryProps) {
   // 내부 상태 (외부에서 제어하지 않을 때 사용)
   const [internalFilters, setInternalFilters] = useState<TransactionFilters>({
-    direction: "all",
-    assetType: "all",
+    type: "all",
+    asset: "all",
     status: "all"
   });
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
@@ -123,15 +123,14 @@ export default function TransactionHistory({
 
   // 필터링된 거래 내역
   const filteredTransactions = transactions.filter(tx => {
-    const matchesDirection = filters.direction === "all" || tx.direction === filters.direction;
-    const matchesAsset = filters.assetType === "all" || tx.assetType === filters.assetType;
+    const matchesType = filters.type === "all" || tx.type === filters.type;
+    const matchesAsset = filters.asset === "all" || tx.asset === filters.asset;
     const matchesStatus = filters.status === "all" || tx.status === filters.status;
     const matchesSearch = searchTerm === "" ||
-      tx.txHash.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.assetType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (tx.addressLabel && tx.addressLabel.toLowerCase().includes(searchTerm.toLowerCase()));
+      (tx.txHash && tx.txHash.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      tx.asset.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesDirection && matchesAsset && matchesStatus && matchesSearch;
+    return matchesType && matchesAsset && matchesStatus && matchesSearch;
   });
 
   // 페이징 데이터
@@ -150,7 +149,7 @@ export default function TransactionHistory({
 
 
   // 고유 자산 목록
-  const uniqueAssets = Array.from(new Set(transactions.map(tx => tx.assetType))).sort();
+  const uniqueAssets = Array.from(new Set(transactions.map(tx => tx.asset))).sort();
 
   // 거래 방향 배지 색상
   const getDirectionBadgeColor = (direction: "deposit" | "withdrawal") => {
@@ -193,8 +192,8 @@ export default function TransactionHistory({
         className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 relative"
       />
       <select
-        value={filters.direction}
-        onChange={(e) => setFilters({ ...filters, direction: e.target.value as any })}
+        value={filters.type}
+        onChange={(e) => setFilters({ ...filters, type: e.target.value as any })}
         className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       >
         <option value="all">모든 방향</option>
@@ -202,8 +201,8 @@ export default function TransactionHistory({
         <option value="withdrawal">출금</option>
       </select>
       <select
-        value={filters.assetType}
-        onChange={(e) => setFilters({ ...filters, assetType: e.target.value })}
+        value={filters.asset}
+        onChange={(e) => setFilters({ ...filters, asset: e.target.value })}
         className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       >
         <option value="all">모든 자산</option>
@@ -244,13 +243,13 @@ export default function TransactionHistory({
             <div className="bg-white p-4 rounded-lg border border-gray-200">
               <div className="text-sm text-gray-600">입금 건수</div>
               <div className="text-xl font-semibold text-blue-600">
-                {filteredTransactions.filter(tx => tx.direction === "deposit").length}건
+                {filteredTransactions.filter(tx => tx.type === "deposit").length}건
               </div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-gray-200">
               <div className="text-sm text-gray-600">출금 건수</div>
               <div className="text-xl font-semibold text-amber-600">
-                {filteredTransactions.filter(tx => tx.direction === "withdrawal").length}건
+                {filteredTransactions.filter(tx => tx.type === "withdrawal").length}건
               </div>
             </div>
             <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -297,8 +296,8 @@ export default function TransactionHistory({
                       <td className="px-6 py-4">
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getDirectionBadgeColor(tx.direction)}`}>
-                              {tx.direction === "deposit" ? "입금" : "출금"}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getDirectionBadgeColor(tx.type)}`}>
+                              {tx.type === "deposit" ? "입금" : "출금"}
                             </span>
                           </div>
                           <div className="text-sm text-gray-900">{date}</div>
@@ -313,27 +312,27 @@ export default function TransactionHistory({
                       <td className="px-6 py-4">
                         <div className="space-y-1">
                           <div className="flex items-center space-x-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getAssetColor(tx.assetType)}`}>
-                              {tx.assetType}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getAssetColor(tx.asset)}`}>
+                              {tx.asset}
                             </span>
                           </div>
                           <div className="text-sm font-medium text-gray-900">
-                            {tx.amount.toLocaleString()} {tx.assetType}
+                            {tx.amount.toLocaleString()} {tx.asset}
                           </div>
                           {tx.fee && (
                             <div className="text-xs text-gray-500">
-                              수수료: {tx.fee} {tx.assetType}
+                              수수료: {tx.fee} {tx.asset}
                             </div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {formatKRW(tx.krwValue)}
+                          {formatKRW(tx.krwValue || 0)}
                         </div>
                         {tx.exchangeRate && (
                           <div className="text-xs text-gray-500">
-                            {formatKRW(tx.exchangeRate)}/{tx.assetType}
+                            {formatKRW(tx.exchangeRate)}/{tx.asset}
                           </div>
                         )}
                       </td>
@@ -361,18 +360,20 @@ export default function TransactionHistory({
                           }}
                         >
                           <div className="flex items-center justify-between">
-                            <button
-                              onClick={() => copyToClipboard(tx.txHash, `hash-${tx.id}`)}
-                              className="text-xs text-gray-500 hover:text-gray-700"
-                            >
-                              {copiedField === `hash-${tx.id}` ? "복사됨" : "복사"}
-                            </button>
+                            {tx.txHash && (
+                              <button
+                                onClick={() => copyToClipboard(tx.txHash!, `hash-${tx.id}`)}
+                                className="text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                {copiedField === `hash-${tx.id}` ? "복사됨" : "복사"}
+                              </button>
+                            )}
                           </div>
                           <div
                             className="font-mono text-[0.65rem] leading-tight text-gray-900 bg-white px-2 py-1.5 rounded border break-all"
                             title={tx.txHash}
                           >
-                            {truncateDynamic(tx.txHash, maxCharsForTx)}
+                            {tx.txHash ? truncateDynamic(tx.txHash, maxCharsForTx) : "-"}
                           </div>
                         </div>
                       </td>
