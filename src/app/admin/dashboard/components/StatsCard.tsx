@@ -5,6 +5,12 @@
  */
 
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { LucideIcon } from 'lucide-react';
 
 interface StatsCardProps {
@@ -16,6 +22,10 @@ interface StatsCardProps {
     isPositive: boolean;
   };
   color?: string;
+  /**
+   * Tooltip에 표시할 전체 값 (축약된 값인 경우 사용)
+   */
+  fullValue?: string;
 }
 
 export function StatsCard({
@@ -24,6 +34,7 @@ export function StatsCard({
   icon: Icon,
   trend,
   color = 'text-sapphire-600 dark:text-sapphire-400',
+  fullValue,
 }: StatsCardProps) {
   return (
     <Card>
@@ -34,12 +45,27 @@ export function StatsCard({
         </div>
 
         <div className="space-y-1">
-          <p className={`text-3xl font-bold ${color}`}>{value}</p>
+          {fullValue ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className={`text-3xl font-bold ${color} cursor-help`}>
+                    {value}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-sm font-medium">{fullValue}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <p className={`text-3xl font-bold ${color}`}>{value}</p>
+          )}
 
           {trend && (
             <p
               className={`text-xs font-medium ${
-                trend.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                trend.isPositive ? 'text-sky-600 dark:text-sky-400' : 'text-red-600 dark:text-red-400'
               }`}
             >
               {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%

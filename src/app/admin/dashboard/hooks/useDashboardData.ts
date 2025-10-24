@@ -4,9 +4,12 @@
  * 대시보드 Mock 데이터 제공
  */
 
+import { AssetType } from '@/types/withdrawalV2';
+
 export interface DashboardStats {
   totalMembers: number;
   totalAssetValue: string;
+  totalAssetValueNum: number; // 숫자 값 추가 (축약 및 전체 포맷용)
   todayTransactions: number;
   pendingTransactions: number;
   deposits24h: number;
@@ -20,6 +23,19 @@ export interface AssetDistribution {
   percentage: number;
   color: string;
   [key: string]: any; // Recharts 호환성을 위한 index signature
+}
+
+export interface AssetWalletInfo {
+  asset: AssetType;
+  hotBalance: string;
+  coldBalance: string;
+  totalBalance: string;
+  hotRatio: number;
+  coldRatio: number;
+  targetHotRatio: number;
+  targetColdRatio: number;
+  deviation: number;
+  needsRebalancing: boolean;
 }
 
 export interface WalletStatus {
@@ -59,18 +75,29 @@ export interface Alert {
 const MOCK_STATS: DashboardStats = {
   totalMembers: 24,
   totalAssetValue: '₩2,450,000,000',
+  totalAssetValueNum: 2450000000, // 24.5억 원
   todayTransactions: 156,
   pendingTransactions: 3,
   deposits24h: 89,
   withdrawals24h: 67,
 };
 
-const MOCK_ASSET_DISTRIBUTION: AssetDistribution[] = [
-  { asset: 'BTC', amount: '12.25', value: 980000000, percentage: 40, color: '#F7931A' },
-  { asset: 'ETH', amount: '122.5', value: 612500000, percentage: 25, color: '#627EEA' },
-  { asset: 'USDT', amount: '376,923', value: 490000000, percentage: 20, color: '#26A17B' },
-  { asset: 'USDC', amount: '188,462', value: 245000000, percentage: 10, color: '#2775CA' },
-  { asset: 'SOL', amount: '816.67', value: 122500000, percentage: 5, color: '#00FFA3' },
+// Hot 지갑 자산 분포 (전체의 20%)
+const MOCK_ASSET_DISTRIBUTION_HOT: AssetDistribution[] = [
+  { asset: 'BTC', amount: '2.45', value: 196000000, percentage: 40, color: '#F7931A' },
+  { asset: 'ETH', amount: '24.5', value: 122500000, percentage: 25, color: '#627EEA' },
+  { asset: 'USDT', amount: '75,385', value: 98000000, percentage: 20, color: '#26A17B' },
+  { asset: 'USDC', amount: '37,692', value: 49000000, percentage: 10, color: '#2775CA' },
+  { asset: 'SOL', amount: '163.33', value: 24500000, percentage: 5, color: '#00FFA3' },
+];
+
+// Cold 지갑 자산 분포 (전체의 80%)
+const MOCK_ASSET_DISTRIBUTION_COLD: AssetDistribution[] = [
+  { asset: 'BTC', amount: '9.80', value: 784000000, percentage: 40, color: '#F7931A' },
+  { asset: 'ETH', amount: '98.0', value: 490000000, percentage: 25, color: '#627EEA' },
+  { asset: 'USDT', amount: '301,538', value: 392000000, percentage: 20, color: '#26A17B' },
+  { asset: 'USDC', amount: '150,769', value: 196000000, percentage: 10, color: '#2775CA' },
+  { asset: 'SOL', amount: '653.33', value: 98000000, percentage: 5, color: '#00FFA3' },
 ];
 
 const MOCK_WALLET_STATUS: WalletStatus = {
@@ -171,9 +198,41 @@ const MOCK_ALERTS: Alert[] = [
 ];
 
 export function useDashboardData() {
+  // Hot/Cold 데이터를 조합하여 AssetWalletInfo 생성
+  const assetWalletInfo: AssetWalletInfo[] = MOCK_ASSET_DISTRIBUTION_HOT.map((hotAsset, index) => {
+    const coldAsset = MOCK_ASSET_DISTRIBUTION_COLD[index];
+    const hotBalance = parseFloat(hotAsset.amount.replace(/,/g, ''));
+    const coldBalance = parseFloat(coldAsset.amount.replace(/,/g, ''));
+    const totalBalance = hotBalance + coldBalance;
+
+    const hotRatio = (hotBalance / totalBalance) * 100;
+    const coldRatio = (coldBalance / totalBalance) * 100;
+    const targetHotRatio = 20;
+    const targetColdRatio = 80;
+    const deviation = hotRatio - targetHotRatio;
+
+    return {
+      asset: hotAsset.asset as AssetType,
+      hotBalance: hotAsset.amount,
+      coldBalance: coldAsset.amount,
+      totalBalance: totalBalance.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }),
+      hotRatio,
+      coldRatio,
+      targetHotRatio,
+      targetColdRatio,
+      deviation,
+      needsRebalancing: hotRatio > 20,
+    };
+  });
+
   return {
     stats: MOCK_STATS,
-    assetDistribution: MOCK_ASSET_DISTRIBUTION,
+    assetDistributionHot: MOCK_ASSET_DISTRIBUTION_HOT,
+    assetDistributionCold: MOCK_ASSET_DISTRIBUTION_COLD,
+    assetWalletInfo,
     walletStatus: MOCK_WALLET_STATUS,
     recentTransactions: MOCK_RECENT_TRANSACTIONS,
     alerts: MOCK_ALERTS,
