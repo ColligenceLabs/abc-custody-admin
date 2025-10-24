@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, TrendingDown, DollarSign, RefreshCw } from "lucide-react";
+import { TrendingDown, DollarSign, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,11 +90,10 @@ export default function LiquidationHistoryPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <History className="w-7 h-7 mr-2 text-indigo-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             청산 이력
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             완료된 청산 내역 및 통계
           </p>
         </div>

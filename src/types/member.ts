@@ -525,9 +525,9 @@ export function isCorporateMember(
  */
 export function getMemberName(member: Member): string {
   if (isIndividualMember(member)) {
-    return member.personalInfo.fullName;
+    return member.personalInfo?.fullName || '알 수 없음';
   } else {
-    return member.companyInfo.companyName;
+    return member.companyInfo?.companyName || '알 수 없음';
   }
 }
 
@@ -537,11 +537,12 @@ export function getMemberName(member: Member): string {
 export function getMemberIdNumber(member: Member): string {
   if (isIndividualMember(member)) {
     // 주민번호 마스킹: 123456-*******
-    const idNumber = member.personalInfo.idNumber;
+    const idNumber = member.personalInfo?.idNumber;
+    if (!idNumber) return '정보 없음';
     return idNumber.replace(/(\d{6})-(\d{7})/, '$1-*******');
   } else {
     // 사업자번호: 123-45-67890
-    return member.companyInfo.businessNumber;
+    return member.companyInfo?.businessNumber || '정보 없음';
   }
 }
 
@@ -552,6 +553,8 @@ export function getMemberAddress(member: Member): string {
   const address = isIndividualMember(member)
     ? member.address
     : member.companyAddress;
+
+  if (!address) return '주소 정보 없음';
 
   return `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`;
 }

@@ -36,8 +36,8 @@ export default function LendingDashboardPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">대출 대시보드</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">대출 대시보드</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             실시간 대출 현황 및 위험도 모니터링
           </p>
         </div>

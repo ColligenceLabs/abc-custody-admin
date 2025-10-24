@@ -8,10 +8,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { CorporateOnboarding, OnboardingListQuery } from "@/types/onboardingAml";
 import { fetchCorporateOnboardings } from "@/services/onboardingAmlApi";
 import { ManualRegistrationButton } from "../components/ManualRegistrationButton";
@@ -64,18 +63,11 @@ export default function CorporateOnboardingListPage() {
     <div className="flex-1 space-y-4 p-4 md:p-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/members/onboarding-aml">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">법인회원 온보딩</h2>
-            <p className="text-muted-foreground">
-              법인회원 신청 목록 및 검토 관리
-            </p>
-          </div>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">법인회원 온보딩</h2>
+          <p className="text-muted-foreground">
+            법인회원 신청 목록 및 검토 관리
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleRefresh} disabled={loading}>

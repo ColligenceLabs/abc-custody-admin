@@ -6,7 +6,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText } from "lucide-react";
 import LoanFilters from "@/components/admin-lending/loans/LoanFilters";
 import LoansTable from "@/components/admin-lending/loans/LoansTable";
 import LoanDetailModal from "@/components/admin-lending/loans/LoanDetailModal";
@@ -91,11 +90,10 @@ export default function LoansListPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FileText className="w-7 h-7 mr-2 text-indigo-600" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             대출 목록
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             전체 대출 내역 조회 및 필터링
           </p>
         </div>
