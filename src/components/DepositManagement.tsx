@@ -25,6 +25,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAddresses } from "@/utils/addressApi";
 import { WhitelistedAddress } from "@/types/address";
 import { QRCodeSVG } from "qrcode.react";
+import { Tabs, TabItem } from "@/components/common/Tabs";
+import { RequestHistoryList } from "@/components/deposit/RequestHistoryList";
+import { RequestDetailModal } from "@/components/deposit/RequestDetailModal";
+import { AssetAddRequest } from "@/types/assetRequest";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -56,19 +60,6 @@ interface Transaction {
   fromAddress: string;
 }
 
-interface AssetAddRequest {
-  id: string;
-  symbol: string;
-  name: string;
-  contractAddress: string;
-  image?: string;
-  priceApiUrl?: string;
-  requestedBy: string;
-  requestedAt: string;
-  status: "pending" | "approved" | "rejected";
-  rejectedReason?: string;
-}
-
 export default function DepositManagement({ plan }: DepositManagementProps) {
   const { user, isAuthenticated } = useAuth();
 
@@ -94,24 +85,92 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     name: "",
     contractAddress: "",
     image: "",
-    priceApiUrl: "",
   });
   const [imagePreview, setImagePreview] = useState<string>("");
-
-  // 가격 피드 조회 관련 상태
-  const [isCheckingPriceFeed, setIsCheckingPriceFeed] =
-    useState<boolean>(false);
-  const [priceFeedStatus, setPriceFeedStatus] = useState<
-    "idle" | "checking" | "found" | "not_found"
-  >("idle");
-  const [showPriceApiInput, setShowPriceApiInput] = useState<boolean>(false);
 
   // 동적 truncate를 위한 ref와 상태
   const depositAddressRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [depositAddressMaxChars, setDepositAddressMaxChars] = useState<{ [key: string]: number }>({});
 
-  // 자산 추가 요청 관리 (localStorage와 동기화)
-  const [assetAddRequests, setAssetAddRequests] = useState<AssetAddRequest[]>([]);
+  // 자산 추가 요청 관리 (Mock 데이터로 초기화)
+  // 상세 모달 및 탭 제어
+  const [selectedRequestDetail, setSelectedRequestDetail] = useState<AssetAddRequest | null>(null)
+  const [activeAssetTab, setActiveAssetTab] = useState<string>('new-request')
+
+  const [assetAddRequests, setAssetAddRequests] = useState<AssetAddRequest[]>([
+    {
+      id: '1',
+      userId: user?.id || 'user_1',
+      symbol: 'USDT',
+      name: 'Tether USD',
+      contractAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+      network: 'ethereum',
+      requestedBy: user?.name || '홍길동',
+      requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'pending',
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '2',
+      userId: user?.id || 'user_1',
+      symbol: 'LINK',
+      name: 'Chainlink',
+      contractAddress: '0x514910771af9ca656af840dff83e8264ecf986ca',
+      network: 'ethereum',
+      requestedBy: user?.name || '홍길동',
+      requestedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'reviewing',
+      feedback: {
+        message: '컨트랙트 주소를 확인 중입니다. 곧 검토가 완료될 예정입니다.',
+        type: 'info',
+        reviewedBy: '관리자',
+        reviewedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '3',
+      userId: user?.id || 'user_1',
+      symbol: 'UNI',
+      name: 'Uniswap',
+      contractAddress: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
+      network: 'ethereum',
+      requestedBy: user?.name || '홍길동',
+      requestedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'approved',
+      feedback: {
+        message: '토큰이 승인되었습니다. 곧 입금 가능 자산 목록에 추가됩니다.',
+        type: 'success',
+        reviewedBy: '관리자',
+        reviewedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      approvalNote: '검토 완료되었으며, 시스템에 등록되었습니다.',
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '4',
+      userId: user?.id || 'user_1',
+      symbol: 'INVALID',
+      name: 'Invalid Token',
+      contractAddress: '0xinvalidaddress',
+      network: 'ethereum',
+      requestedBy: user?.name || '홍길동',
+      requestedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'rejected',
+      feedback: {
+        message: '제공하신 컨트랙트 주소가 유효하지 않습니다. 공식 웹사이트에서 정확한 주소를 확인해주세요.',
+        type: 'error',
+        reviewedBy: '관리자',
+        reviewedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      rejectionReason: '컨트랙트 주소가 올바른 형식이 아닙니다.',
+      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ]);
   const [isClient, setIsClient] = useState(false);
 
   const availableAssets = [
@@ -166,6 +225,34 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
       console.error("Failed to copy address:", err);
     }
   };
+
+  // 요청 상세 보기 핸들러
+  const handleViewRequestDetails = (request: AssetAddRequest) => {
+    setSelectedRequestDetail(request)
+  }
+
+  // 재요청 핸들러
+  const handleResubmitRequest = (request: AssetAddRequest) => {
+    // 기존 요청 데이터를 폼에 채우기
+    setCustomERC20({
+      symbol: request.symbol,
+      name: request.name,
+      contractAddress: request.contractAddress,
+      image: request.image || '',
+    })
+
+    // 이미지 미리보기 설정
+    if (request.image) {
+      setImagePreview(request.image)
+    }
+
+    // Custom ERC-20 선택 및 표시
+    setSelectedAsset('CUSTOM_ERC20')
+    setShowCustomERC20(true)
+
+    // 새 요청 탭으로 전환
+    setActiveAssetTab('new-request')
+  }
 
   const handleRemoveAsset = async (assetId: string) => {
     if (!confirm('이 입금 주소를 삭제하시겠습니까?')) {
@@ -287,47 +374,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     }
   }, [assetAddRequests, isClient]);
 
-  // 가격 피드 조회 시뮬레이션 함수
-  const checkPriceFeed = async (contractAddress: string) => {
-    if (
-      !contractAddress ||
-      contractAddress.length !== 42 ||
-      !contractAddress.startsWith("0x")
-    ) {
-      return;
-    }
-
-    setIsCheckingPriceFeed(true);
-    setPriceFeedStatus("checking");
-
-    // 2초 딜레이로 시스템 조회 시뮬레이션
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // 30% 확률로 가격 피드 있음 (대부분 새로운 토큰은 가격 피드가 없음)
-    const hasPriceFeed = Math.random() > 0.7;
-
-    if (hasPriceFeed) {
-      setPriceFeedStatus("found");
-      setShowPriceApiInput(false);
-      // 가격 피드가 있으면 priceApiUrl 자동 설정 (시스템 내부 API)
-      setCustomERC20((prev) => ({
-        ...prev,
-        priceApiUrl: `https://api.internal.system/price/${contractAddress}`,
-      }));
-      console.log("가격 피드 발견:", contractAddress);
-    } else {
-      setPriceFeedStatus("not_found");
-      setShowPriceApiInput(true);
-      // 가격 피드가 없으면 기존 priceApiUrl 초기화
-      setCustomERC20((prev) => ({
-        ...prev,
-        priceApiUrl: "",
-      }));
-      console.log("가격 피드 없음:", contractAddress);
-    }
-
-    setIsCheckingPriceFeed(false);
-  };
 
   // 동적 truncate 함수 (CLAUDE.md 규칙 적용)
   const calculateMaxChars = (element: HTMLElement | null) => {
@@ -484,19 +530,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
     return () => clearInterval(interval);
   }, [user, isAuthenticated]);
-
-  // 컨트랙트 주소 변경 감지 및 가격 피드 조회
-  useEffect(() => {
-    if (
-      customERC20.contractAddress?.length === 42 &&
-      customERC20.contractAddress.startsWith("0x")
-    ) {
-      checkPriceFeed(customERC20.contractAddress);
-    } else {
-      setPriceFeedStatus("idle");
-      setShowPriceApiInput(false);
-    }
-  }, [customERC20.contractAddress]);
 
   // 중복 자산 추가도 허용 (동일 자산의 다른 주소 생성 등의 용도)
   const filteredAvailableAssets = availableAssets;
@@ -726,17 +759,29 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
 
       {/* Add Asset Modal */}
       <Modal isOpen={showAddAsset}>
-        <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">자산 추가</h3>
+        <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">자산 추가 요청</h3>
             <button
-              onClick={() => setShowAddAsset(false)}
+              onClick={() => {
+                setShowAddAsset(false);
+                setSelectedAsset("");
+                setShowCustomERC20(false);
+              }}
               className="text-gray-400 hover:text-gray-600"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
 
+          <Tabs
+            activeTab={activeAssetTab}
+            onChange={setActiveAssetTab}
+            tabs={[
+              {
+                id: 'new-request',
+                label: '새 요청',
+                content: (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -765,13 +810,8 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                           name: "",
                           contractAddress: "",
                           image: "",
-                          priceApiUrl: "",
                         });
                         setImagePreview("");
-                        // 가격 피드 상태 초기화
-                        setPriceFeedStatus("idle");
-                        setShowPriceApiInput(false);
-                        setIsCheckingPriceFeed(false);
                       }
                     }}
                     disabled={isAlreadyAdded}
@@ -857,7 +897,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         })
                       }
                       placeholder="예: KRW"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -874,7 +914,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         })
                       }
                       placeholder="예: Tether USD"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -972,156 +1012,10 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         })
                       }
                       placeholder="0x..."
-                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-sm placeholder:text-xs placeholder:text-gray-400"
                     />
-                    {/* 상태 아이콘 */}
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      {isCheckingPriceFeed && (
-                        <svg
-                          className="animate-spin h-5 w-5 text-blue-600"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                      )}
-                      {priceFeedStatus === "found" && (
-                        <svg
-                          className="h-5 w-5 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                      {priceFeedStatus === "not_found" && (
-                        <svg
-                          className="h-5 w-5 text-orange-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                          />
-                        </svg>
-                      )}
-                    </div>
                   </div>
                 </div>
-
-                {/* 가격 피드 조회 상태 표시 */}
-                {priceFeedStatus === "checking" && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="animate-spin h-5 w-5 text-blue-600"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      <span className="text-sm text-blue-700">
-                        가격 피드 정보를 확인하고 있습니다...
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {priceFeedStatus === "found" && (
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center space-x-2">
-                      <svg
-                        className="h-5 w-5 text-blue-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-sm text-blue-700">
-                        가격 피드가 시스템에 등록되어 있습니다. 자동으로 실시간
-                        가격이 연동됩니다.
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {priceFeedStatus === "not_found" && showPriceApiInput && (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <p className="text-sm text-orange-800">
-                        이 토큰의 가격 정보가 시스템에 없습니다. 실시간 가격
-                        표시를 위해 공신력있는 API URL을 입력해주세요.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        가격 API URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={customERC20.priceApiUrl}
-                        onChange={(e) =>
-                          setCustomERC20({
-                            ...customERC20,
-                            priceApiUrl: e.target.value,
-                          })
-                        }
-                        placeholder="https://api.example.com/price/{symbol}"
-                        className="w-full px-3 py-2 border border-orange-300 rounded-lg
-                                   focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                      />
-                      <p className="text-xs text-gray-600 mt-1">
-                        JSON 형식으로 가격 데이터를 반환하는 REST API
-                        엔드포인트를 입력하세요.
-                        <br />
-                        예: {`{ "price": 1.23, "currency": "USD" }`}
-                      </p>
-                    </div>
-                  </div>
-                )}
 
                 <div className="text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
                   <strong>주의:</strong> 컨트랙트 주소가 정확한지 확인해주세요.
@@ -1152,14 +1046,17 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                     ) {
                       const newRequest: AssetAddRequest = {
                         id: Date.now().toString(),
+                        userId: user?.id || 'unknown',
                         symbol: customERC20.symbol,
                         name: customERC20.name,
                         contractAddress: customERC20.contractAddress,
+                        network: 'ethereum',
                         image: customERC20.image,
-                        priceApiUrl: customERC20.priceApiUrl,
-                        requestedBy: "현재사용자", // TODO: 실제 사용자 정보
+                        requestedBy: user?.name || "현재사용자",
                         requestedAt: new Date().toISOString(),
                         status: "pending",
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
                       };
 
                       // 추가 요청 목록에 추가
@@ -1181,7 +1078,6 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                         name: "",
                         contractAddress: "",
                         image: "",
-                        priceApiUrl: "",
                       });
                       setImagePreview("");
 
@@ -1265,10 +1161,7 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                     ? !customERC20.symbol ||
                       !customERC20.name ||
                       !customERC20.contractAddress ||
-                      !customERC20.image ||
-                      isCheckingPriceFeed ||
-                      (priceFeedStatus === "not_found" &&
-                        !customERC20.priceApiUrl)
+                      !customERC20.image
                     : !selectedAsset
                 }
                 className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -1277,8 +1170,34 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
               </button>
             </div>
           </div>
+                ),
+              },
+              {
+                id: 'request-history',
+                label: '요청 내역',
+                badge: assetAddRequests.length,
+                content: (
+                  <RequestHistoryList
+                    requests={assetAddRequests}
+                    isLoading={false}
+                    onViewDetails={handleViewRequestDetails}
+                    onResubmit={handleResubmitRequest}
+                  />
+                ),
+              },
+            ]}
+            defaultTab="new-request"
+          />
         </div>
       </Modal>
+
+      {/* Request Detail Modal */}
+      <RequestDetailModal
+        request={selectedRequestDetail}
+        isOpen={!!selectedRequestDetail}
+        onClose={() => setSelectedRequestDetail(null)}
+        onResubmit={handleResubmitRequest}
+      />
 
       {/* QR Code Modal */}
       <Modal isOpen={!!selectedQR}>

@@ -15,7 +15,7 @@ import {
   BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { ServicePlan } from '@/app/page'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts'
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector } from 'recharts'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { PriorityBadge } from './withdrawal/PriorityBadge'
@@ -27,6 +27,13 @@ import CryptoIcon from '@/components/ui/CryptoIcon'
 import { IndividualWithdrawalRequest } from '@/types/withdrawal'
 import { getIndividualWithdrawals } from '@/lib/api/withdrawal'
 import { ProcessingTableRow } from './withdrawal/ProcessingTableRow'
+import { Balance, AssetData } from '@/types/balance'
+import { getUserBalances } from '@/lib/api/balances'
+import { CoinPrices, PriceChangeResponse } from '@/types/coinPrice'
+import { getCurrentPrices, getPriceChange } from '@/lib/api/coinPrices'
+import { Tabs, TabItem } from './common/Tabs'
+import { AssetValueData, TimeGranularity } from '@/types/assetValue'
+import { getHourlyAssetValues, getDailyAssetValues, getMonthlyAssetValues } from '@/lib/api/assetValues'
 
 interface AssetOverviewProps {
   plan: ServicePlan
@@ -38,20 +45,110 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
   const [timePeriod, setTimePeriod] = useState<'hour' | 'day' | 'month'>('month')
   const [ongoingWithdrawals, setOngoingWithdrawals] = useState<IndividualWithdrawalRequest[]>([])
   const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false)
+  const [assets, setAssets] = useState<AssetData[]>([])
+  const [isLoadingAssets, setIsLoadingAssets] = useState(true)
+
+  // 자산 가치 그래프 관련 state
+  const [assetValueData, setAssetValueData] = useState<AssetValueData[]>([])
+  const [isLoadingAssetValues, setIsLoadingAssetValues] = useState(false)
+  const [activeGranularity, setActiveGranularity] = useState<TimeGranularity>('daily')
+  const [dailyPeriod, setDailyPeriod] = useState<number>(30)
 
   const { t, language } = useLanguage()
   const { user } = useAuth()
   const router = useRouter()
 
-  const mockAssets = [
-    { symbol: 'BTC', name: 'Bitcoin', balance: '12.50', value: 750000000, change: -2.34, currentPrice: 60000000 },
-    { symbol: 'ETH', name: 'Ethereum', balance: '156.75', value: 650000000, change: 3.45, currentPrice: 4150000 },
-    { symbol: 'USDT', name: 'Tether', balance: '250000.00', value: 340000000, change: 0.02, currentPrice: 1360 },
-    { symbol: 'USDC', name: 'USD Coin', balance: '185000.00', value: 251500000, change: -0.01, currentPrice: 1360 }
-  ]
+  // 자산별 이름 매핑
+  const assetNames: Record<string, string> = {
+    BTC: 'Bitcoin',
+    ETH: 'Ethereum',
+    USDT: 'Tether',
+    USDC: 'USD Coin',
+    SOL: 'Solana'
+  }
 
   // Filter actual withdrawal requests with withdrawal_request status (pending approval)
   const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'withdrawal_request')
+
+  // 사용자 자산 잔고 데이터 가져오기 (실시간 가격 포함)
+  useEffect(() => {
+    const fetchAssets = async () => {
+      if (!user?.id) {
+        setIsLoadingAssets(false)
+        return
+      }
+
+      try {
+        setIsLoadingAssets(true)
+
+        // 1. 잔고 데이터 가져오기
+        const balances = await getUserBalances({ userId: user.id })
+
+        // 2. asset별로 그룹핑
+        const assetMap: Record<string, number> = {}
+
+        balances.forEach((balance: Balance) => {
+          const asset = balance.asset
+          const totalBalance = parseFloat(balance.totalBalance)
+
+          if (assetMap[asset]) {
+            assetMap[asset] += totalBalance
+          } else {
+            assetMap[asset] = totalBalance
+          }
+        })
+
+        const assetSymbols = Object.keys(assetMap)
+
+        if (assetSymbols.length === 0) {
+          setAssets([])
+          setIsLoadingAssets(false)
+          return
+        }
+
+        // 3. 실시간 가격 가져오기
+        const [currentPrices, priceChanges] = await Promise.all([
+          getCurrentPrices(assetSymbols),
+          getPriceChange(24, assetSymbols)
+        ])
+
+        // 4. AssetData 형식으로 변환
+        const assetData: AssetData[] = Object.entries(assetMap).map(([symbol, balance]) => {
+          const priceData = currentPrices[symbol]
+          const changeData = priceChanges[symbol]
+
+          const currentPrice = priceData?.priceKRW || 0
+          const value = balance * currentPrice
+
+          // changeData에 error가 있으면 0, 아니면 실제 변동률
+          const change = changeData && 'krw' in changeData
+            ? changeData.krw.changePercent
+            : 0
+
+          return {
+            symbol,
+            name: assetNames[symbol] || symbol,
+            balance: balance.toString(),
+            value: Math.round(value),
+            change,
+            currentPrice
+          }
+        })
+
+        // 가치 순으로 정렬
+        assetData.sort((a, b) => b.value - a.value)
+
+        setAssets(assetData)
+      } catch (error) {
+        console.error('[AssetOverview] 자산 데이터 조회 실패:', error)
+        setAssets([])
+      } finally {
+        setIsLoadingAssets(false)
+      }
+    }
+
+    fetchAssets()
+  }, [user])
 
   // 진행 중인 출금 데이터 가져오기
   useEffect(() => {
@@ -88,59 +185,111 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     fetchOngoingWithdrawals()
   }, [user, plan])
 
-  // 시간대별 차트 데이터
-  const getChartData = (period: 'hour' | 'day' | 'month') => {
-    switch (period) {
-      case 'hour':
-        return [
-          { name: '00:00', value: 275000000 },
-          { name: '04:00', value: 278000000 },
-          { name: '08:00', value: 272000000 },
-          { name: '12:00', value: 280000000 },
-          { name: '16:00', value: 285000000 },
-          { name: '20:00', value: 282000000 }
-        ]
-      case 'day':
-        return [
-          { name: '월', value: 270000000 },
-          { name: '화', value: 275000000 },
-          { name: '수', value: 268000000 },
-          { name: '목', value: 282000000 },
-          { name: '금', value: 285000000 },
-          { name: '토', value: 280000000 },
-          { name: '일', value: 275000000 }
-        ]
-      case 'month':
-      default:
-        return [
-          { name: t('overview.months.jan'), value: 200000000 },
-          { name: t('overview.months.feb'), value: 220000000 },
-          { name: t('overview.months.mar'), value: 180000000 },
-          { name: t('overview.months.apr'), value: 250000000 },
-          { name: t('overview.months.may'), value: 275000000 },
-          { name: t('overview.months.jun'), value: 275000000 },
-          { name: t('overview.months.jul'), value: 290000000 },
-          { name: t('overview.months.aug'), value: 285000000 },
-          { name: t('overview.months.sep'), value: 295000000 }
-        ]
+  // 자산 가치 데이터 가져오기
+  useEffect(() => {
+    const fetchAssetValues = async () => {
+      if (!user?.id) {
+        setIsLoadingAssetValues(false)
+        return
+      }
+
+      try {
+        setIsLoadingAssetValues(true)
+
+        let data: AssetValueData[] = []
+
+        switch (activeGranularity) {
+          case 'hourly':
+            data = await getHourlyAssetValues(user.id)
+            break
+          case 'daily':
+            data = await getDailyAssetValues(user.id, dailyPeriod)
+            break
+          case 'monthly':
+            data = await getMonthlyAssetValues(user.id, 12)
+            break
+        }
+
+        setAssetValueData(data)
+      } catch (error) {
+        console.error('[AssetOverview] 자산 가치 데이터 조회 실패:', error)
+        setAssetValueData([])
+      } finally {
+        setIsLoadingAssetValues(false)
+      }
     }
+
+    fetchAssetValues()
+  }, [user, activeGranularity, dailyPeriod])
+
+  // 자산 가치 데이터를 차트 형식으로 변환
+  const formatChartData = (data: AssetValueData[], granularity: TimeGranularity) => {
+    return data.map(item => {
+      const date = new Date(item.timestamp)
+
+      let label = ''
+      switch (granularity) {
+        case 'hourly':
+          label = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+          break
+        case 'daily':
+          label = `${date.getMonth() + 1}/${date.getDate()}`
+          break
+        case 'monthly':
+          label = `${date.getFullYear()}년 ${date.getMonth() + 1}월`
+          break
+      }
+
+      return {
+        name: label,
+        value: Math.round(item.totalValueKRW)
+      }
+    })
   }
 
-  const chartData = getChartData(timePeriod)
+  const chartData = formatChartData(assetValueData, activeGranularity)
 
   // 자산 데이터 (All 데이터만 사용)
-  const colors = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b'] // 고정된 색상
-  const pieData = mockAssets.map((asset, index) => ({
+  const colors = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#f97316', '#06b6d4', '#a855f7']
+  const pieData = assets.map((asset, index) => ({
     name: asset.symbol,
     value: asset.value,
     balance: asset.balance,
-    color: colors[index]
+    color: colors[index % colors.length]
   }))
 
   // 총 자산 가치 계산
   const totalValue = pieData.reduce((sum, item) => sum + item.value, 0)
   const selectedAsset = pieData[selectedAssetIndex]
   const selectedPercentage = selectedAsset ? ((selectedAsset.value / totalValue) * 100).toFixed(1) : '0'
+
+  // 총 자산 가치 변동률 계산 (24시간 기준)
+  const calculateTotalValueChange = () => {
+    if (assets.length === 0) return 0
+
+    let currentTotalValue = 0
+    let previousTotalValue = 0
+
+    assets.forEach(asset => {
+      const balance = parseFloat(asset.balance)
+      const currentPrice = asset.currentPrice
+      const changePercent = asset.change
+
+      // 현재 가치
+      currentTotalValue += balance * currentPrice
+
+      // 24시간 전 가격 역산
+      const previousPrice = currentPrice / (1 + changePercent / 100)
+      previousTotalValue += balance * previousPrice
+    })
+
+    if (previousTotalValue === 0) return 0
+
+    const changePercent = ((currentTotalValue - previousTotalValue) / previousTotalValue) * 100
+    return parseFloat(changePercent.toFixed(2))
+  }
+
+  const totalValueChangePercent = calculateTotalValueChange()
 
   const handlePieClick = (data: any, index: number) => {
     setSelectedAssetIndex(index)
@@ -298,10 +447,33 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm font-medium">{t('overview.daily_change')}</p>
-              <p className="text-2xl font-bold text-sky-600 mt-1">+2.45%</p>
+              <p className={`text-2xl font-bold mt-1 ${
+                isLoadingAssets
+                  ? 'text-gray-400'
+                  : totalValueChangePercent >= 0
+                  ? 'text-sky-600'
+                  : 'text-red-600'
+              }`}>
+                {isLoadingAssets
+                  ? '...'
+                  : `${totalValueChangePercent >= 0 ? '+' : ''}${totalValueChangePercent}%`
+                }
+              </p>
             </div>
-            <div className="p-3 bg-sky-50 rounded-full">
-              <ArrowTrendingUpIcon className="h-6 w-6 text-sky-600" />
+            <div className={`p-3 rounded-full ${
+              isLoadingAssets
+                ? 'bg-gray-50'
+                : totalValueChangePercent >= 0
+                ? 'bg-sky-50'
+                : 'bg-red-50'
+            }`}>
+              <ArrowTrendingUpIcon className={`h-6 w-6 ${
+                isLoadingAssets
+                  ? 'text-gray-400'
+                  : totalValueChangePercent >= 0
+                  ? 'text-sky-600'
+                  : 'text-red-600'
+              }`} />
             </div>
           </div>
         </div>
@@ -310,7 +482,9 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm font-medium">{t('overview.asset_types')}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{mockAssets.length}{t('overview.asset_types_count')}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {isLoadingAssets ? '...' : `${assets.length}${t('overview.asset_types_count')}`}
+              </p>
             </div>
             <div className="p-3 bg-purple-50 rounded-full">
               <ChartBarIcon className="h-6 w-6 text-purple-600" />
@@ -521,62 +695,188 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">{t('overview.price_trend')}</h3>
-            
-            {/* 시간 주기 선택 버튼을 제목 아래로 이동 */}
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-              {[
-                { id: 'hour', name: '시간', desc: '시간별 추이' },
-                { id: 'day', name: '일', desc: '일별 추이' },
-                { id: 'month', name: '월', desc: '월별 추이' }
-              ].map((period) => (
-                <button
-                  key={period.id}
-                  onClick={() => setTimePeriod(period.id as typeof timePeriod)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    timePeriod === period.id
-                      ? 'bg-white text-primary-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title={period.desc}
-                >
-                  {period.name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 12 }}
-                  interval={0}
-                  angle={-45}
-                  textAnchor="end"
-                  height={60}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => formatKRW(value as number)} />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#0ea5e9"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('overview.price_trend')}</h3>
+
+          <Tabs
+            tabs={[
+              {
+                id: 'hourly',
+                label: '시간별',
+                content: (
+                  <div>
+                    {isLoadingAssetValues ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">로딩 중...</p>
+                      </div>
+                    ) : chartData.length === 0 ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">데이터가 없습니다</p>
+                      </div>
+                    ) : (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis
+                              dataKey="name"
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                            />
+                            <YAxis
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                              tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                            />
+                            <Tooltip
+                              formatter={(value: number) => `${value.toLocaleString('ko-KR')}원`}
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              name="총 자산 가치"
+                              stroke="#0ea5e9"
+                              strokeWidth={2}
+                              dot={{ fill: '#0ea5e9', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                )
+              },
+              {
+                id: 'daily',
+                label: '일별',
+                content: (
+                  <div>
+                    {/* 기간 선택 버튼 */}
+                    <div className="flex space-x-2 mb-4">
+                      {[7, 30, 90].map(days => (
+                        <button
+                          key={days}
+                          onClick={() => setDailyPeriod(days)}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            dailyPeriod === days
+                              ? 'bg-primary-600 text-white'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {days}일
+                        </button>
+                      ))}
+                    </div>
+
+                    {isLoadingAssetValues ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">로딩 중...</p>
+                      </div>
+                    ) : chartData.length === 0 ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">데이터가 없습니다</p>
+                      </div>
+                    ) : (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis
+                              dataKey="name"
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                            />
+                            <YAxis
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                              tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                            />
+                            <Tooltip
+                              formatter={(value: number) => `${value.toLocaleString('ko-KR')}원`}
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              name="총 자산 가치"
+                              stroke="#0ea5e9"
+                              strokeWidth={2}
+                              dot={{ fill: '#0ea5e9', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                )
+              },
+              {
+                id: 'monthly',
+                label: '월별',
+                content: (
+                  <div>
+                    {isLoadingAssetValues ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">로딩 중...</p>
+                      </div>
+                    ) : chartData.length === 0 ? (
+                      <div className="h-80 flex items-center justify-center">
+                        <p className="text-gray-500">데이터가 없습니다</p>
+                      </div>
+                    ) : (
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 30 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis
+                              dataKey="name"
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                            />
+                            <YAxis
+                              stroke="#6b7280"
+                              style={{ fontSize: '12px' }}
+                              tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                            />
+                            <Tooltip
+                              formatter={(value: number) => `${value.toLocaleString('ko-KR')}원`}
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px'
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              name="총 자산 가치"
+                              stroke="#0ea5e9"
+                              strokeWidth={2}
+                              dot={{ fill: '#0ea5e9', r: 4 }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+            ]}
+            defaultTab="daily"
+            activeTab={activeGranularity}
+            onChange={(tabId) => setActiveGranularity(tabId as TimeGranularity)}
+          />
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -702,7 +1002,20 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {mockAssets.map((asset) => (
+              {isLoadingAssets ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                    자산 데이터를 불러오는 중...
+                  </td>
+                </tr>
+              ) : assets.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                    보유 자산이 없습니다
+                  </td>
+                </tr>
+              ) : (
+                assets.map((asset) => (
                 <tr key={asset.symbol} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -733,7 +1046,8 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                     </span>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
