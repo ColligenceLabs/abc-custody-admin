@@ -562,27 +562,29 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     // 진행 중 목록에서 제거
     setActiveDeposits((prev) => prev.filter((d) => d.id !== creditedDeposit.id));
 
-    // 히스토리 재조회 (credited 상태는 히스토리에 표시)
-    const fetchHistory = async () => {
-      if (!user) return;
-
-      try {
-        const historyRes = await fetch(
-          `${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=${historyPage}&limit=${historyLimit}`
+    // 히스토리에 즉시 추가 (실시간 반영)
+    setDepositHistory((prev) => {
+      // 중복 체크
+      const exists = prev.some((d) => d.id === creditedDeposit.id);
+      if (exists) {
+        // 이미 있으면 업데이트만
+        return prev.map((d) =>
+          d.id === creditedDeposit.id ? creditedDeposit : d
         );
-        if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          setDepositHistory(historyData.deposits || []);
-          setHistoryTotal(historyData.total || 0);
-          setHistoryTotalPages(historyData.totalPages || 0);
-        }
-      } catch (error) {
-        console.error('히스토리 재조회 실패:', error);
       }
-    };
 
-    fetchHistory();
-  }, [user, historyPage, historyLimit]);
+      // 1페이지인 경우에만 새 항목을 맨 앞에 추가
+      if (historyPage === 1) {
+        return [creditedDeposit, ...prev].slice(0, historyLimit);
+      }
+
+      // 다른 페이지에 있으면 추가하지 않음 (새로고침 필요)
+      return prev;
+    });
+
+    // Total count 증가
+    setHistoryTotal((prev) => prev + 1);
+  }, [historyPage, historyLimit]);
 
   // WebSocket 연결
   useDepositSocket({
@@ -663,27 +665,29 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     // Deposit가 credited 상태이므로 진행 중 목록에서 제거
     setActiveDeposits((prev) => prev.filter((d) => d.id !== deposit.id));
 
-    // 히스토리 재조회
-    const fetchHistory = async () => {
-      if (!user) return;
-
-      try {
-        const historyRes = await fetch(
-          `${API_BASE_URL}/api/deposits/history?userId=${user.id}&page=${historyPage}&limit=${historyLimit}`
+    // 히스토리에 즉시 추가 (실시간 반영)
+    setDepositHistory((prev) => {
+      // 중복 체크
+      const exists = prev.some((d) => d.id === deposit.id);
+      if (exists) {
+        // 이미 있으면 업데이트만
+        return prev.map((d) =>
+          d.id === deposit.id ? deposit : d
         );
-        if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          setDepositHistory(historyData.deposits || []);
-          setHistoryTotal(historyData.total || 0);
-          setHistoryTotalPages(historyData.totalPages || 0);
-        }
-      } catch (error) {
-        console.error('히스토리 재조회 실패:', error);
       }
-    };
 
-    fetchHistory();
-  }, [user, historyPage, historyLimit]);
+      // 1페이지인 경우에만 새 항목을 맨 앞에 추가
+      if (historyPage === 1) {
+        return [deposit, ...prev].slice(0, historyLimit);
+      }
+
+      // 다른 페이지에 있으면 추가하지 않음 (새로고침 필요)
+      return prev;
+    });
+
+    // Total count 증가
+    setHistoryTotal((prev) => prev + 1);
+  }, [historyPage, historyLimit]);
 
   // VaultTransfer WebSocket 연결
   useVaultTransferSocket({
