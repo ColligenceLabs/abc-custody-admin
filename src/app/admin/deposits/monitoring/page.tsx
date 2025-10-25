@@ -18,7 +18,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { RefreshCw } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { RefreshCw, Info } from 'lucide-react';
 
 import { getDeposits, getDepositStats, getDepositById } from '@/services/depositApiService';
 import { useDepositSocket } from '@/hooks/useDepositSocket';
@@ -117,10 +123,36 @@ export default function DepositMonitoringPage() {
       {/* 메인 콘텐츠 */}
       <Card>
         <CardHeader>
-          <CardTitle>실시간 입금 피드</CardTitle>
-          <CardDescription>
-            총 {depositsData?.total || 0}건 (자동 업데이트)
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>실시간 입금 피드</CardTitle>
+              <CardDescription>
+                총 {depositsData?.total || 0}건 (자동 업데이트)
+              </CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 cursor-help">
+                    <Info className="h-4 w-4" />
+                    <span className="hidden sm:inline">발신자 검증</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-xs">
+                  <div className="space-y-2">
+                    <p className="font-semibold">발신자 주소 검증</p>
+                    <ul className="text-xs space-y-1">
+                      <li>• 검증됨: 화이트리스트 등록 주소</li>
+                      <li>• 미검증: 미등록 주소 (검토 필요)</li>
+                    </ul>
+                    <p className="text-xs text-gray-500">
+                      회원사 등록 출금 주소에서의 입금 여부를 확인합니다.
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 필터 영역 */}
