@@ -104,11 +104,6 @@ export function DepositStats({ stats, isLoading }: DepositStatsProps) {
                 {stat.count.toLocaleString()}건
               </div>
 
-              {/* 금액 */}
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                ₩{parseInt(stat.amount).toLocaleString()}
-              </div>
-
               {/* 트렌드 */}
               {stat.trend && stat.changePercent !== undefined && (
                 <div className="flex items-center space-x-1 text-xs">
