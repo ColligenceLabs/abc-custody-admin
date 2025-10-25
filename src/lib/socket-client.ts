@@ -13,6 +13,16 @@ export function getSocketClient(): Socket {
 
     socket.on('connect', () => {
       console.log('[Socket] 연결 성공:', socket?.id);
+
+      // 관리자로 인증하여 admin 룸에 조인
+      socket.emit('authenticate', {
+        role: 'admin',
+        token: null, // TODO: JWT 토큰 추가
+      });
+    });
+
+    socket.on('authenticated', (response) => {
+      console.log('[Socket] 인증 완료:', response);
     });
 
     socket.on('disconnect', (reason) => {

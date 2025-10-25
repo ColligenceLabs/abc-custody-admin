@@ -69,15 +69,15 @@ export function useDepositSocket() {
     };
 
     // 이벤트 리스너 등록
-    socket.on('deposit:detected:admin', handleDepositDetected);
-    socket.on('deposit:update:admin', handleDepositUpdate);
-    socket.on('deposit:credited:admin', handleDepositCredited);
+    socket.on('deposit:detected', handleDepositDetected);
+    socket.on('deposit:updated', handleDepositUpdate);
+    socket.on('deposit:credited', handleDepositCredited);
 
     // 클린업
     return () => {
-      socket.off('deposit:detected:admin', handleDepositDetected);
-      socket.off('deposit:update:admin', handleDepositUpdate);
-      socket.off('deposit:credited:admin', handleDepositCredited);
+      socket.off('deposit:detected', handleDepositDetected);
+      socket.off('deposit:updated', handleDepositUpdate);
+      socket.off('deposit:credited', handleDepositCredited);
     };
   }, [queryClient]);
 }
