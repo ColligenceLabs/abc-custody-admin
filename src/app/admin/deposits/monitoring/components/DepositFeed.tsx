@@ -64,9 +64,6 @@ export function DepositFeed({
             <th className="text-left p-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               자산/금액
             </th>
-            <th className="text-right p-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              금액 (KRW)
-            </th>
             <th className="text-center p-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               상태
             </th>
@@ -127,17 +124,6 @@ export function DepositFeed({
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {deposit.currentConfirmations}/{deposit.requiredConfirmations} 컨펌
                 </div>
-              </td>
-
-              {/* 금액 (KRW) */}
-              <td className="p-3 text-right">
-                {deposit.amountKRW ? (
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    ₩{parseInt(deposit.amountKRW).toLocaleString()}
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-500">-</span>
-                )}
               </td>
 
               {/* 상태 */}
