@@ -136,13 +136,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
       //   icon: FileText,
       //   requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
       // },
-      // {
-      //   id: 'deposits-returns',
-      //   label: '환불 처리',
-      //   href: '/admin/deposits/returns',
-      //   icon: ArrowDownUp,
-      //   requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.UPDATE }],
-      // },
+      {
+        id: 'deposits-returns',
+        label: '환불 처리',
+        href: '/admin/deposits/returns',
+        icon: ArrowDownUp,
+        requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.UPDATE }],
+      },
     ],
   },
   // {

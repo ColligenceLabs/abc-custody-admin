@@ -12,6 +12,10 @@ export interface ReturnStatsData {
     count: number;
     volumeKRW: string;
   };
+  approved: {
+    count: number;
+    volumeKRW: string;
+  };
   processing: {
     count: number;
     volumeKRW: string;
@@ -33,7 +37,7 @@ interface ReturnStatsProps {
 export function ReturnStats({ stats }: ReturnStatsProps) {
   const statCards = [
     {
-      title: '환불 대기',
+      title: '대기',
       count: stats.pending.count,
       volume: parseFloat(stats.pending.volumeKRW).toLocaleString(),
       icon: Clock,
@@ -41,7 +45,15 @@ export function ReturnStats({ stats }: ReturnStatsProps) {
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/10',
     },
     {
-      title: '처리 중',
+      title: '승인됨',
+      count: stats.approved.count,
+      volume: parseFloat(stats.approved.volumeKRW).toLocaleString(),
+      icon: CheckCircle2,
+      iconColor: 'text-sky-600',
+      bgColor: 'bg-sky-50 dark:bg-sky-900/10',
+    },
+    {
+      title: '처리중',
       count: stats.processing.count,
       volume: parseFloat(stats.processing.volumeKRW).toLocaleString(),
       icon: ArrowDownUp,
@@ -53,8 +65,8 @@ export function ReturnStats({ stats }: ReturnStatsProps) {
       count: stats.completed.count,
       volume: parseFloat(stats.completed.volumeKRW).toLocaleString(),
       icon: CheckCircle2,
-      iconColor: 'text-green-600',
-      bgColor: 'bg-green-50 dark:bg-green-900/10',
+      iconColor: 'text-indigo-600',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/10',
     },
     {
       title: '실패',
@@ -67,7 +79,7 @@ export function ReturnStats({ stats }: ReturnStatsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (

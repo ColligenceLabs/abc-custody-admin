@@ -265,23 +265,49 @@ export type DepositReturnReason =
   | 'manual_review_rejected';        // 수동 검토 거부
 
 /**
- * 환불 거래
+ * 환불 유형
+ */
+export type ReturnType = 'refund' | 'seizure' | 'transfer';
+
+/**
+ * 환불 상태 (백엔드와 일치)
+ */
+export type ReturnStatus = 'pending' | 'approved' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * 환불 거래 (백엔드 모델과 일치)
  */
 export interface ReturnTransaction {
   id: string;
   depositId: string;
   originalTxHash: string;
-  returnTxHash?: string;
-  amount: string;
-  currency: Currency;
+  returnType: ReturnType;
   returnAddress: string;
-  reason: DepositReturnReason;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  networkFee: string;
-  returnAmount: string;              // 원금 - 수수료
-  processedAt?: string;
-  completedAt?: string;
+  originalAmount: string;
+  networkFee: string | null;
+  returnAmount: string;
+  asset: string;
+  network: string;
+  status: ReturnStatus;
+  reason: string;
+  returnTxHash?: string | null;
+  requestedBy: string;
+  approvedBy?: string | null;
+  requestedAt: string;
+  approvedAt?: string | null;
+  executedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // 연관 정보 (백엔드 JOIN)
+  deposit?: DepositTransaction;
+
+  // UI 전용 필드
+  amountKRW?: string;
+  returnAmountKRW?: string;
   failureReason?: string;
+  errorMessage?: string;
 }
 
 // ============================================================================

@@ -6,6 +6,7 @@
  * 입금 거래의 상세 정보, 검증 타임라인, 블록체인 정보 등을 표시합니다.
  */
 
+import { useState } from 'react';
 import { DepositTransaction } from '@/types/deposit';
 import {
   Dialog,
@@ -25,9 +26,11 @@ import {
   Info,
   ExternalLink,
   Copy,
+  ArrowDownUp,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCryptoAmount } from '@/lib/format';
+import { CreateReturnModal } from './CreateReturnModal';
 
 interface DepositDetailModalProps {
   deposit: DepositTransaction | null;
@@ -41,8 +44,15 @@ export function DepositDetailModal({
   onClose,
 }: DepositDetailModalProps) {
   const { toast } = useToast();
+  const [isCreateReturnModalOpen, setIsCreateReturnModalOpen] = useState(false);
 
   if (!deposit) return null;
+
+  // 환불 처리 버튼 표시 조건
+  const canCreateReturn =
+    !deposit.senderVerified && // 미검증 발신자
+    deposit.status === 'credited' && // 이미 반영된 입금
+    deposit.returnStatus === 'none'; // 아직 환불 요청 없음
 
   const handleCopyTxHash = () => {
     navigator.clipboard.writeText(deposit.txHash);
@@ -166,16 +176,53 @@ export function DepositDetailModal({
                     )
                   }
                 />
-                <InfoRow
-                  label="입금 감지 시간"
-                  value={new Date(deposit.detectedAt).toLocaleString('ko-KR')}
-                />
-                {deposit.confirmedAt && (
-                  <InfoRow
-                    label="검증 완료 시간"
-                    value={new Date(deposit.confirmedAt).toLocaleString('ko-KR')}
-                  />
-                )}
+              </CardContent>
+            </Card>
+
+            {/* 환불 처리 섹션 */}
+            <Card className={
+              !canCreateReturn
+                ? "bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-800"
+                : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800"
+            }>
+              <CardContent className="pt-6">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${
+                    !canCreateReturn
+                      ? 'text-gray-400 dark:text-gray-600'
+                      : 'text-yellow-600 dark:text-yellow-500'
+                  }`} />
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className={`text-sm font-semibold mb-1 ${
+                        !canCreateReturn
+                          ? 'text-gray-600 dark:text-gray-400'
+                          : 'text-yellow-900 dark:text-yellow-400'
+                      }`}>
+                        {!canCreateReturn ? '환불 처리 불가' : '미검증 발신자 주소'}
+                      </p>
+                      <p className={`text-sm ${
+                        !canCreateReturn
+                          ? 'text-gray-600 dark:text-gray-500'
+                          : 'text-yellow-800 dark:text-yellow-300'
+                      }`}>
+                        {!canCreateReturn
+                          ? '환불 처리는 미검증 발신자이며 이미 반영 완료된 입금에만 가능합니다.'
+                          : '이 입금은 등록되지 않은 주소에서 전송되었습니다. 환불 처리가 필요할 수 있습니다.'
+                        }
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsCreateReturnModalOpen(true)}
+                      className="w-full sm:w-auto"
+                      variant="default"
+                      disabled={!canCreateReturn}
+                    >
+                      <ArrowDownUp className="mr-2 h-4 w-4" />
+                      환불 처리
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -372,6 +419,14 @@ export function DepositDetailModal({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* 환불 처리 모달 */}
+      <CreateReturnModal
+        deposit={deposit}
+        isOpen={isCreateReturnModalOpen}
+        onClose={() => setIsCreateReturnModalOpen(false)}
+        onSuccess={onClose}
+      />
     </Dialog>
   );
 }
