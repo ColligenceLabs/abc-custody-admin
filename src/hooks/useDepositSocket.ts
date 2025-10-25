@@ -13,16 +13,18 @@ export function useDepositSocket() {
     const socket = getSocketClient();
 
     // 신규 입금 감지
-    const handleDepositDetected = (deposit: DepositTransaction) => {
+    const handleDepositDetected = (data: { deposit: DepositTransaction; timestamp: string }) => {
+      const deposit = data.deposit;
       console.log('[Socket] 신규 입금 감지:', deposit.txHash);
 
-      queryClient.setQueryData<GetDepositsResponse>(
-        ['deposits'],
+      // 모든 deposits 쿼리 업데이트 (필터/페이징 포함)
+      queryClient.setQueriesData<GetDepositsResponse>(
+        { queryKey: ['deposits'], exact: false },
         (old) => {
           if (!old) return old;
 
           // 중복 체크
-          const exists = old.deposits.find((d) => d.txHash === deposit.txHash);
+          const exists = old.deposits.find((d) => d.id === deposit.id || d.txHash === deposit.txHash);
           if (exists) return old;
 
           // 신규 항목 추가 (맨 앞에)
@@ -38,17 +40,19 @@ export function useDepositSocket() {
     };
 
     // 입금 상태 업데이트
-    const handleDepositUpdate = (deposit: DepositTransaction) => {
+    const handleDepositUpdate = (data: { deposit: DepositTransaction; timestamp: string }) => {
+      const deposit = data.deposit;
       console.log('[Socket] 입금 업데이트:', deposit.txHash, deposit.status);
 
-      queryClient.setQueryData<GetDepositsResponse>(
-        ['deposits'],
+      // 모든 deposits 쿼리 업데이트
+      queryClient.setQueriesData<GetDepositsResponse>(
+        { queryKey: ['deposits'], exact: false },
         (old) => {
           if (!old) return old;
 
           // 해당 항목 업데이트
           const updatedDeposits = old.deposits.map((d) =>
-            d.txHash === deposit.txHash ? deposit : d
+            d.id === deposit.id || d.txHash === deposit.txHash ? deposit : d
           );
 
           return {
@@ -63,9 +67,9 @@ export function useDepositSocket() {
     };
 
     // 입금 완료
-    const handleDepositCredited = (deposit: DepositTransaction) => {
-      console.log('[Socket] 입금 완료:', deposit.txHash);
-      handleDepositUpdate(deposit); // 업데이트와 동일 로직
+    const handleDepositCredited = (data: { deposit: DepositTransaction; timestamp: string }) => {
+      console.log('[Socket] 입금 완료:', data.deposit.txHash);
+      handleDepositUpdate(data); // 업데이트와 동일 로직
     };
 
     // 이벤트 리스너 등록
