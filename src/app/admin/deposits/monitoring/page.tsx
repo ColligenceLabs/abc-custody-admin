@@ -28,7 +28,7 @@ import { RefreshCw, Info } from 'lucide-react';
 
 import { getDeposits, getDepositStats, getDepositById } from '@/services/depositApiService';
 import { useDepositSocket } from '@/hooks/useDepositSocket';
-import { DepositFilter, DepositTransaction, DepositDetails } from '@/types/deposit';
+import { DepositFilter, DepositTransaction } from '@/types/deposit';
 
 import { DepositStats } from './components/DepositStats';
 import { DepositFilters } from './components/DepositFilters';
@@ -227,7 +227,7 @@ export default function DepositMonitoringPage() {
 
       {/* 상세 모달 */}
       <DepositDetailModal
-        deposit={selectedDepositDetails as DepositDetails | null}
+        deposit={selectedDepositDetails as DepositTransaction | null}
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
       />

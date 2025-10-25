@@ -9,13 +9,7 @@
 import { DepositTransaction, DepositStatus, MemberType } from '@/types/deposit';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Eye, AlertTriangle, MoreHorizontal } from 'lucide-react';
+import { Eye, AlertTriangle } from 'lucide-react';
 import { formatCryptoAmount } from '@/lib/format';
 
 interface DepositFeedProps {
@@ -134,19 +128,15 @@ export function DepositFeed({
               {/* 액션 */}
               <td className="p-3">
                 <div className="flex items-center justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onViewDetails(deposit)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        상세 보기
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewDetails(deposit)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>상세 보기</span>
+                  </Button>
                 </div>
               </td>
             </tr>

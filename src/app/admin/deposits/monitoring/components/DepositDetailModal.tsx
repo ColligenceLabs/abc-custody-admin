@@ -6,7 +6,7 @@
  * 입금 거래의 상세 정보, 검증 타임라인, 블록체인 정보 등을 표시합니다.
  */
 
-import { DepositDetails } from '@/types/deposit';
+import { DepositTransaction } from '@/types/deposit';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -23,10 +24,13 @@ import {
   AlertTriangle,
   Info,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { formatCryptoAmount } from '@/lib/format';
 
 interface DepositDetailModalProps {
-  deposit: DepositDetails | null;
+  deposit: DepositTransaction | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -36,7 +40,50 @@ export function DepositDetailModal({
   isOpen,
   onClose,
 }: DepositDetailModalProps) {
+  const { toast } = useToast();
+
   if (!deposit) return null;
+
+  const handleCopyTxHash = () => {
+    navigator.clipboard.writeText(deposit.txHash);
+    toast({
+      description: '트랜잭션 해시가 복사되었습니다.',
+    });
+  };
+
+  const handleCopyAddress = (address: string) => {
+    navigator.clipboard.writeText(address);
+    toast({
+      description: '주소가 복사되었습니다.',
+    });
+  };
+
+  const getBlockExplorerUrl = () => {
+    const baseUrl = deposit.network === 'Ethereum'
+      ? 'https://etherscan.io'
+      : 'https://holesky.etherscan.io';
+    return `${baseUrl}/tx/${deposit.txHash}`;
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'detected': return '입금 감지';
+      case 'confirming': return '검증중';
+      case 'confirmed': return '검증 완료';
+      case 'credited': return '반영 완료';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'detected': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'confirming': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'confirmed': return 'text-sky-600 bg-sky-50 border-sky-200';
+      case 'credited': return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -45,15 +92,24 @@ export function DepositDetailModal({
           <DialogTitle className="text-xl font-bold">
             입금 상세 정보
           </DialogTitle>
-          <DialogDescription>
-            TxHash: {deposit.txHash.slice(0, 16)}...{deposit.txHash.slice(-8)}
+          <DialogDescription className="flex items-center space-x-2">
+            <span className="font-mono text-xs">
+              {deposit.txHash.slice(0, 16)}...{deposit.txHash.slice(-8)}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyTxHash}
+              className="h-6 w-6 p-0"
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview">개요</TabsTrigger>
-            <TabsTrigger value="verification">검증</TabsTrigger>
             <TabsTrigger value="blockchain">블록체인</TabsTrigger>
           </TabsList>
 
@@ -66,33 +122,60 @@ export function DepositDetailModal({
               </CardHeader>
               <CardContent className="space-y-3">
                 <InfoRow
-                  label="회원사"
-                  value={deposit.memberInfo.companyName}
+                  label="회원 유형"
+                  value={
+                    deposit.user?.memberType === 'individual' ? '개인' :
+                    deposit.user?.memberType === 'corporate' ? '기업' : '-'
+                  }
+                />
+                <InfoRow
+                  label="회원명"
+                  value={deposit.user?.name || deposit.userId || '알 수 없음'}
+                />
+                <InfoRow
+                  label="이메일"
+                  value={deposit.user?.email || '-'}
                 />
                 <InfoRow label="자산" value={deposit.asset} />
-                <InfoRow label="수량" value={deposit.amount} />
                 <InfoRow
-                  label="금액 (KRW)"
-                  value={deposit.amountKRW ? `₩${parseInt(deposit.amountKRW).toLocaleString()}` : '-'}
+                  label="수량"
+                  value={`${formatCryptoAmount(deposit.amount, deposit.asset)} ${deposit.asset}`}
+                />
+                <InfoRow
+                  label="네트워크"
+                  value={deposit.network}
                 />
                 <InfoRow
                   label="상태"
                   value={
-                    <Badge>
-                      {deposit.status === 'detected'
-                        ? '입금 감지'
-                        : deposit.status === 'confirming'
-                        ? '검증중'
-                        : deposit.status === 'confirmed'
-                        ? '검증 완료'
-                        : '반영 완료'}
+                    <Badge className={`border ${getStatusColor(deposit.status)}`}>
+                      {getStatusLabel(deposit.status)}
                     </Badge>
                   }
                 />
                 <InfoRow
-                  label="입금 시간"
+                  label="발신자 검증"
+                  value={
+                    deposit.senderVerified ? (
+                      <span className="text-sky-600 text-sm font-medium">검증됨</span>
+                    ) : (
+                      <span className="text-yellow-600 text-sm font-medium flex items-center space-x-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>미검증</span>
+                      </span>
+                    )
+                  }
+                />
+                <InfoRow
+                  label="입금 감지 시간"
                   value={new Date(deposit.detectedAt).toLocaleString('ko-KR')}
                 />
+                {deposit.confirmedAt && (
+                  <InfoRow
+                    label="검증 완료 시간"
+                    value={new Date(deposit.confirmedAt).toLocaleString('ko-KR')}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -107,10 +190,17 @@ export function DepositDetailModal({
                   value={
                     <div className="flex items-center space-x-2">
                       <span className="font-mono text-xs">
-                        {deposit.fromAddress.slice(0, 10)}...
-                        {deposit.fromAddress.slice(-8)}
+                        {deposit.fromAddress.slice(0, 12)}...
+                        {deposit.fromAddress.slice(-10)}
                       </span>
-                      <ExternalLink className="h-3 w-3 text-blue-500" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyAddress(deposit.fromAddress)}
+                        className="h-5 w-5 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
                   }
                 />
@@ -119,101 +209,22 @@ export function DepositDetailModal({
                   value={
                     <div className="flex items-center space-x-2">
                       <span className="font-mono text-xs">
-                        {deposit.toAddress.slice(0, 10)}...
-                        {deposit.toAddress.slice(-8)}
+                        {deposit.toAddress.slice(0, 12)}...
+                        {deposit.toAddress.slice(-10)}
                       </span>
-                      <ExternalLink className="h-3 w-3 text-blue-500" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyAddress(deposit.toAddress)}
+                        className="h-5 w-5 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
                   }
                 />
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* 검증 탭 */}
-          <TabsContent value="verification" className="space-y-4">
-            {/* 검증 타임라인 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">검증 타임라인</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {deposit.verificationTimeline.map((item, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="mt-1">
-                        {item.status === 'success' ? (
-                          <CheckCircle className="h-5 w-5 text-sky-500" />
-                        ) : item.status === 'error' ? (
-                          <XCircle className="h-5 w-5 text-red-500" />
-                        ) : item.status === 'warning' ? (
-                          <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                        ) : (
-                          <Info className="h-5 w-5 text-blue-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.action}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {item.description}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {new Date(item.timestamp).toLocaleString('ko-KR')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AML 체크 결과 */}
-            {deposit.amlCheck && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">AML 스크리닝</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <InfoRow
-                    label="리스크 점수"
-                    value={
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold">
-                          {deposit.amlCheck.riskScore}/100
-                        </span>
-                        <Badge
-                          variant={
-                            deposit.amlCheck.riskLevel === 'low'
-                              ? 'secondary'
-                              : deposit.amlCheck.riskLevel === 'medium'
-                              ? 'outline'
-                              : 'destructive'
-                          }
-                        >
-                          {deposit.amlCheck.riskLevel === 'low'
-                            ? '낮음'
-                            : deposit.amlCheck.riskLevel === 'medium'
-                            ? '중간'
-                            : deposit.amlCheck.riskLevel === 'high'
-                            ? '높음'
-                            : '치명적'}
-                        </Badge>
-                      </div>
-                    }
-                  />
-                  <InfoRow
-                    label="블랙리스트"
-                    value={deposit.amlCheck.checks.blacklistCheck ? '✅ 통과' : '❌ 차단'}
-                  />
-                  <InfoRow
-                    label="제재 목록"
-                    value={deposit.amlCheck.checks.sanctionsListCheck ? '✅ 통과' : '❌ 차단'}
-                  />
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
 
           {/* 블록체인 탭 */}
@@ -224,17 +235,138 @@ export function DepositDetailModal({
               </CardHeader>
               <CardContent className="space-y-3">
                 <InfoRow
+                  label="트랜잭션 해시"
+                  value={
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-xs">
+                        {deposit.txHash.slice(0, 12)}...{deposit.txHash.slice(-10)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCopyTxHash}
+                        className="h-5 w-5 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <a
+                        href={getBlockExplorerUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:text-blue-600"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  }
+                />
+                <InfoRow
                   label="블록 번호"
-                  value={deposit.blockNumber?.toLocaleString()}
+                  value={deposit.blockHeight?.toLocaleString()}
                 />
                 <InfoRow
-                  label="컨펌"
-                  value={`${deposit.currentConfirmations}/${deposit.requiredConfirmations}`}
+                  label="컨펌 수"
+                  value={
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">
+                        {deposit.currentConfirmations} / {deposit.requiredConfirmations}
+                      </span>
+                      {deposit.currentConfirmations >= deposit.requiredConfirmations ? (
+                        <CheckCircle className="h-4 w-4 text-sky-500" />
+                      ) : (
+                        <span className="text-xs text-gray-500">
+                          ({Math.round((deposit.currentConfirmations / deposit.requiredConfirmations) * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                  }
                 />
                 <InfoRow
-                  label="네트워크 수수료"
-                  value={deposit.networkFee ? `${deposit.networkFee} ${deposit.asset}` : '-'}
+                  label="네트워크"
+                  value={deposit.network}
                 />
+              </CardContent>
+            </Card>
+
+            {/* 검증 진행 상황 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">검증 진행 상황</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* 입금 감지 */}
+                  <div className="flex items-start space-x-3">
+                    <CheckCircle className="h-5 w-5 text-sky-500 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        입금 감지
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        블록체인에서 트랜잭션 발견
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new Date(deposit.detectedAt).toLocaleString('ko-KR')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 블록체인 검증 */}
+                  <div className="flex items-start space-x-3">
+                    {deposit.status === 'confirming' || deposit.status === 'confirmed' || deposit.status === 'credited' ? (
+                      <CheckCircle className="h-5 w-5 text-sky-500 mt-0.5" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        블록체인 검증중
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {deposit.currentConfirmations}/{deposit.requiredConfirmations} 컨펌 진행 중
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 검증 완료 */}
+                  <div className="flex items-start space-x-3">
+                    {deposit.status === 'confirmed' || deposit.status === 'credited' ? (
+                      <CheckCircle className="h-5 w-5 text-sky-500 mt-0.5" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        검증 완료
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        필요 컨펌 수 도달
+                      </div>
+                      {deposit.confirmedAt && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {new Date(deposit.confirmedAt).toLocaleString('ko-KR')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 잔액 반영 */}
+                  <div className="flex items-start space-x-3">
+                    {deposit.status === 'credited' ? (
+                      <CheckCircle className="h-5 w-5 text-indigo-500 mt-0.5" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 mt-0.5" />
+                    )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        잔액 반영 완료
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        사용자 계정에 입금 완료
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
