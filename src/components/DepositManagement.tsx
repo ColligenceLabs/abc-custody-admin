@@ -31,6 +31,12 @@ import { RequestDetailModal } from "@/components/deposit/RequestDetailModal";
 import { AssetAddRequest } from "@/types/assetRequest";
 import { useDepositSocket } from "@/hooks/useDepositSocket";
 import { useVaultTransferSocket } from "@/hooks/useVaultTransferSocket";
+import NetworkAddressTable from "@/components/deposit/NetworkAddressTable";
+import AssetManagementModal from "@/components/deposit/AssetManagementModal";
+import AddAssetWizard from "@/components/deposit/AddAssetWizard";
+import { NetworkGroup } from "@/types/networkGroup";
+import { getDepositAddressesByNetwork, createDepositAddress, deleteDepositAddress } from "@/utils/depositAddressApi";
+import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -64,6 +70,7 @@ interface Transaction {
 
 export default function DepositManagement({ plan }: DepositManagementProps) {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   // 진행 중인 입금 상태
   const [activeDeposits, setActiveDeposits] = useState<DepositTransaction[]>(
@@ -78,8 +85,12 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   const [historyTotalPages, setHistoryTotalPages] = useState(0);
 
   const [assets, setAssets] = useState<Asset[]>([]);
+  // 네트워크 그룹 상태 추가
+  const [networkGroups, setNetworkGroups] = useState<NetworkGroup[]>([]);
+  const [selectedNetworkForManagement, setSelectedNetworkForManagement] = useState<NetworkGroup | null>(null);
 
   const [showAddAsset, setShowAddAsset] = useState(false);
+  const [showRequestHistory, setShowRequestHistory] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<string>("");
   const [copiedAddress, setCopiedAddress] = useState<string>("");
   const [selectedQR, setSelectedQR] = useState<Asset | null>(null);
@@ -99,85 +110,11 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
   const depositAddressRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [depositAddressMaxChars, setDepositAddressMaxChars] = useState<{ [key: string]: number }>({});
 
-  // 자산 추가 요청 관리 (Mock 데이터로 초기화)
+  // 자산 추가 요청 관리
   // 상세 모달 및 탭 제어
   const [selectedRequestDetail, setSelectedRequestDetail] = useState<AssetAddRequest | null>(null)
   const [activeAssetTab, setActiveAssetTab] = useState<string>('new-request')
-
-  const [assetAddRequests, setAssetAddRequests] = useState<AssetAddRequest[]>([
-    {
-      id: '1',
-      userId: user?.id || 'user_1',
-      symbol: 'USDT',
-      name: 'Tether USD',
-      contractAddress: '0xdac17f958d2ee523a2206206994597c13d831ec7',
-      network: 'ethereum',
-      requestedBy: user?.name || '홍길동',
-      requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'pending',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '2',
-      userId: user?.id || 'user_1',
-      symbol: 'LINK',
-      name: 'Chainlink',
-      contractAddress: '0x514910771af9ca656af840dff83e8264ecf986ca',
-      network: 'ethereum',
-      requestedBy: user?.name || '홍길동',
-      requestedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'reviewing',
-      feedback: {
-        message: '컨트랙트 주소를 확인 중입니다. 곧 검토가 완료될 예정입니다.',
-        type: 'info',
-        reviewedBy: '관리자',
-        reviewedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '3',
-      userId: user?.id || 'user_1',
-      symbol: 'UNI',
-      name: 'Uniswap',
-      contractAddress: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
-      network: 'ethereum',
-      requestedBy: user?.name || '홍길동',
-      requestedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'approved',
-      feedback: {
-        message: '토큰이 승인되었습니다. 곧 입금 가능 자산 목록에 추가됩니다.',
-        type: 'success',
-        reviewedBy: '관리자',
-        reviewedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      approvalNote: '검토 완료되었으며, 시스템에 등록되었습니다.',
-      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '4',
-      userId: user?.id || 'user_1',
-      symbol: 'INVALID',
-      name: 'Invalid Token',
-      contractAddress: '0xinvalidaddress',
-      network: 'ethereum',
-      requestedBy: user?.name || '홍길동',
-      requestedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'rejected',
-      feedback: {
-        message: '제공하신 컨트랙트 주소가 유효하지 않습니다. 공식 웹사이트에서 정확한 주소를 확인해주세요.',
-        type: 'error',
-        reviewedBy: '관리자',
-        reviewedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      },
-      rejectionReason: '컨트랙트 주소가 올바른 형식이 아닙니다.',
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]);
+  const [assetAddRequests, setAssetAddRequests] = useState<AssetAddRequest[]>([]);
   const [isClient, setIsClient] = useState(false);
 
   const availableAssets = [
@@ -261,31 +198,93 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     setActiveAssetTab('new-request')
   }
 
-  const handleRemoveAsset = async (assetId: string) => {
-    if (!confirm('이 입금 주소를 삭제하시겠습니까?')) {
+  // 새로운 자산 추가 핸들러 (여러 자산 동시 추가)
+  const handleAddAssets = async (
+    networkGroup: string,
+    assets: string[],
+    customToken?: { symbol: string; name: string; contractAddress: string; logoUrl?: string }
+  ) => {
+    console.log('[handleAddAssets] 호출됨:', { networkGroup, assets, customToken, userId: user?.id });
+    if (!user) {
+      console.log('[handleAddAssets] user 없음, 종료');
       return;
     }
 
     try {
-      // JWT 토큰 가져오기
-      const token = localStorage.getItem('token');
+      // 가격 정보 가져오기
+      console.log('[handleAddAssets] 가격 정보 요청 시작:', `${API_BASE_URL}/api/crypto/prices`);
+      const prices = await fetch(`${API_BASE_URL}/api/crypto/prices`)
+        .then((res) => res.json())
+        .catch((err) => {
+          console.error('[handleAddAssets] 가격 정보 요청 실패:', err);
+          return {};
+        });
+      console.log('[handleAddAssets] 가격 정보 응답:', prices);
 
-      const res = await fetch(`${API_BASE_URL}/api/depositAddresses/${assetId}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
+      // 각 자산에 대해 입금 주소 생성
+      console.log('[handleAddAssets] for 루프 시작, assets:', assets);
+      for (const coin of assets) {
+        const assetPrices = prices[coin] || {};
+        console.log(`[handleAddAssets] ${coin} 처리 중, prices:`, assetPrices);
 
-      if (!res.ok) {
-        throw new Error('Failed to delete deposit address');
+        const requestBody = {
+          userId: user.id,
+          coin,
+          network: networkGroup,
+          priceKRW: assetPrices.krw,
+          priceUSD: assetPrices.usd,
+        };
+        console.log(`[handleAddAssets] ${coin} POST 요청:`, requestBody);
+
+        const response = await fetch(`${API_BASE_URL}/api/depositAddresses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        const responseData = await response.json();
+        console.log(`[handleAddAssets] ${coin} 응답:`, { status: response.status, data: responseData });
+      }
+      console.log('[handleAddAssets] for 루프 완료');
+
+      // Custom ERC-20 토큰 요청 생성 (관리자 승인 대기)
+      if (customToken && customToken.symbol && customToken.contractAddress) {
+        await fetch(`${API_BASE_URL}/api/customTokenRequests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            symbol: customToken.symbol,
+            name: customToken.name,
+            contractAddress: customToken.contractAddress,
+            network: networkGroup,
+            logoUrl: customToken.logoUrl || undefined,
+          }),
+        });
+
+        toast({
+          title: "요청 제출 완료",
+          description: "Custom ERC-20 토큰 요청이 제출되었습니다. 관리자 승인 후 사용 가능합니다.",
+        });
       }
 
-      // 로컬 state에서 제거
-      setAssets(assets.filter((asset) => asset.id !== assetId));
+      // 성공 후 데이터 새로고침
+      console.log('[handleAddAssets] 데이터 새로고침 시작');
+      await loadNetworkGroups();
+      await loadCustomTokenRequests();
+      console.log('[handleAddAssets] 데이터 새로고침 완료, 모달 닫기');
+      setShowAddAsset(false);
     } catch (error) {
-      console.error('입금 주소 삭제 실패:', error);
-      alert('입금 주소 삭제에 실패했습니다.');
+      console.error("[handleAddAssets] 전체 에러:", error);
+      console.error("[handleAddAssets] 에러 상세:", {
+        message: error instanceof Error ? error.message : '알 수 없는 에러',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      toast({
+        variant: "destructive",
+        title: "자산 추가 실패",
+        description: "자산 추가 중 오류가 발생했습니다. 다시 시도해주세요.",
+      });
     }
   };
 
@@ -315,46 +314,101 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
     return networkNames[symbol] || "Unknown";
   };
 
-  // depositAddresses 테이블에서 입금 주소 목록 로드
-  useEffect(() => {
-    const loadDepositAddresses = async () => {
-      if (!isAuthenticated || !user) {
-        setAssets([]);
-        return;
-      }
+  // depositAddresses 테이블에서 네트워크 그룹 로드
+  const loadNetworkGroups = useCallback(async () => {
+    console.log('[DepositManagement] loadNetworkGroups 호출', {
+      isAuthenticated,
+      userId: user?.id,
+    });
 
-      try {
-        // depositAddresses API 호출
-        const res = await fetch(`${API_BASE_URL}/api/depositAddresses?userId=${user.id}`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch deposit addresses');
-        }
+    if (!isAuthenticated || !user) {
+      console.log('[DepositManagement] 인증되지 않았거나 사용자 없음');
+      setNetworkGroups([]);
+      setAssets([]);
+      return;
+    }
 
-        const data = await res.json();
-        const depositAddresses = Array.isArray(data) ? data : (data.depositAddresses || []);
+    try {
+      console.log('[DepositManagement] API 호출 시작:', user.id);
+      // 네트워크별 그룹화 API 호출
+      const networks = await getDepositAddressesByNetwork(user.id);
+      console.log('[DepositManagement] API 응답:', networks);
+      setNetworkGroups(networks);
 
-        // Asset 형태로 변환
-        const depositAssets: Asset[] = depositAddresses.map((addr: any) => ({
-          id: addr.id,
-          symbol: addr.coin,
-          name: getAssetName(addr.coin),
-          network: addr.network,
-          depositAddress: addr.address,
-          isActive: addr.isActive,
-          contractAddress: addr.contractAddress,
-          priceKRW: addr.priceKRW,
-          priceUSD: addr.priceUSD,
-        }));
-
-        setAssets(depositAssets);
-      } catch (error) {
-        console.error("입금 주소 로드 실패:", error);
-        setAssets([]);
-      }
-    };
-
-    loadDepositAddresses();
+      // 기존 Asset 형태로도 변환 (호환성 유지)
+      const depositAssets: Asset[] = [];
+      networks.forEach((network) => {
+        network.assets.forEach((asset) => {
+          depositAssets.push({
+            id: asset.id,
+            symbol: asset.coin,
+            name: getAssetName(asset.coin),
+            network: network.networkName,
+            depositAddress: network.address,
+            isActive: true,
+            contractAddress: asset.contractAddress,
+            priceKRW: asset.priceKRW,
+            priceUSD: asset.priceUSD,
+          });
+        });
+      });
+      console.log('[DepositManagement] 변환된 assets:', depositAssets);
+      setAssets(depositAssets);
+    } catch (error) {
+      console.error("네트워크 그룹 로드 실패:", error);
+      setNetworkGroups([]);
+      setAssets([]);
+    }
   }, [user, isAuthenticated]);
+
+  // Custom Token Request 로드
+  const loadCustomTokenRequests = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setAssetAddRequests([]);
+      return;
+    }
+
+    try {
+      // userId 필터 제거 - 시스템 전체의 요청 목록 조회
+      const response = await fetch(
+        `${API_BASE_URL}/api/customTokenRequests?_sort=createdAt&_order=desc`
+      );
+      const data = await response.json();
+
+      // API 응답을 AssetAddRequest 형태로 변환
+      const requests: AssetAddRequest[] = data.data.map((req: any) => ({
+        id: req.id,
+        userId: req.userId,
+        symbol: req.symbol,
+        name: req.name,
+        contractAddress: req.contractAddress,
+        network: req.network,
+        requestedBy: user.name || user.email || '사용자',
+        requestedAt: req.createdAt,
+        status: req.status === 'pending' ? 'pending' :
+                req.status === 'approved' ? 'approved' :
+                req.status === 'rejected' ? 'rejected' : 'pending',
+        feedback: req.adminComment ? {
+          message: req.adminComment,
+          type: req.status === 'approved' ? 'success' : 'warning',
+          reviewedBy: req.reviewedBy || '관리자',
+          reviewedAt: req.reviewedAt,
+        } : undefined,
+        createdAt: req.createdAt,
+        updatedAt: req.updatedAt,
+      }));
+
+      setAssetAddRequests(requests);
+    } catch (error) {
+      console.error('Custom token requests 로드 실패:', error);
+      setAssetAddRequests([]);
+    }
+  }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    loadNetworkGroups();
+    loadCustomTokenRequests();
+  }, [loadNetworkGroups, loadCustomTokenRequests]);
 
   // 클라이언트 측에서만 localStorage 로드
   useEffect(() => {
@@ -772,152 +826,57 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
         </div>
       )}
 
-      {/* 입금 주소 관리 섹션 */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          입금 주소 관리
-        </h2>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    자산
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    네트워크
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    입금 주소
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    환율
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {assets.map((asset) => (
-                  <tr
-                    key={asset.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <CryptoIcon
-                          symbol={asset.symbol}
-                          size={40}
-                          className="mr-3"
-                        />
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">
-                            {asset.symbol}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {asset.name}
-                          </div>
-                          {asset.contractAddress && (
-                            <div
-                              className="text-xs font-mono text-gray-400 truncate max-w-32"
-                              title={asset.contractAddress}
-                            >
-                              {asset.contractAddress.substring(0, 8)}...
-                              {asset.contractAddress.substring(
-                                asset.contractAddress.length - 6
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {asset.network}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2 max-w-lg">
-                        <div
-                          ref={(el) => {
-                            depositAddressRefs.current[asset.id] = el;
-                          }}
-                          className="text-xs font-mono bg-gray-100 p-2 rounded flex-1 break-all"
-                          title={asset.depositAddress}
-                        >
-                          {truncateDynamic(
-                            asset.depositAddress,
-                            depositAddressMaxChars[asset.id] || 45
-                          )}
-                        </div>
-                        <button
-                          onClick={() =>
-                            handleCopyAddress(asset.depositAddress)
-                          }
-                          className="p-2 text-gray-500 hover:text-primary-600 transition-colors flex-shrink-0"
-                          title="주소 복사"
-                        >
-                          {copiedAddress === asset.depositAddress ? (
-                            <CheckIcon className="h-4 w-4 text-sky-600" />
-                          ) : (
-                            <ClipboardDocumentIcon className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        ₩{asset.priceKRW?.toLocaleString() || "N/A"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => setSelectedQR(asset)}
-                          className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
-                          title="QR 코드 보기"
-                        >
-                          <QrCodeIcon className="h-4 w-4 mr-1" />
-                          QR
-                        </button>
-                        <button
-                          onClick={() => handleRemoveAsset(asset.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                          title="자산 제거"
-                        >
-                          <XMarkIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {/* 입금 주소 관리 섹션 - 네트워크 그룹화 뷰 */}
+      <NetworkAddressTable
+        networks={networkGroups}
+        onManageAssets={(network) => setSelectedNetworkForManagement(network)}
+        onRemoveAsset={async (networkGroup, assetId) => {
+          try {
+            await deleteDepositAddress(assetId);
+            await loadNetworkGroups();
+          } catch (error) {
+            console.error("자산 제거 실패:", error);
+            toast({
+              variant: "destructive",
+              description: "자산 제거에 실패했습니다.",
+            });
+          }
+        }}
+        onAddAsset={() => setShowAddAsset(true)}
+      />
 
-        {assets.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <PlusIcon className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              자산이 없습니다
-            </h3>
-            <p className="text-gray-600 mb-4">
-              첫 번째 자산을 추가하여 입금을 시작하세요
-            </p>
-            <button
-              onClick={() => setShowAddAsset(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              자산 추가
-            </button>
-          </div>
-        )}
-      </div>
+      {/* 자산 관리 모달 */}
+      {selectedNetworkForManagement && (
+        <AssetManagementModal
+          isOpen={true}
+          onClose={() => setSelectedNetworkForManagement(null)}
+          network={selectedNetworkForManagement}
+          onAddAsset={async (coin, contractAddress) => {
+            if (!user) return;
+
+            try {
+              const prices = generateMockPrice(coin);
+              await createDepositAddress({
+                userId: user.id,
+                coin,
+                network: selectedNetworkForManagement.network,
+                contractAddress,
+                priceKRW: prices.krw,
+                priceUSD: prices.usd,
+              });
+
+              await loadNetworkGroups();
+              setSelectedNetworkForManagement(null);
+            } catch (error: any) {
+              console.error("자산 추가 실패:", error);
+              toast({
+                variant: "destructive",
+                description: error.message || "자산 추가에 실패했습니다.",
+              });
+            }
+          }}
+        />
+      )}
 
       {/* 입금 히스토리 섹션 */}
       <div>
@@ -930,16 +889,15 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
         />
       </div>
 
-      {/* Add Asset Modal */}
+      {/* Add Asset Modal with Tabs */}
       <Modal isOpen={showAddAsset}>
-        <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">자산 추가 요청</h3>
+            <h3 className="text-lg font-semibold text-gray-900">자산 추가</h3>
             <button
               onClick={() => {
                 setShowAddAsset(false);
-                setSelectedAsset("");
-                setShowCustomERC20(false);
+                setActiveAssetTab('new-request');
               }}
               className="text-gray-400 hover:text-gray-600"
             >
@@ -955,400 +913,20 @@ export default function DepositManagement({ plan }: DepositManagementProps) {
                 id: 'new-request',
                 label: '새 요청',
                 content: (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                자산 선택
-              </label>
-              <div
-                className={`grid gap-3 transition-all duration-300 ${
-                  showCustomERC20 ? "grid-cols-6" : "grid-cols-3"
-                }`}
-              >
-                {filteredAvailableAssets.map((asset) => {
-                  // 이미 추가된 자산인지 확인
-                  const isAlreadyAdded = assets.some(a => a.symbol === asset.symbol && a.isActive);
-
-                  return (
-                  <button
-                    key={asset.symbol}
-                    type="button"
-                    onClick={() => {
-                      if (isAlreadyAdded) return; // 이미 추가된 자산은 클릭 방지
-                      setSelectedAsset(asset.symbol);
-                      setShowCustomERC20(asset.symbol === "CUSTOM_ERC20");
-                      if (asset.symbol !== "CUSTOM_ERC20") {
-                        setCustomERC20({
-                          symbol: "",
-                          name: "",
-                          contractAddress: "",
-                          image: "",
-                        });
-                        setImagePreview("");
-                      }
-                    }}
-                    disabled={isAlreadyAdded}
-                    className={`p-3 border-2 rounded-lg transition-all duration-200 relative ${
-                      isAlreadyAdded
-                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : selectedAsset === asset.symbol
-                        ? "border-primary-500 bg-primary-50 text-primary-700 hover:shadow-md"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-md"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center space-y-1.5">
-                      {asset.symbol === "CUSTOM_ERC20" ? (
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center">
-                          <svg
-                            className="w-4 h-4 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                          </svg>
-                        </div>
-                      ) : (
-                        <CryptoIcon symbol={asset.symbol} size={32} />
-                      )}
-                      <div
-                        className={`text-center transition-all duration-300 ${
-                          showCustomERC20 ? "hidden" : "block"
-                        }`}
-                      >
-                        <div className="text-xs font-semibold">
-                          {asset.symbol}
-                          {(asset.symbol === "USDT" ||
-                            asset.symbol === "USDC") && (
-                            <span className="ml-1 text-xs text-blue-600 font-normal">
-                              ERC20
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate max-w-full leading-tight">
-                          {asset.symbol === "CUSTOM_ERC20"
-                            ? "Custom"
-                            : asset.name}
-                        </div>
-                      </div>
-                      {isAlreadyAdded && (
-                        <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">
-                          추가됨
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-                })}
-              </div>
-            </div>
-
-            {/* Custom ERC-20 입력 필드들 */}
-            {showCustomERC20 && (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
-                <h4 className="text-sm font-medium text-gray-900">
-                  Custom ERC-20 토큰 정보
-                </h4>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      토큰 심볼 *
-                    </label>
-                    <input
-                      type="text"
-                      value={customERC20.symbol}
-                      onChange={(e) =>
-                        setCustomERC20({
-                          ...customERC20,
-                          symbol: e.target.value.toUpperCase(),
-                        })
-                      }
-                      placeholder="예: KRW"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm placeholder:text-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      토큰 이름 *
-                    </label>
-                    <input
-                      type="text"
-                      value={customERC20.name}
-                      onChange={(e) =>
-                        setCustomERC20({
-                          ...customERC20,
-                          name: e.target.value,
-                        })
-                      }
-                      placeholder="예: Tether USD"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-sm placeholder:text-gray-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    로고
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // 파일 크기 제한 (2MB)
-                          if (file.size > 2 * 1024 * 1024) {
-                            alert("파일 크기는 2MB를 초과할 수 없습니다.");
-                            return;
-                          }
-
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            const result = event.target?.result as string;
-                            setCustomERC20({ ...customERC20, image: result });
-                            setImagePreview(result);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="hidden"
-                      id="logo-upload"
-                    />
-                    <label
-                      htmlFor="logo-upload"
-                      className="flex items-center px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-2 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                      <span className="text-sm text-gray-700">파일 선택</span>
-                    </label>
-                    {imagePreview && (
-                      <div className="flex items-center space-x-2">
-                        <img
-                          src={imagePreview}
-                          alt="Logo Preview"
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomERC20({ ...customERC20, image: "" });
-                            setImagePreview("");
-                            // 파일 입력 초기화
-                            const input = document.getElementById(
-                              "logo-upload"
-                            ) as HTMLInputElement;
-                            if (input) input.value = "";
-                          }}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          제거
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    JPG, PNG, GIF 파일 지원 (최대 2MB)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    컨트랙트 주소 *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={customERC20.contractAddress}
-                      onChange={(e) =>
-                        setCustomERC20({
-                          ...customERC20,
-                          contractAddress: e.target.value,
-                        })
-                      }
-                      placeholder="0x..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-sm placeholder:text-xs placeholder:text-gray-400"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
-                  <strong>주의:</strong> 컨트랙트 주소가 정확한지 확인해주세요.
-                  잘못된 주소로 인한 손실에 대해 책임지지 않습니다.
-                </div>
-              </div>
-            )}
-
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowAddAsset(false);
-                  setSelectedAsset("");
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedAsset === "CUSTOM_ERC20") {
-                    // Custom ERC-20 토큰 추가 요청 생성
-                    if (
-                      customERC20.symbol &&
-                      customERC20.name &&
-                      customERC20.contractAddress &&
-                      customERC20.image
-                    ) {
-                      const newRequest: AssetAddRequest = {
-                        id: Date.now().toString(),
-                        userId: user?.id || 'unknown',
-                        symbol: customERC20.symbol,
-                        name: customERC20.name,
-                        contractAddress: customERC20.contractAddress,
-                        network: 'ethereum',
-                        image: customERC20.image,
-                        requestedBy: user?.name || "현재사용자",
-                        requestedAt: new Date().toISOString(),
-                        status: "pending",
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                      };
-
-                      // 추가 요청 목록에 추가
-                      setAssetAddRequests((prev) => [newRequest, ...prev]);
-                      console.log("새로운 자산 추가 요청:", newRequest);
-                      console.log(
-                        "현재 저장된 요청들:",
-                        JSON.parse(
-                          localStorage.getItem("assetAddRequests") || "[]"
-                        )
-                      );
-
-                      // 모달 닫기 및 초기화
+                  <AddAssetWizard
+                    isOpen={true}
+                    onClose={() => {
                       setShowAddAsset(false);
-                      setSelectedAsset("");
-                      setShowCustomERC20(false);
-                      setCustomERC20({
-                        symbol: "",
-                        name: "",
-                        contractAddress: "",
-                        image: "",
-                      });
-                      setImagePreview("");
-
-                      // 성공 메시지 표시
-                      alert(
-                        `${customERC20.name} (${customERC20.symbol}) 추가 요청이 전송되었습니다.\n시스템 관리자의 승인 후 사용 가능합니다.`
-                      );
-                    }
-                  } else if (selectedAsset) {
-                    // 일반 자산 추가 - API 호출
-                    const handleAddAsset = async () => {
-                      if (!user) return;
-
-                      const assetInfo = availableAssets.find(
-                        (a) => a.symbol === selectedAsset
-                      );
-                      if (!assetInfo) return;
-
-                      try {
-                        const prices = generateMockPrice(assetInfo.symbol);
-
-                        // JWT 토큰 가져오기
-                        const token = localStorage.getItem('token');
-
-                        const res = await fetch(`${API_BASE_URL}/api/depositAddresses`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            ...(token && { 'Authorization': `Bearer ${token}` }),
-                          },
-                          body: JSON.stringify({
-                            userId: user.id,
-                            label: `${assetInfo.name} 입금 주소`,
-                            coin: assetInfo.symbol,
-                            network: assetInfo.network,
-                            type: 'personal',
-                            priceKRW: prices.krw,
-                            priceUSD: prices.usd,
-                          }),
-                        });
-
-                        if (!res.ok) {
-                          const errorData = await res.json();
-                          if (res.status === 409) {
-                            alert(errorData.message || `${assetInfo.symbol} 자산은 이미 추가되었습니다.`);
-                          } else {
-                            throw new Error(errorData.message || 'Failed to add deposit address');
-                          }
-                          return;
-                        }
-
-                        const newDepositAddress = await res.json();
-
-                        // 로컬 state 업데이트
-                        const newAsset: Asset = {
-                          id: newDepositAddress.id,
-                          symbol: newDepositAddress.coin,
-                          name: assetInfo.name,
-                          network: newDepositAddress.network,
-                          depositAddress: newDepositAddress.address,
-                          isActive: newDepositAddress.isActive,
-                          contractAddress: newDepositAddress.contractAddress,
-                          priceKRW: newDepositAddress.priceKRW,
-                          priceUSD: newDepositAddress.priceUSD,
-                        };
-
-                        setAssets([...assets, newAsset]);
-                        setShowAddAsset(false);
-                        setSelectedAsset("");
-                      } catch (error) {
-                        console.error('자산 추가 실패:', error);
-                        alert('자산 추가에 실패했습니다.');
-                      }
-                    };
-
-                    handleAddAsset();
-                  }
-                }}
-                disabled={
-                  selectedAsset === "CUSTOM_ERC20"
-                    ? !customERC20.symbol ||
-                      !customERC20.name ||
-                      !customERC20.contractAddress ||
-                      !customERC20.image
-                    : !selectedAsset
-                }
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {selectedAsset === "CUSTOM_ERC20" ? "추가 요청" : "추가"}
-              </button>
-            </div>
-          </div>
+                      setActiveAssetTab('new-request');
+                    }}
+                    existingNetworks={networkGroups}
+                    onAddAssets={handleAddAssets}
+                  />
                 ),
               },
               {
-                id: 'request-history',
+                id: 'history',
                 label: '요청 내역',
-                badge: assetAddRequests.length,
                 content: (
                   <RequestHistoryList
                     requests={assetAddRequests}
