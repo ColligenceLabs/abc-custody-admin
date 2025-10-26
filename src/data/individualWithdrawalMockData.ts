@@ -201,13 +201,13 @@ export const mockIndividualWithdrawalRequests: IndividualWithdrawalRequest[] = [
 
 // 네트워크별 지원 자산 매핑 (개인회원용 - 기업회원과 동일)
 export const individualNetworkAssets = {
-  Bitcoin: [{ value: "BTC", name: "Bitcoin", symbol: "BTC" }],
+  Bitcoin: [{ value: "BTC", name: "Bitcoin", symbol: "BTC", isActive: true }],
   Ethereum: [
-    { value: "ETH", name: "Ethereum", symbol: "ETH" },
-    { value: "USDT", name: "Tether (ERC-20)", symbol: "USDT" },
-    { value: "USDC", name: "USD Coin (ERC-20)", symbol: "USDC" },
+    { value: "ETH", name: "Ethereum", symbol: "ETH", isActive: true },
+    { value: "USDT", name: "Tether (ERC-20)", symbol: "USDT", isActive: true },
+    { value: "USDC", name: "USD Coin (ERC-20)", symbol: "USDC", isActive: true },
   ],
-  Solana: [{ value: "SOL", name: "Solana", symbol: "SOL" }],
+  Solana: [{ value: "SOL", name: "Solana", symbol: "SOL", isActive: true }],
 };
 
 // 화이트리스트 주소 데이터 (개인회원용)

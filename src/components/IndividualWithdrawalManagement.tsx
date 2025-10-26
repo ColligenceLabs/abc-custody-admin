@@ -16,7 +16,6 @@ import {
 import { CreateIndividualWithdrawalModal } from "./withdrawal/CreateIndividualWithdrawalModal";
 import WithdrawalHistoryTable from "./withdrawal/WithdrawalHistoryTable";
 import WithdrawalDetailModal from "./withdrawal/WithdrawalDetailModal";
-import { individualNetworkAssets } from "@/data/individualWithdrawalMockData";
 import {
   getIndividualWithdrawals,
   createWithdrawal,
@@ -26,6 +25,8 @@ import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
 import { useWithdrawalSocket } from "@/hooks/useWithdrawalSocket";
+import { getSupportedTokens } from "@/lib/tokenConfigService";
+import { NetworkAsset } from "./withdrawal/WithdrawalModalBase";
 
 export default function IndividualWithdrawalManagement({
   plan,
@@ -66,6 +67,7 @@ export default function IndividualWithdrawalManagement({
     []
   );
   const [addresses, setAddresses] = useState<WhitelistedAddress[]>([]);
+  const [networkAssets, setNetworkAssets] = useState<Record<string, NetworkAsset[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -154,6 +156,41 @@ export default function IndividualWithdrawalManagement({
 
     fetchAddresses();
   }, [user?.id]);
+
+  // 지원 토큰 목록 가져오기 (비활성화 토큰 포함)
+  useEffect(() => {
+    const fetchSupportedTokens = async () => {
+      try {
+        const tokens = await getSupportedTokens();
+
+        // 네트워크별로 그룹화
+        const grouped: Record<string, NetworkAsset[]> = {};
+
+        tokens.forEach((token) => {
+          // 네트워크 이름을 대문자 시작 형식으로 변환 (ethereum → Ethereum)
+          const networkKey = token.network.charAt(0).toUpperCase() + token.network.slice(1);
+
+          if (!grouped[networkKey]) {
+            grouped[networkKey] = [];
+          }
+
+          grouped[networkKey].push({
+            value: token.symbol,
+            name: `${token.name}${token.contractAddress && token.contractAddress !== 'native' ? ` (${networkKey})` : ''}`,
+            symbol: token.symbol,
+            isActive: token.isActive,
+          });
+        });
+
+        console.log('[IndividualWithdrawalManagement] 네트워크별 자산 그룹:', grouped);
+        setNetworkAssets(grouped);
+      } catch (err) {
+        console.error("지원 토큰 조회 실패:", err);
+      }
+    };
+
+    fetchSupportedTokens();
+  }, []);
 
   const handleCreateRequest = async () => {
     try {
@@ -324,7 +361,7 @@ export default function IndividualWithdrawalManagement({
         onSubmit={handleCreateRequest}
         newRequest={newRequest}
         onRequestChange={setNewRequest}
-        networkAssets={individualNetworkAssets}
+        networkAssets={networkAssets}
         whitelistedAddresses={addresses}
       />
 

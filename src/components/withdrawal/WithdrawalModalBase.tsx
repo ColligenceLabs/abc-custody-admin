@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
 import { WhitelistedAddress } from "@/types/address";
+import {
+  validateWithdrawalAmount,
+  calculateWithdrawalFee,
+  calculateNetAmount,
+  getTokenConfig,
+} from "@/lib/tokenConfigService";
+import { ExclamationTriangleIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 
 export interface NetworkAsset {
   value: string;
   name: string;
   symbol: string;
+  isActive: boolean;
 }
 
 interface BaseFormData {
@@ -45,14 +53,95 @@ export function WithdrawalModalBase<T extends BaseFormData>({
   modalTitle = "새 출금 신청",
   submitButtonText = "신청 제출",
 }: WithdrawalModalBaseProps<T>) {
+  const [validationError, setValidationError] = useState<string>("");
+  const [feeInfo, setFeeInfo] = useState<{
+    fee: number;
+    feeType: string;
+    netAmount: number;
+  } | null>(null);
+  const [selectedTokenActive, setSelectedTokenActive] = useState<boolean>(true);
+  const [tokenConfig, setTokenConfig] = useState<{
+    minWithdrawalAmount: string;
+    withdrawalFee: string;
+    withdrawalFeeType: 'fixed' | 'percentage';
+  } | null>(null);
+
+  // 선택된 토큰의 활성화 상태 및 설정 정보 로드
+  useEffect(() => {
+    if (!isOpen || !formData.currency) {
+      setTokenConfig(null);
+      return;
+    }
+
+    getTokenConfig(formData.currency).then((config) => {
+      if (config) {
+        setSelectedTokenActive(config.isActive);
+        setTokenConfig({
+          minWithdrawalAmount: config.minWithdrawalAmount,
+          withdrawalFee: config.withdrawalFee,
+          withdrawalFeeType: config.withdrawalFeeType,
+        });
+      }
+    });
+  }, [isOpen, formData.currency]);
+
+  // 출금 금액 변경 시 검증 및 수수료 계산
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (formData.currency && formData.amount > 0) {
+      validateWithdrawalAmount(formData.currency, formData.amount).then(
+        (result) => {
+          if (!result.valid) {
+            setValidationError(result.error || "");
+            setFeeInfo(null);
+          } else {
+            setValidationError("");
+            if (result.fee !== undefined && result.feeType) {
+              const feeAmount = calculateWithdrawalFee(
+                formData.amount,
+                result.fee,
+                result.feeType as 'fixed' | 'percentage'
+              );
+              const netAmount = calculateNetAmount(
+                formData.amount,
+                result.fee,
+                result.feeType as 'fixed' | 'percentage'
+              );
+              setFeeInfo({
+                fee: feeAmount,
+                feeType: result.feeType,
+                netAmount,
+              });
+            }
+          }
+        }
+      );
+    } else {
+      setValidationError("");
+      setFeeInfo(null);
+    }
+  }, [isOpen, formData.currency, formData.amount]);
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 출금 주소 필수 검증
     if (!formData.toAddress) {
       alert('출금 주소를 선택해주세요.');
+      return;
+    }
+
+    // 출금 금액 검증
+    const validation = await validateWithdrawalAmount(
+      formData.currency,
+      formData.amount
+    );
+
+    if (!validation.valid) {
+      alert(validation.error || '출금 금액이 유효하지 않습니다.');
       return;
     }
 
@@ -152,13 +241,68 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                   </option>
                   {formData.network &&
                     networkAssets[formData.network]?.map((asset) => (
-                      <option key={asset.value} value={asset.value}>
-                        {asset.name}
+                      <option
+                        key={asset.value}
+                        value={asset.value}
+                        disabled={!asset.isActive}
+                        className={!asset.isActive ? "text-gray-400" : ""}
+                      >
+                        {asset.name}{!asset.isActive && ' (출금 중단)'}
                       </option>
                     ))}
                 </select>
               </div>
             </div>
+
+            {/* 토큰 정보 안내 (자산 선택 시 표시) */}
+            {formData.currency && tokenConfig && selectedTokenActive && (
+              <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div className="flex items-start">
+                  <InformationCircleIcon className="h-5 w-5 text-indigo-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-sm space-y-1">
+                    <p className="font-semibold text-indigo-900 mb-2">
+                      {formData.currency} 출금 정책
+                    </p>
+                    <div className="space-y-1 text-indigo-800">
+                      <div className="flex justify-between">
+                        <span className="text-indigo-700">최소 출금:</span>
+                        <span className="font-medium">
+                          {tokenConfig.minWithdrawalAmount} {formData.currency}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-indigo-700">출금 수수료:</span>
+                        <span className="font-medium">
+                          {tokenConfig.withdrawalFee}{' '}
+                          {tokenConfig.withdrawalFeeType === 'fixed'
+                            ? formData.currency
+                            : '%'}
+                          {' '}
+                          ({tokenConfig.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 출금 중단 안내 (토큰이 비활성화된 경우) */}
+            {formData.currency && !selectedTokenActive && (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-semibold mb-1">출금 일시 중단</p>
+                    <p className="text-yellow-700">
+                      현재 {formData.currency} 토큰의 출금이 일시 중단되었습니다.
+                      <br />
+                      네트워크 점검 또는 보안 이슈로 인한 조치이며, 재개 시 별도 안내 드리겠습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 출금 금액 */}
             <div className="grid grid-cols-1 gap-4">
@@ -186,9 +330,48 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                       amount: value === '' ? ('' as any) : Number(value),
                     });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                    validationError
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
                   placeholder="0.00"
                 />
+
+                {/* 검증 오류 메시지 */}
+                {validationError && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                    {validationError}
+                  </div>
+                )}
+
+                {/* 수수료 및 실수령액 정보 */}
+                {feeInfo && !validationError && (
+                  <div className="mt-2 p-3 bg-sky-50 border border-sky-200 rounded">
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">출금 금액:</span>
+                        <span className="font-medium text-gray-900">
+                          {formData.amount.toFixed(8)} {formData.currency}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          수수료 ({feeInfo.feeType === 'fixed' ? '고정' : '퍼센트'}):
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {feeInfo.fee.toFixed(8)} {formData.currency}
+                        </span>
+                      </div>
+                      <div className="pt-1 border-t border-sky-300 flex justify-between">
+                        <span className="text-sky-700 font-medium">실수령액:</span>
+                        <span className="font-semibold text-sky-700">
+                          {feeInfo.netAmount.toFixed(8)} {formData.currency}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

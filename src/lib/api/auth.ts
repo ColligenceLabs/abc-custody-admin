@@ -24,7 +24,7 @@ export async function loginUser(
   email: string,
   password: string
 ): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ export async function loginUser(
  * 이메일로 사용자 조회
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const response = await fetch(`${API_URL}/users?email=${email}`);
+  const response = await fetch(`${API_URL}/api/users?email=${email}`);
 
   if (!response.ok) {
     throw new Error('사용자 조회에 실패했습니다.');
@@ -58,7 +58,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
  * 전체 사용자 조회
  */
 export async function getUsers(): Promise<User[]> {
-  const response = await fetch(`${API_URL}/users`);
+  const response = await fetch(`${API_URL}/api/users`);
 
   if (!response.ok) {
     throw new Error('사용자 목록 조회에 실패했습니다.');
@@ -74,7 +74,7 @@ export async function updateUser(
   userId: string,
   data: Partial<User>
 ): Promise<User> {
-  const response = await fetch(`${API_URL}/users/${userId}`, {
+  const response = await fetch(`${API_URL}/api/users/${userId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export async function createUser(userData: Omit<User, 'id'>): Promise<User> {
  * 이메일 중복 확인
  */
 export async function checkEmailDuplicate(email: string): Promise<boolean> {
-  const response = await fetch(`${API_URL}/users?email=${encodeURIComponent(email)}`);
+  const response = await fetch(`${API_URL}/api/users?email=${encodeURIComponent(email)}`);
 
   if (!response.ok) {
     throw new Error('이메일 확인에 실패했습니다.');
