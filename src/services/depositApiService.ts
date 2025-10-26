@@ -37,7 +37,7 @@ export async function getDeposits({
     params.userId = filter.userId;
   }
 
-  const response = await apiClient.get('/api/deposits', { params });
+  const response = await apiClient.get('/deposits', { params });
 
   const total = parseInt(response.headers['x-total-count'] || '0');
 
@@ -51,7 +51,7 @@ export async function getDeposits({
  * 입금 상세 조회
  */
 export async function getDepositById(id: string): Promise<DepositTransaction> {
-  const response = await apiClient.get(`/api/deposits/${id}/full`);
+  const response = await apiClient.get(`/deposits/${id}/full`);
   return response.data;
 }
 
@@ -59,7 +59,7 @@ export async function getDepositById(id: string): Promise<DepositTransaction> {
  * 입금 통계 조회
  */
 export async function getDepositStats(): Promise<DepositStats> {
-  const response = await apiClient.get('/api/deposits/summary');
+  const response = await apiClient.get('/deposits/summary');
 
   // 백엔드 응답 형식을 프론트 형식으로 변환
   const { byStatus } = response.data;

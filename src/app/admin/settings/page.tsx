@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings as SettingsIcon, User, Bell, Shield, Palette, Database } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Shield, Palette, Database, Coins } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -106,12 +106,34 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* 자산 관리 */}
+        <Link href="/admin/settings/assets">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <Coins className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">자산 관리</CardTitle>
+                  <CardDescription>토큰 및 출금 설정</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                지원 토큰 관리, 출금 한도, 수수료, 블록체인 설정
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* 데이터 설정 */}
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <CardHeader>
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Database className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-lg">
+                <Database className="h-5 w-5 text-sky-600 dark:text-sky-400" />
               </div>
               <div>
                 <CardTitle className="text-lg">데이터 설정</CardTitle>

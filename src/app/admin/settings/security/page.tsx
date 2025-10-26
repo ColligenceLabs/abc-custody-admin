@@ -17,7 +17,7 @@ import {
 import { Shield, ChevronLeft, Save, RotateCcw, Info, History } from 'lucide-react';
 import CryptoIcon from '@/components/ui/CryptoIcon';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api`;
 
 interface BlockchainConfig {
   id: string;

@@ -6,8 +6,8 @@
 
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// API 기본 URL 설정
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+// API 기본 URL 설정 (항상 /api 프리픽스 추가)
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api`;
 
 // axios 인스턴스 생성
 export const apiClient: AxiosInstance = axios.create({
@@ -21,11 +21,20 @@ export const apiClient: AxiosInstance = axios.create({
 // 요청 인터셉터
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 인증 토큰이 있으면 헤더에 추가 (추후 구현)
-    // const token = localStorage.getItem('auth_token');
-    // if (token && config.headers) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // 인증 토큰이 있으면 헤더에 추가
+    if (typeof window !== 'undefined') {
+      try {
+        const storedAuth = localStorage.getItem('admin-auth');
+        if (storedAuth) {
+          const auth = JSON.parse(storedAuth);
+          if (auth.accessToken && config.headers) {
+            config.headers.Authorization = `Bearer ${auth.accessToken}`;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get auth token:', error);
+      }
+    }
 
     return config;
   },
