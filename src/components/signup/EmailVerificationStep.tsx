@@ -72,16 +72,33 @@ export default function EmailVerificationStep({
         return;
       }
 
-      // MVP 시연용: 인증코드 123456 발송 시뮬레이션
+      // WaaS Mail Service로 PIN 발송
+      const { sendEmailPin } = await import('@/lib/api/auth');
+      await sendEmailPin(email);
+
       setEmailCodeSent(true);
       setEmailCooldown(60);
       setEmailVerificationCode(""); // 재발송 시 입력값 초기화
       setMessage({
         type: "success",
-        text: "인증코드가 이메일로 발송되었습니다. (테스트용 코드: 123456)"
+        text: "인증코드가 이메일로 발송되었습니다."
       });
-    } catch (error) {
-      setMessage({ type: "error", text: "이메일 인증코드 발송에 실패했습니다." });
+    } catch (error: any) {
+      console.error('이메일 PIN 발송 오류:', error);
+
+      // WaaS 재발송 제한 에러 처리
+      const errorMessage = error.message || "이메일 인증코드 발송에 실패했습니다.";
+      if (errorMessage.includes("메일을 발송중") || errorMessage.includes("기다려")) {
+        setMessage({
+          type: "error",
+          text: "이미 인증코드가 발송되었습니다. 이메일을 확인하시거나 잠시 후 다시 시도해주세요."
+        });
+        // 이미 발송된 경우 입력 필드 활성화
+        setEmailCodeSent(true);
+        setEmailCooldown(60);
+      } else {
+        setMessage({ type: "error", text: errorMessage });
+      }
     } finally {
       setLoading(false);
     }
@@ -97,30 +114,30 @@ export default function EmailVerificationStep({
     setMessage(null);
 
     try {
-      // 이메일 인증코드 검증
-      const { verifyEmailCode } = await import('@/lib/api/auth');
-      const result = await verifyEmailCode(email, emailVerificationCode);
+      // WaaS Mail Service로 PIN 검증
+      const { verifyEmailPinSignup } = await import('@/lib/api/auth');
+      await verifyEmailPinSignup(email, emailVerificationCode);
 
-      if (result.success) {
-        setEmailVerified(true);
-        setMessage({ type: "success", text: result.message });
+      setEmailVerified(true);
+      setMessage({ type: "success", text: "이메일 인증이 완료되었습니다." });
 
-        // 인증 완료 후 자동으로 다음 단계로 이동
-        setTimeout(() => {
-          onComplete({ email });
-        }, 1000);
-      } else {
-        // 입력 필드 초기화
-        setEmailVerificationCode("");
-        setMessage({ type: "error", text: result.message });
+      // 인증 완료 후 자동으로 다음 단계로 이동
+      setTimeout(() => {
+        onComplete({ email });
+      }, 1000);
+    } catch (error: any) {
+      console.error('이메일 PIN 검증 오류:', error);
 
-        // 입력 필드에 포커스
-        setTimeout(() => {
-          emailInputRef.current?.focus();
-        }, 100);
-      }
-    } catch (error) {
-      setMessage({ type: "error", text: "인증코드 검증에 실패했습니다." });
+      // 입력 필드 초기화
+      setEmailVerificationCode("");
+
+      const errorMessage = error.response?.data?.message || error.message || "인증코드가 올바르지 않습니다.";
+      setMessage({ type: "error", text: errorMessage });
+
+      // 입력 필드에 포커스
+      setTimeout(() => {
+        emailInputRef.current?.focus();
+      }, 100);
     } finally {
       setLoading(false);
     }
