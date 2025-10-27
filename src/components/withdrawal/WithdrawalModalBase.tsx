@@ -9,6 +9,9 @@ import {
   getTokenConfig,
 } from "@/lib/tokenConfigService";
 import { ExclamationTriangleIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
+import { NetworkSelector, AssetSelector, NETWORK_OPTIONS } from "./NetworkAssetSelector";
+import { getUserBalances, Balance } from "@/lib/api/balance";
+import { formatCryptoAmount } from "@/lib/format";
 
 export interface NetworkAsset {
   value: string;
@@ -34,6 +37,7 @@ interface WithdrawalModalBaseProps<T extends BaseFormData> {
   onFormDataChange: (data: T) => void;
   networkAssets: Record<string, NetworkAsset[]>;
   whitelistedAddresses: WhitelistedAddress[];
+  userId: string;
   additionalFieldsBeforeDescription?: React.ReactNode;
   additionalFieldsAfterDescription?: React.ReactNode;
   modalTitle?: string;
@@ -48,6 +52,7 @@ export function WithdrawalModalBase<T extends BaseFormData>({
   onFormDataChange,
   networkAssets,
   whitelistedAddresses,
+  userId,
   additionalFieldsBeforeDescription,
   additionalFieldsAfterDescription,
   modalTitle = "새 출금 신청",
@@ -65,6 +70,42 @@ export function WithdrawalModalBase<T extends BaseFormData>({
     withdrawalFee: string;
     withdrawalFeeType: 'fixed' | 'percentage';
   } | null>(null);
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  const [balanceError, setBalanceError] = useState<string>("");
+
+  // 보유 자산 조회
+  useEffect(() => {
+    if (!isOpen || !formData.currency || !formData.network || !userId) {
+      setAvailableBalance(null);
+      setBalanceError("");
+      return;
+    }
+
+    // 네트워크 매핑 (테스트넷 환경)
+    const networkMapping: Record<string, string> = {
+      'Ethereum': 'Holesky',
+      'Bitcoin': 'Bitcoin',
+      'Solana': 'Solana'
+    };
+
+    const apiNetwork = networkMapping[formData.network] || formData.network;
+
+    getUserBalances(userId, formData.currency, apiNetwork)
+      .then((balances) => {
+        if (balances.length > 0) {
+          setAvailableBalance(parseFloat(balances[0].availableBalance));
+          setBalanceError("");
+        } else {
+          setAvailableBalance(0);
+          setBalanceError("");
+        }
+      })
+      .catch((error) => {
+        console.error("잔액 조회 실패:", error);
+        setAvailableBalance(null);
+        setBalanceError("잔액 정보를 불러올 수 없습니다");
+      });
+  }, [isOpen, formData.currency, formData.network, userId]);
 
   // 선택된 토큰의 활성화 상태 및 설정 정보 로드
   useEffect(() => {
@@ -90,6 +131,13 @@ export function WithdrawalModalBase<T extends BaseFormData>({
     if (!isOpen) return;
 
     if (formData.currency && formData.amount > 0) {
+      // 출금 가능금액 체크
+      if (availableBalance !== null && formData.amount > availableBalance) {
+        setValidationError(`출금 가능 잔액을 초과했습니다 (보유: ${formatCryptoAmount(availableBalance, formData.currency)} ${formData.currency})`);
+        setFeeInfo(null);
+        return;
+      }
+
       validateWithdrawalAmount(formData.currency, formData.amount).then(
         (result) => {
           if (!result.valid) {
@@ -121,7 +169,7 @@ export function WithdrawalModalBase<T extends BaseFormData>({
       setValidationError("");
       setFeeInfo(null);
     }
-  }, [isOpen, formData.currency, formData.amount]);
+  }, [isOpen, formData.currency, formData.amount, availableBalance]);
 
   if (!isOpen) return null;
 
@@ -195,63 +243,34 @@ export function WithdrawalModalBase<T extends BaseFormData>({
             </div>
 
             {/* 네트워크 및 자산 선택 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출금 네트워크 *
-                </label>
-                <select
-                  value={formData.network}
-                  onChange={(e) =>
-                    onFormDataChange({
-                      ...formData,
-                      network: e.target.value,
-                      currency: "",
-                      toAddress: "",
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">네트워크를 선택하세요</option>
-                  <option value="Bitcoin">Bitcoin Network</option>
-                  <option value="Ethereum">Ethereum Network</option>
-                  <option value="Solana">Solana Network</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출금 자산 *
-                </label>
-                <select
-                  value={formData.currency}
-                  onChange={(e) =>
-                    onFormDataChange({
-                      ...formData,
-                      currency: e.target.value,
-                      toAddress: "",
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  disabled={!formData.network}
-                >
-                  <option value="">
-                    {formData.network
-                      ? "자산을 선택하세요"
-                      : "먼저 네트워크를 선택하세요"}
-                  </option>
-                  {formData.network &&
-                    networkAssets[formData.network]?.map((asset) => (
-                      <option
-                        key={asset.value}
-                        value={asset.value}
-                        disabled={!asset.isActive}
-                        className={!asset.isActive ? "text-gray-400" : ""}
-                      >
-                        {asset.name}{!asset.isActive && ' (출금 중단)'}
-                      </option>
-                    ))}
-                </select>
-              </div>
+            <div className="space-y-6">
+              {/* 네트워크 선택 */}
+              <NetworkSelector
+                networks={NETWORK_OPTIONS}
+                selected={formData.network}
+                onChange={(network) => {
+                  onFormDataChange({
+                    ...formData,
+                    network,
+                    currency: "",
+                    toAddress: "",
+                  });
+                }}
+              />
+
+              {/* 자산 선택 */}
+              <AssetSelector
+                assets={formData.network ? networkAssets[formData.network] : []}
+                selected={formData.currency}
+                onChange={(currency) => {
+                  onFormDataChange({
+                    ...formData,
+                    currency,
+                    toAddress: "",
+                  });
+                }}
+                disabled={!formData.network}
+              />
             </div>
 
             {/* 토큰 정보 안내 (자산 선택 시 표시) */}
@@ -264,16 +283,18 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                       {formData.currency} 출금 정책
                     </p>
                     <div className="space-y-1 text-indigo-800">
-                      <div className="flex justify-between">
-                        <span className="text-indigo-700">최소 출금:</span>
-                        <span className="font-medium">
-                          {tokenConfig.minWithdrawalAmount} {formData.currency}
+                      <div className="flex gap-2">
+                        <span className="text-indigo-700 flex-shrink-0 w-24">최소 출금:</span>
+                        <span className="font-medium flex-1 text-right">
+                          {formatCryptoAmount(tokenConfig.minWithdrawalAmount, formData.currency)} {formData.currency}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-indigo-700">출금 수수료:</span>
-                        <span className="font-medium">
-                          {tokenConfig.withdrawalFee}{' '}
+                      <div className="flex gap-2">
+                        <span className="text-indigo-700 flex-shrink-0 w-24">출금 수수료:</span>
+                        <span className="font-medium flex-1 text-right">
+                          {tokenConfig.withdrawalFeeType === 'fixed'
+                            ? formatCryptoAmount(tokenConfig.withdrawalFee, formData.currency)
+                            : parseFloat(tokenConfig.withdrawalFee).toString()}{' '}
                           {tokenConfig.withdrawalFeeType === 'fixed'
                             ? formData.currency
                             : '%'}
@@ -307,12 +328,36 @@ export function WithdrawalModalBase<T extends BaseFormData>({
             {/* 출금 금액 */}
             <div className="grid grid-cols-1 gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  출금 금액 *
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    출금 금액 *
+                  </label>
+                  {availableBalance !== null && formData.currency && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">
+                        출금 가능: {formatCryptoAmount(availableBalance, formData.currency)} {formData.currency}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onFormDataChange({
+                            ...formData,
+                            amount: availableBalance,
+                          });
+                        }}
+                        className="px-2 py-1 text-xs font-medium text-primary-600 border border-primary-200 rounded hover:bg-primary-50"
+                      >
+                        전액
+                      </button>
+                    </div>
+                  )}
+                  {balanceError && (
+                    <span className="text-sm text-red-600">{balanceError}</span>
+                  )}
+                </div>
                 <input
                   type="number"
-                  step="0.00000001"
+                  step="0.1"
                   required
                   value={formData.amount}
                   onFocus={(e) => {
@@ -340,7 +385,7 @@ export function WithdrawalModalBase<T extends BaseFormData>({
 
                 {/* 검증 오류 메시지 */}
                 {validationError && (
-                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                  <div className="mt-2 text-sm text-red-600">
                     {validationError}
                   </div>
                 )}
@@ -352,7 +397,7 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                       <div className="flex justify-between">
                         <span className="text-gray-600">출금 금액:</span>
                         <span className="font-medium text-gray-900">
-                          {formData.amount.toFixed(8)} {formData.currency}
+                          {formatCryptoAmount(formData.amount, formData.currency)} {formData.currency}
                         </span>
                       </div>
                       <div className="flex justify-between">
@@ -360,13 +405,13 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                           수수료 ({feeInfo.feeType === 'fixed' ? '고정' : '퍼센트'}):
                         </span>
                         <span className="font-medium text-gray-900">
-                          {feeInfo.fee.toFixed(8)} {formData.currency}
+                          {formatCryptoAmount(feeInfo.fee, formData.currency)} {formData.currency}
                         </span>
                       </div>
                       <div className="pt-1 border-t border-sky-300 flex justify-between">
                         <span className="text-sky-700 font-medium">실수령액:</span>
                         <span className="font-semibold text-sky-700">
-                          {feeInfo.netAmount.toFixed(8)} {formData.currency}
+                          {formatCryptoAmount(feeInfo.netAmount, formData.currency)} {formData.currency}
                         </span>
                       </div>
                     </div>

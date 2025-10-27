@@ -14,6 +14,7 @@ interface CreateIndividualWithdrawalModalProps {
   onRequestChange: (request: IndividualWithdrawalFormData) => void;
   networkAssets: Record<string, NetworkAsset[]>;
   whitelistedAddresses: WhitelistedAddress[];
+  userId: string;
 }
 
 export function CreateIndividualWithdrawalModal({
@@ -24,6 +25,7 @@ export function CreateIndividualWithdrawalModal({
   onRequestChange,
   networkAssets,
   whitelistedAddresses,
+  userId,
 }: CreateIndividualWithdrawalModalProps) {
   // 24시간 대기 안내 메시지
   const waitingNotice = (
@@ -52,6 +54,7 @@ export function CreateIndividualWithdrawalModal({
       onFormDataChange={onRequestChange}
       networkAssets={networkAssets}
       whitelistedAddresses={whitelistedAddresses}
+      userId={userId}
       additionalFieldsAfterDescription={waitingNotice}
       modalTitle="새 출금 신청"
       submitButtonText="출금 신청"

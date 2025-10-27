@@ -19,6 +19,7 @@ interface CreateEnterpriseWithdrawalModalProps {
   onRequestChange: (request: EnterpriseWithdrawalFormData) => void;
   networkAssets: Record<string, NetworkAsset[]>;
   whitelistedAddresses: WhitelistedAddress[];
+  userId: string;
 }
 
 export function CreateEnterpriseWithdrawalModal({
@@ -29,6 +30,7 @@ export function CreateEnterpriseWithdrawalModal({
   onRequestChange,
   networkAssets,
   whitelistedAddresses,
+  userId,
 }: CreateEnterpriseWithdrawalModalProps) {
   // 파일 업로드 상태
   const [attachments, setAttachments] = useState<File[]>(
@@ -272,6 +274,7 @@ export function CreateEnterpriseWithdrawalModal({
       onFormDataChange={onRequestChange}
       networkAssets={networkAssets}
       whitelistedAddresses={whitelistedAddresses}
+      userId={userId}
       additionalFieldsBeforeDescription={additionalFields}
       additionalFieldsAfterDescription={attachmentFields}
       modalTitle="새 출금 신청"

@@ -61,7 +61,7 @@ export default function WithdrawalTimeline({
     ) {
       return "승인 대기 중...";
     } else if (
-      ["processing", "transferring", "success"].includes(withdrawal.status)
+      ["processing", "transferring", "success", "admin_rejected"].includes(withdrawal.status)
     ) {
       return "검증 완료";
     }
@@ -146,13 +146,15 @@ export default function WithdrawalTimeline({
 
     // 실패 상태인 경우 마지막 단계를 실패로 표시
     if (withdrawal.status === "failed" || withdrawal.status === "admin_rejected") {
+      const isAdminRejected = withdrawal.status === "admin_rejected";
       const failedStep: TimelineStep = {
         id: "failed",
-        title: "처리 실패",
+        title: isAdminRejected ? "관리자 거부" : "처리 실패",
         description:
           withdrawal.withdrawalStoppedReason ||
           withdrawal.rejectionReason ||
-          "출금 처리에 실패했습니다",
+          withdrawal.rejectedReason ||
+          (isAdminRejected ? "관리자에 의해 거부되었습니다" : "출금 처리에 실패했습니다"),
         timestamp: withdrawal.rejectedAt || withdrawal.withdrawalStoppedAt,
         status: "failed",
         icon: <ExclamationTriangleIcon className="h-4 w-4" />,
@@ -258,14 +260,20 @@ export default function WithdrawalTimeline({
                     </div>
                   )}
 
-                  {/* 실패 사유 */}
+                  {/* 실패 사유 / 관리자 거부 사유 */}
                   {step.status === "failed" &&
                     (withdrawal.withdrawalStoppedReason ||
-                      withdrawal.rejectionReason) && (
+                      withdrawal.rejectionReason ||
+                      withdrawal.rejectedReason) && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
-                        <strong>실패 사유:</strong>{" "}
+                        <strong>
+                          {withdrawal.status === "admin_rejected"
+                            ? "관리자 거부 사유:"
+                            : "실패 사유:"}
+                        </strong>{" "}
                         {withdrawal.withdrawalStoppedReason ||
-                          withdrawal.rejectionReason}
+                          withdrawal.rejectionReason ||
+                          withdrawal.rejectedReason}
                       </div>
                     )}
 
