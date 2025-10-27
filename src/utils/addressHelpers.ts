@@ -27,11 +27,23 @@ export const validateBlockchainAddress = (address: string, asset: string): boole
 };
 
 const validateBitcoinAddress = (address: string): boolean => {
-  const p2pkh = /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
-  const p2sh = /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/;
-  const bech32 = /^bc1[02-9ac-hj-np-z]{7,87}$/;
+  const isTestnet = process.env.NEXT_PUBLIC_BLOCKCHAIN_ENV === 'testnet';
 
-  return p2pkh.test(address) || p2sh.test(address) || bech32.test(address);
+  if (isTestnet) {
+    // 테스트넷 주소 패턴
+    const p2pkh = /^[mn][a-km-zA-HJ-NP-Z1-9]{25,34}$/;  // m, n으로 시작
+    const p2sh = /^2[a-km-zA-HJ-NP-Z1-9]{25,34}$/;      // 2로 시작
+    const bech32 = /^tb1[02-9ac-hj-np-z]{7,87}$/;       // tb1로 시작
+
+    return p2pkh.test(address) || p2sh.test(address) || bech32.test(address);
+  } else {
+    // 메인넷 주소 패턴
+    const p2pkh = /^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/;     // 1로 시작
+    const p2sh = /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/;      // 3으로 시작
+    const bech32 = /^bc1[02-9ac-hj-np-z]{7,87}$/;       // bc1로 시작
+
+    return p2pkh.test(address) || p2sh.test(address) || bech32.test(address);
+  }
 };
 
 const validateEthereumAddress = (address: string): boolean => {

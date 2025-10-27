@@ -9,6 +9,7 @@ import AddressTable from "./address/AddressTable";
 import PaginationNav from "./address/PaginationNav";
 import SearchInput from "./address/SearchInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   validateBlockchainAddress,
   checkDuplicateAddress,
@@ -31,6 +32,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   const [addresses, setAddresses] = useState<WhitelistedAddress[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,13 +104,21 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   const handleAddAddress = async (formData: AddressFormData) => {
     // 로그인 체크
     if (!user) {
-      alert("로그인이 필요합니다.");
+      toast({
+        variant: "destructive",
+        title: "로그인 필요",
+        description: "로그인이 필요합니다.",
+      });
       return;
     }
 
     // 타입 검증
     if (!formData.type) {
-      alert("주소 타입을 선택해주세요.");
+      toast({
+        variant: "destructive",
+        title: "입력 오류",
+        description: "주소 타입을 선택해주세요.",
+      });
       return;
     }
 
@@ -122,14 +132,22 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
     try {
       // 주소 유효성 검증
       if (!validateBlockchainAddress(formData.address, formData.coin)) {
-        alert(`유효하지 않은 ${formData.coin} 주소입니다.`);
+        toast({
+          variant: "destructive",
+          title: "주소 검증 실패",
+          description: `유효하지 않은 ${formData.coin} 주소입니다.`,
+        });
         setIsSubmitting(false);
         return;
       }
 
       // 중복 주소 체크
       if (checkDuplicateAddress(formData.address, addresses)) {
-        alert("이미 등록된 주소입니다.");
+        toast({
+          variant: "destructive",
+          title: "중복 주소",
+          description: "이미 등록된 주소입니다.",
+        });
         setIsSubmitting(false);
         return;
       }
@@ -163,7 +181,10 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
       setAddresses(prev => [...prev, createdAddress]);
       setIsModalOpen(false);
       setIsSubmitting(false);
-      alert("주소가 성공적으로 추가되었습니다.");
+      toast({
+        title: "주소 추가 완료",
+        description: "주소가 성공적으로 추가되었습니다.",
+      });
     } catch (error) {
       console.error("주소 추가 실패:", error);
       setIsSubmitting(false);
@@ -172,7 +193,11 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
       const errorMessage = error instanceof Error
         ? error.message
         : "주소 추가 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
-      alert(errorMessage);
+      toast({
+        variant: "destructive",
+        title: "주소 추가 실패",
+        description: errorMessage,
+      });
     }
   };
 
@@ -184,10 +209,17 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
 
         // 로컬 상태 업데이트 (낙관적 UI 업데이트)
         setAddresses(prev => prev.filter(addr => addr.id !== id));
-        alert("주소가 성공적으로 삭제되었습니다.");
+        toast({
+          title: "주소 삭제 완료",
+          description: "주소가 성공적으로 삭제되었습니다.",
+        });
       } catch (error) {
         console.error("주소 삭제 실패:", error);
-        alert("주소 삭제 중 오류가 발생했습니다.");
+        toast({
+          variant: "destructive",
+          title: "주소 삭제 실패",
+          description: "주소 삭제 중 오류가 발생했습니다.",
+        });
       }
     }
   };
