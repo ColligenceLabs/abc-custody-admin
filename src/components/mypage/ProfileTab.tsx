@@ -264,7 +264,7 @@ export default function ProfileTab() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="max-w-2xl">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">개인정보</h2>

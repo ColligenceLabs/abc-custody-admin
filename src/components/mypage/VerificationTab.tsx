@@ -220,7 +220,7 @@ export default function VerificationTab() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="max-w-3xl space-y-8">
         {/* eKYC 섹션 */}
         <div>

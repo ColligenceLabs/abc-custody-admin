@@ -312,7 +312,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-8 space-y-6">
       {/* 헤더 */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">

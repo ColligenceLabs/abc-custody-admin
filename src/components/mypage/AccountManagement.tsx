@@ -199,7 +199,7 @@ export default function AccountManagement({ plan }: AccountManagementProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-8 space-y-6">
       {/* 연결된 은행 계좌 섹션 */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-center justify-between mb-6">

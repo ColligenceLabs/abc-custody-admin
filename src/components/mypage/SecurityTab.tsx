@@ -37,7 +37,7 @@ export default function SecurityTab({ plan }: SecurityTabProps) {
   }, [warningMessage]);
 
   return (
-    <div className="space-y-6">
+    <div className="p-8 space-y-6">
       {/* 경고 메시지 */}
       {warningMessage && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">

@@ -24,16 +24,16 @@ export default function MyPageLayout({ children, activeTab }: MyPageLayoutProps)
 
   return (
     <PageLayout activeTab="mypage">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">마이페이지</h1>
-          <p className="mt-2 text-sm text-gray-600">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">마이페이지</h1>
+          <p className="text-gray-600 mt-1">
             개인정보 관리 및 본인인증을 진행할 수 있습니다.
           </p>
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="border-b border-gray-200 mb-6">
+        <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
             {tabs.map((tab) => (
               <button
