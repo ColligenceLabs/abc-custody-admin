@@ -194,12 +194,28 @@ export default function IndividualWithdrawalManagement({
 
   const handleCreateRequest = async () => {
     try {
+      // 디버그: newRequest 데이터 확인
+      console.log('[IndividualWithdrawal] newRequest 원본 데이터:', {
+        amount: newRequest.amount,
+        currency: newRequest.currency,
+        network: newRequest.network,
+        toAddress: newRequest.toAddress
+      });
+
       // fromAddress가 비어있으면 사용자의 첫 번째 입금 주소 사용
       let fromAddress = newRequest.fromAddress;
       if (!fromAddress) {
         // 임시: 개인 출금의 경우 시스템 자동 설정
         fromAddress = "Custody wallet";
       }
+
+      // 네트워크 매핑 (테스트넷 환경)
+      const networkMapping: Record<string, string> = {
+        'Ethereum': 'Holesky',
+        'Bitcoin': 'Bitcoin',
+        'Solana': 'Solana'
+      };
+      const apiNetwork = networkMapping[newRequest.network] || newRequest.network;
 
       const withdrawalData = {
         id: `IND-${Date.now()}`,
@@ -208,7 +224,7 @@ export default function IndividualWithdrawalManagement({
         toAddress: newRequest.toAddress,
         amount: newRequest.amount,
         currency: newRequest.currency as any,
-        network: newRequest.network,
+        network: apiNetwork,
         userId: user?.id || "0",
         memberType: "individual" as const,
         groupId: "",
@@ -220,6 +236,9 @@ export default function IndividualWithdrawalManagement({
         approvals: [],
         rejections: [],
       };
+
+      // 디버그: API 전송 데이터 확인
+      console.log('[IndividualWithdrawal] API 전송 데이터:', withdrawalData);
 
       await createWithdrawal(withdrawalData);
 
@@ -363,6 +382,7 @@ export default function IndividualWithdrawalManagement({
         onRequestChange={setNewRequest}
         networkAssets={networkAssets}
         whitelistedAddresses={addresses}
+        userId={user?.id || ""}
       />
 
       {/* 하단 여백 추가 */}
