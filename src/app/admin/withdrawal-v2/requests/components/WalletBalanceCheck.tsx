@@ -13,6 +13,7 @@ import {
   AssetType,
 } from "@/types/withdrawalV2";
 import { Wallet, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { formatCryptoAmount } from "@/lib/format";
 
 interface WalletBalanceCheckProps {
   asset: AssetType;
@@ -53,13 +54,13 @@ export function WalletBalanceCheckComponent({
             <div>
               <p className="text-muted-foreground mb-1">현재 Hot 잔고</p>
               <p className="font-mono font-semibold text-lg">
-                {hotWalletCheck.currentBalance} {asset}
+                {formatCryptoAmount(hotWalletCheck.currentBalance, asset)} {asset}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">출금 요청 금액</p>
               <p className="font-mono font-semibold text-lg">
-                {hotWalletCheck.requestedAmount} {asset}
+                {formatCryptoAmount(hotWalletCheck.requestedAmount, asset)} {asset}
               </p>
             </div>
           </div>
@@ -67,7 +68,7 @@ export function WalletBalanceCheckComponent({
           <div className="border-t pt-3">
             <p className="text-muted-foreground text-sm mb-1">출금 후 잔고 (예상)</p>
             <p className="font-mono font-bold text-xl">
-              {hotWalletCheck.afterBalance} {asset}
+              {formatCryptoAmount(hotWalletCheck.afterBalance, asset)} {asset}
             </p>
           </div>
 
@@ -80,7 +81,7 @@ export function WalletBalanceCheckComponent({
                     Hot 지갑 잔고가 부족합니다.
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    부족 금액: <span className="font-mono font-bold text-red-600 dark:text-red-400">{hotWalletCheck.shortfall} {asset}</span>
+                    부족 금액: <span className="font-mono font-bold text-red-600 dark:text-red-400">{formatCryptoAmount(hotWalletCheck.shortfall, asset)} {asset}</span>
                   </p>
                   <div className="text-xs text-muted-foreground space-y-1">
                     <p>다음 옵션 중 선택하세요:</p>
@@ -131,7 +132,7 @@ export function WalletBalanceCheckComponent({
           <div>
             <p className="text-muted-foreground text-sm mb-1">현재 Cold 잔고</p>
             <p className="font-mono font-semibold text-lg">
-              {coldWalletInfo.currentBalance} {asset}
+              {formatCryptoAmount(coldWalletInfo.currentBalance, asset)} {asset}
             </p>
           </div>
         </CardContent>

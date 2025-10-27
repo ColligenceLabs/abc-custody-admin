@@ -42,7 +42,7 @@ import {
   ExternalLink,
   Settings,
 } from "lucide-react";
-import { formatAmount } from "@/lib/format";
+import { formatCryptoAmount } from "@/lib/format";
 
 interface RequestDetailModalProps {
   open: boolean;
@@ -321,7 +321,7 @@ export function RequestDetailModal({
               </div>
               <div>
                 <p className="text-muted-foreground">수량</p>
-                <p className="font-mono text-lg font-bold">{formatAmount(request.amount)}</p>
+                <p className="font-mono text-lg font-bold">{formatCryptoAmount(request.amount, request.asset)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">블록체인</p>

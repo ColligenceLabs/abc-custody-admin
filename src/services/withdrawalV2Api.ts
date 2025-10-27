@@ -731,12 +731,8 @@ class WithdrawalV2ApiService {
    */
   async rejectWithdrawalBackend(requestId: string, reason: string): Promise<WithdrawalV2Request> {
     try {
-      const response = await apiClient.patch(`/withdrawals/${requestId}`, {
-        status: 'admin_rejected',
-        rejectedReason: reason,
-        rejectedBy: 'admin-current',
-        rejectedAt: new Date().toISOString(),
-        relatedAMLIssue: false,
+      const response = await apiClient.patch(`/withdrawals/${requestId}/reject`, {
+        reason: reason
       });
 
       return this.mapBackendToFrontend(response.data);
