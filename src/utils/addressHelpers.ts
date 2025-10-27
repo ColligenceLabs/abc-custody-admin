@@ -29,9 +29,10 @@ export const validateBlockchainAddress = (address: string, asset: string): boole
 const validateBitcoinAddress = (address: string): boolean => {
   const p2pkh = /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/;
   const p2sh = /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/;
-  const bech32 = /^bc1[02-9ac-hj-np-z]{7,87}$/;
+  const bech32Mainnet = /^bc1[02-9ac-hj-np-z]{7,87}$/;
+  const bech32Testnet = /^tb1[02-9ac-hj-np-z]{7,87}$/;
 
-  return p2pkh.test(address) || p2sh.test(address) || bech32.test(address);
+  return p2pkh.test(address) || p2sh.test(address) || bech32Mainnet.test(address) || bech32Testnet.test(address);
 };
 
 const validateEthereumAddress = (address: string): boolean => {
