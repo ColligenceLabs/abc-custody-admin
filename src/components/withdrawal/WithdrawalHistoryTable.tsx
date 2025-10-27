@@ -241,19 +241,19 @@ export default function WithdrawalHistoryTable({
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
                         자산
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-24">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
                         수량
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-48">
                         목적지 주소
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-28">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-36">
                         상태
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-52">
                         진행률
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-56">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase w-48">
                         완료 일시
                       </th>
                       <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase w-32">
