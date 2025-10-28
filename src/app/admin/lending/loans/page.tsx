@@ -6,6 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import StatsOverview from "@/components/admin-lending/dashboard/StatsOverview";
 import LoanFilters from "@/components/admin-lending/loans/LoanFilters";
 import LoansTable from "@/components/admin-lending/loans/LoansTable";
 import LoanDetailModal from "@/components/admin-lending/loans/LoanDetailModal";
@@ -102,6 +103,9 @@ export default function LoansListPage() {
           건의 대출
         </div>
       </div>
+
+      {/* 통계 카드 */}
+      <StatsOverview />
 
       {/* 필터 */}
       <LoanFilters

@@ -6,7 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingDown, DollarSign, RefreshCw } from "lucide-react";
+import { TrendingDown, DollarSign, RefreshCw, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -97,18 +97,29 @@ export default function LiquidationHistoryPage() {
             완료된 청산 내역 및 통계
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center space-x-2"
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-          />
-          <span>새로고침</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => console.log("다운로드 기능 준비중")}
+            className="flex items-center space-x-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>내역 다운로드</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
+            <span>새로고침</span>
+          </Button>
+        </div>
       </div>
 
       {/* 통계 카드 */}

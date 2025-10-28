@@ -282,13 +282,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: TrendingUp,
     requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
     children: [
-      {
-        id: 'lending-dashboard',
-        label: '대출 대시보드',
-        href: '/admin/lending/dashboard',
-        icon: LayoutDashboard,
-        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-      },
+      // {
+      //   id: 'lending-dashboard',
+      //   label: '대출 대시보드',
+      //   href: '/admin/lending/dashboard',
+      //   icon: LayoutDashboard,
+      //   requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      // },
       {
         id: 'lending-loans',
         label: '대출 목록',
