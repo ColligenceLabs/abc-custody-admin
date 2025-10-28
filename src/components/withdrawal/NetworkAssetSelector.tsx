@@ -115,6 +115,10 @@ export const AssetSelector: React.FC<AssetSelectorProps> = ({
         <div className="p-4 text-center text-sm text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
           먼저 네트워크를 선택하세요
         </div>
+      ) : !assets || assets.length === 0 ? (
+        <div className="p-4 text-center text-sm text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+          사용 가능한 자산이 없습니다
+        </div>
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {assets.map((asset) => (
