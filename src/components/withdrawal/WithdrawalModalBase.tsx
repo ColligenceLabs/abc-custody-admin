@@ -84,8 +84,8 @@ export function WithdrawalModalBase<T extends BaseFormData>({
     // 네트워크 매핑 (테스트넷 환경)
     const networkMapping: Record<string, string> = {
       'Ethereum': 'Holesky',
-      'Bitcoin': 'Bitcoin',
-      'Solana': 'Solana'
+      'Bitcoin': 'bitcoin',  // DB에 소문자로 저장됨
+      'Solana': 'solana'
     };
 
     const apiNetwork = networkMapping[formData.network] || formData.network;
