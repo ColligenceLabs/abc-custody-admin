@@ -49,127 +49,109 @@ interface RolePermissions {
 // 권한체계 설계서 기반 역할별 권한 정보
 const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   admin: {
-    description: "모든 시스템 기능에 대한 전체 권한을 보유합니다.",
+    description: "시스템 관리 및 사용자 관리 전용. 신청/승인 업무에서 분리됨.",
     categories: [
-      {
-        name: "대시보드",
-        icon: HomeIcon,
-        permissions: ["대시보드 조회", "자산 현황 조회", "통계 데이터 조회", "차트/그래프 조회"],
-        hasAccess: true
-      },
-      {
-        name: "거래내역",
-        icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "상세 거래 정보 조회", "CSV 다운로드", "거래 검색/필터링"],
-        hasAccess: true
-      },
       {
         name: "사용자 관리",
         icon: UserIcon,
-        permissions: ["사용자 생성(권한설정)", "사용자 목록 조회", "사용자 상세정보 조회", "사용자 정보 수정", "사용자 정지"],
+        permissions: ["사용자 생성", "사용자 목록 조회", "사용자 수정", "사용자 비활성화", "권한 관리"],
         hasAccess: true
       },
       {
         name: "그룹 관리",
         icon: UserGroupIcon,
-        permissions: ["그룹 생성(예산설정, 승인자 지정)", "그룹 목록 조회", "그룹 상세정보 조회", "그룹 생성 승인/반려", "그룹 지출 신청", "그룹 삭제/비활성화"],
-        hasAccess: true
+        permissions: ["그룹 목록 조회", "그룹 수정", "예산 관리"],
+        hasAccess: "partial",
+        restrictions: ["그룹 생성 신청 불가", "그룹 승인/반려 불가"]
       },
       {
         name: "입출금 관리",
         icon: BanknotesIcon,
-        permissions: ["입금 현황 확인", "입금 내역 조회", "출금 요청 생성", "출금 요청 조회", "출금 승인/반려", "긴급 출금 중단"],
+        permissions: ["입출금 내역 조회"],
+        hasAccess: "partial",
+        restrictions: ["출금 신청 불가", "출금 승인 불가", "입금 생성 불가", "입금 승인 불가"]
+      },
+      {
+        name: "거래내역",
+        icon: ChartBarIcon,
+        permissions: ["거래내역 조회", "CSV 다운로드", "거래 검색/필터링"],
         hasAccess: true
       },
       {
-        name: "부가 서비스",
-        icon: CubeIcon,
-        permissions: ["스테이킹 참여/해제", "스테이킹 목록조회", "대출 실행/상환", "대출 목록조회", "토큰 교환 실행/조회", "구매 대행"],
-        hasAccess: true
-      },
-      {
-        name: "보안 설정",
-        icon: ShieldCheckIcon,
-        permissions: ["관리자 보안 정책 설정/확인", "Google Authenticator 설정", "관리자 접근 IP 관리", "주소 관리", "계좌 연동", "정책 관리", "알림 설정"],
-        hasAccess: true
-      },
-      {
-        name: "설정 및 구독",
+        name: "시스템 설정",
         icon: SparklesIcon,
-        permissions: ["회사 정보 설정", "구독 플랜 관리", "결제 정보 관리", "시스템 설정"],
+        permissions: ["시스템 설정 변경", "구독 관리", "결제 정보 관리", "회사 정보 설정"],
+        hasAccess: true
+      },
+      {
+        name: "감사 추적",
+        icon: DocumentTextIcon,
+        permissions: ["감사 추적 조회", "시스템 로그 조회"],
         hasAccess: true
       }
     ],
-    keyPermissions: ["전체 시스템 관리", "모든 기능 사용 가능", "최고 수준 보안 접근"]
+    keyPermissions: ["사용자 생성/비활성화", "시스템 설정 변경", "구독 관리", "그룹 예산 관리"]
   },
   manager: {
-    description: "관리 업무와 승인 업무를 담당하며, 일부 시스템 설정은 제한됩니다.",
+    description: "승인 전용. 그룹/출금/입금 승인 담당, 생성 불가.",
     categories: [
-      {
-        name: "대시보드",
-        icon: HomeIcon,
-        permissions: ["대시보드 조회", "자산 현황 조회", "통계 데이터 조회", "차트/그래프 조회"],
-        hasAccess: true
-      },
-      {
-        name: "거래내역",
-        icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "상세 거래 정보 조회", "CSV 다운로드", "거래 검색/필터링"],
-        hasAccess: true
-      },
-      {
-        name: "사용자 관리",
-        icon: UserIcon,
-        permissions: ["사용자 생성(권한설정)", "사용자 목록 조회", "사용자 상세정보 조회", "사용자 정보 수정", "사용자 정지"],
-        hasAccess: true
-      },
       {
         name: "그룹 관리",
         icon: UserGroupIcon,
-        permissions: ["그룹 생성(예산설정, 승인자 지정)", "그룹 목록 조회", "그룹 상세정보 조회", "그룹 생성 승인/반려", "그룹 지출 신청"],
-        hasAccess: true
+        permissions: ["그룹 목록 조회", "그룹 승인/반려"],
+        hasAccess: "partial",
+        restrictions: ["그룹 생성 불가", "그룹 수정 불가"]
       },
       {
         name: "입출금 관리",
         icon: BanknotesIcon,
-        permissions: ["입금 현황 확인", "입금 내역 조회", "출금 요청 생성", "출금 요청 조회", "출금 승인/반려", "긴급 출금 중단"],
-        hasAccess: true
-      },
-      {
-        name: "부가 서비스",
-        icon: CubeIcon,
-        permissions: ["스테이킹 참여/해제", "스테이킹 목록조회", "대출 실행/상환", "대출 목록조회", "토큰 교환 실행/조회", "구매 대행"],
-        hasAccess: true
-      },
-      {
-        name: "보안 설정",
-        icon: ShieldCheckIcon,
-        permissions: ["Google Authenticator 설정", "주소 관리", "계좌 연동", "정책 관리"],
+        permissions: ["입출금 내역 조회", "출금 승인/반려", "입금 승인"],
         hasAccess: "partial",
-        restrictions: ["관리자 보안 정책 설정 불가", "관리자 접근 IP 관리 불가", "알림 템플릿 관리 불가"]
+        restrictions: ["출금 신청 불가", "입금 생성 불가"]
       },
       {
-        name: "설정 및 구독",
-        icon: SparklesIcon,
-        permissions: ["회사 정보 설정", "구독 플랜 관리", "결제 정보 관리", "시스템 설정"],
+        name: "거래내역",
+        icon: ChartBarIcon,
+        permissions: ["거래내역 조회", "CSV 다운로드"],
+        hasAccess: true
+      },
+      {
+        name: "사용자 조회",
+        icon: UserIcon,
+        permissions: ["사용자 목록 조회"],
+        hasAccess: "partial",
+        restrictions: ["사용자 생성/수정 불가"]
+      },
+      {
+        name: "감사 추적",
+        icon: DocumentTextIcon,
+        permissions: ["감사 추적 조회"],
         hasAccess: true
       }
     ],
-    keyPermissions: ["사용자 관리 및 생성", "출금 승인 및 반려", "정책 관리 및 수정", "그룹 관리 및 승인"]
+    keyPermissions: ["그룹 승인/반려", "출금 승인/반려", "입금 승인"]
   },
   operator: {
-    description: "실무 작업을 담당하며, 관리 기능은 제한됩니다.",
+    description: "신청 전용. 그룹/출금/입금 생성 담당, 승인 불가.",
     categories: [
       {
-        name: "대시보드",
-        icon: HomeIcon,
-        permissions: ["대시보드 조회", "자산 현황 조회", "통계 데이터 조회", "차트/그래프 조회"],
-        hasAccess: true
+        name: "그룹 관리",
+        icon: UserGroupIcon,
+        permissions: ["그룹 목록 조회", "그룹 생성 신청"],
+        hasAccess: "partial",
+        restrictions: ["그룹 승인/반려 불가", "그룹 수정 불가"]
+      },
+      {
+        name: "입출금 관리",
+        icon: BanknotesIcon,
+        permissions: ["입출금 내역 조회", "출금 신청", "입금 생성"],
+        hasAccess: "partial",
+        restrictions: ["출금 승인/반려 불가", "입금 승인 불가"]
       },
       {
         name: "거래내역",
         icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "상세 거래 정보 조회", "CSV 다운로드", "거래 검색/필터링"],
+        permissions: ["거래내역 조회", "CSV 다운로드"],
         hasAccess: true
       },
       {
@@ -180,54 +162,35 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
         restrictions: ["사용자 관리 권한 없음"]
       },
       {
-        name: "그룹 관리",
-        icon: UserGroupIcon,
-        permissions: ["그룹 생성(예산설정, 승인자 지정)", "그룹 목록 조회", "그룹 상세정보 조회", "그룹 지출 신청"],
-        hasAccess: "partial",
-        restrictions: ["그룹 생성 승인/반려 불가", "그룹 삭제/비활성화 불가"]
-      },
-      {
-        name: "입출금 관리",
-        icon: BanknotesIcon,
-        permissions: ["입금 현황 확인", "입금 내역 조회", "출금 요청 생성", "출금 요청 조회", "긴급 출금 중단"],
-        hasAccess: "partial",
-        restrictions: ["출금 승인/반려 불가"]
-      },
-      {
-        name: "부가 서비스",
-        icon: CubeIcon,
-        permissions: ["스테이킹 참여/해제", "스테이킹 목록조회", "대출 실행/상환", "대출 목록조회", "토큰 교환 실행/조회", "구매 대행"],
-        hasAccess: true
-      },
-      {
-        name: "보안 설정",
-        icon: ShieldCheckIcon,
-        permissions: ["Google Authenticator 설정", "주소 조회", "계좌 조회", "정책 조회", "알림 템플릿 생성/수정", "승인자 이메일 정책 설정", "알림 내역 조회"],
-        hasAccess: "partial",
-        restrictions: ["주소 추가/삭제 불가", "계좌 등록/삭제 불가", "정책 생성/수정/정지 불가"]
-      },
-      {
-        name: "설정 및 구독",
-        icon: SparklesIcon,
-        permissions: ["회사 정보 설정", "구독 플랜 관리", "결제 정보 관리", "시스템 설정"],
+        name: "감사 추적",
+        icon: DocumentTextIcon,
+        permissions: ["감사 추적 조회"],
         hasAccess: true
       }
     ],
-    keyPermissions: ["출금 요청 생성", "그룹 생성 및 관리", "부가 서비스 이용", "긴급 출금 중단", "알림 템플릿 관리"]
+    keyPermissions: ["그룹 생성 신청", "출금 신청", "입금 생성"]
   },
   viewer: {
-    description: "조회 권한만 보유하며, 데이터 수정 및 거래는 불가합니다.",
+    description: "조회 전용. 모든 생성/수정/승인 불가.",
     categories: [
       {
-        name: "대시보드",
-        icon: HomeIcon,
-        permissions: ["대시보드 조회", "자산 현황 조회", "통계 데이터 조회", "차트/그래프 조회"],
-        hasAccess: true
+        name: "그룹 관리",
+        icon: UserGroupIcon,
+        permissions: ["그룹 목록 조회"],
+        hasAccess: "partial",
+        restrictions: ["그룹 생성 불가", "그룹 승인 불가"]
+      },
+      {
+        name: "입출금 관리",
+        icon: BanknotesIcon,
+        permissions: ["입출금 내역 조회"],
+        hasAccess: "partial",
+        restrictions: ["출금 신청 불가", "출금 승인 불가", "입금 생성 불가", "입금 승인 불가"]
       },
       {
         name: "거래내역",
         icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "상세 거래 정보 조회", "CSV 다운로드", "거래 검색/필터링"],
+        permissions: ["거래내역 조회", "CSV 다운로드"],
         hasAccess: true
       },
       {
@@ -238,42 +201,13 @@ const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
         restrictions: ["사용자 관리 권한 없음"]
       },
       {
-        name: "그룹 관리",
-        icon: UserGroupIcon,
-        permissions: ["그룹 목록 조회", "그룹 상세정보 조회"],
-        hasAccess: "partial",
-        restrictions: ["그룹 생성/수정/삭제 불가", "그룹 지출 신청 불가"]
-      },
-      {
-        name: "입출금 관리",
-        icon: BanknotesIcon,
-        permissions: ["입금 현황 확인", "입금 내역 조회", "출금 요청 조회"],
-        hasAccess: "partial",
-        restrictions: ["출금 요청 생성 불가", "출금 승인/반려 불가", "긴급 출금 중단 불가"]
-      },
-      {
-        name: "부가 서비스",
-        icon: CubeIcon,
-        permissions: ["스테이킹 목록조회", "대출 목록조회", "토큰 교환 조회", "구매 대행 내역 조회"],
-        hasAccess: "partial",
-        restrictions: ["모든 실행 기능 불가"]
-      },
-      {
-        name: "보안 설정",
-        icon: ShieldCheckIcon,
-        permissions: ["Google Authenticator 설정", "주소 조회", "계좌 조회", "정책 조회"],
-        hasAccess: "partial",
-        restrictions: ["모든 관리 기능 불가"]
-      },
-      {
-        name: "설정 및 구독",
-        icon: SparklesIcon,
-        permissions: ["회사 정보 조회", "구독 플랜 조회"],
-        hasAccess: "partial",
-        restrictions: ["설정 변경 불가", "결제 정보 관리 불가"]
+        name: "감사 추적",
+        icon: DocumentTextIcon,
+        permissions: ["감사 추적 조회"],
+        hasAccess: true
       }
     ],
-    keyPermissions: ["모든 데이터 조회", "거래 내역 확인", "리포트 다운로드", "그룹 정보 조회", "입금 현황 확인"]
+    keyPermissions: ["모든 데이터 조회", "거래 내역 확인", "리포트 다운로드"]
   }
 };
 
