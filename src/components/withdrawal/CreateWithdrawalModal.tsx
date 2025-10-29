@@ -1,8 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ExclamationTriangleIcon, DocumentIcon, XMarkIcon, PaperClipIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/components/common/Modal";
 import CryptoIcon from "@/components/ui/CryptoIcon";
 import { WhitelistedAddress } from "@/types/address";
+import { WalletGroup } from "@/types/groups";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { OrganizationUser } from "@/types/organizationUser";
 // 재컴파일 강제
 
 interface NewRequest {
@@ -14,6 +18,8 @@ interface NewRequest {
   currency: string;
   description: string;
   priority: "low" | "medium" | "high" | "critical";
+  groupId?: string;
+  requiredApprovals?: string[];
   attachments?: File[];
 }
 
@@ -30,6 +36,8 @@ interface CreateWithdrawalModalProps {
   onRequestChange: (request: NewRequest) => void;
   networkAssets: Record<string, NetworkAsset[]>;
   whitelistedAddresses: WhitelistedAddress[];
+  groups?: WalletGroup[];
+  managers?: OrganizationUser[];
 }
 
 export function CreateWithdrawalModal({
@@ -39,15 +47,100 @@ export function CreateWithdrawalModal({
   newRequest,
   onRequestChange,
   networkAssets,
-  whitelistedAddresses
+  whitelistedAddresses,
+  groups = [],
+  managers = []
 }: CreateWithdrawalModalProps) {
   if (!isOpen) return null;
+
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   // 파일 업로드 상태
   const [attachments, setAttachments] = useState<File[]>(newRequest.attachments || []);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 결재자 선택 상태
+  const [selectedApprovers, setSelectedApprovers] = useState<string[]>(newRequest.requiredApprovals || []);
+  const [isApproverDropdownOpen, setIsApproverDropdownOpen] = useState(false);
+  const approverDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 선택된 그룹 정보
+  const selectedGroup = groups.find(g => g.id === newRequest.groupId);
+
+  // 그룹의 남은 예산 계산 (월별 기준)
+  const getAvailableBudget = () => {
+    if (!selectedGroup) return null;
+
+    const budget = selectedGroup.monthlyBudget;
+    const used = selectedGroup.budgetUsed;
+
+    if (budget.currency !== used.currency) return null;
+
+    return {
+      total: budget.amount,
+      used: used.amount,
+      available: budget.amount - used.amount,
+      currency: budget.currency
+    };
+  };
+
+  const availableBudget = getAvailableBudget();
+
+  // 자신을 제외한 매니저 목록
+  const availableManagers = managers.filter(m => m.id !== user?.id);
+
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (approverDropdownRef.current && !approverDropdownRef.current.contains(event.target as Node)) {
+        setIsApproverDropdownOpen(false);
+      }
+    };
+
+    if (isApproverDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isApproverDropdownOpen]);
+
+  // 결재자 선택/해제
+  const toggleApprover = (userId: string) => {
+    setSelectedApprovers(prev => {
+      const newApprovers = prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId];
+      onRequestChange({ ...newRequest, requiredApprovals: newApprovers });
+      return newApprovers;
+    });
+  };
+
+  // 결재자 순서 위로 이동
+  const moveApproverUp = (index: number) => {
+    if (index === 0) return;
+    const newApprovers = [...selectedApprovers];
+    [newApprovers[index - 1], newApprovers[index]] = [newApprovers[index], newApprovers[index - 1]];
+    setSelectedApprovers(newApprovers);
+    onRequestChange({ ...newRequest, requiredApprovals: newApprovers });
+  };
+
+  // 결재자 순서 아래로 이동
+  const moveApproverDown = (index: number) => {
+    if (index === selectedApprovers.length - 1) return;
+    const newApprovers = [...selectedApprovers];
+    [newApprovers[index], newApprovers[index + 1]] = [newApprovers[index + 1], newApprovers[index]];
+    setSelectedApprovers(newApprovers);
+    onRequestChange({ ...newRequest, requiredApprovals: newApprovers });
+  };
+
+  // 결재자 제거
+  const removeApprover = (userId: string) => {
+    const newApprovers = selectedApprovers.filter(id => id !== userId);
+    setSelectedApprovers(newApprovers);
+    onRequestChange({ ...newRequest, requiredApprovals: newApprovers });
+  };
 
   // 파일 검증
   const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -149,13 +242,37 @@ export function CreateWithdrawalModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 출금 주소 필수 검증
-    if (!newRequest.toAddress) {
-      alert('출금 주소를 선택해주세요.');
+    // 결재자 필수 검증 (최소 1명)
+    if (selectedApprovers.length === 0) {
+      toast({
+        variant: 'destructive',
+        description: '결재자를 최소 1명 이상 선택해주세요.',
+      });
       return;
     }
 
-    onSubmit(newRequest);
+    // 출금 주소 필수 검증
+    if (!newRequest.toAddress) {
+      toast({
+        variant: 'destructive',
+        description: '출금 주소를 선택해주세요.',
+      });
+      return;
+    }
+
+    // 그룹을 선택한 경우에만 예산 초과 검증
+    if (newRequest.groupId && availableBudget && newRequest.amount > availableBudget.available) {
+      toast({
+        variant: 'destructive',
+        description: `선택한 그룹의 남은 예산(${availableBudget.available.toLocaleString()} ${availableBudget.currency})을 초과할 수 없습니다.`,
+      });
+      return;
+    }
+
+    onSubmit({
+      ...newRequest,
+      requiredApprovals: selectedApprovers
+    });
   };
 
   return (
@@ -189,6 +306,75 @@ export function CreateWithdrawalModal({
         {/* 콘텐츠 - 스크롤 */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-4">
+          {/* 그룹 선택 */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              그룹 선택 <span className="text-gray-500 text-xs font-normal">(선택사항)</span>
+            </label>
+            <select
+              value={newRequest.groupId || ''}
+              onChange={(e) => {
+                onRequestChange({ ...newRequest, groupId: e.target.value });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">그룹 외 출금</option>
+              {groups.filter(g => g.status === 'active').map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name} ({group.type})
+                </option>
+              ))}
+            </select>
+
+            {/* 선택 안내 메시지 */}
+            {!newRequest.groupId && (
+              <p className="mt-2 text-xs text-gray-600">
+                그룹을 선택하지 않으면 그룹 외 출금으로 처리됩니다.
+              </p>
+            )}
+
+            {/* 선택된 그룹의 예산 정보 표시 */}
+            {selectedGroup && availableBudget && (
+              <div className="mt-3 p-3 bg-sky-50 border border-sky-200 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <p className="text-sky-900 font-medium">월별 예산</p>
+                    <p className="text-sky-700 text-xs mt-1">
+                      사용: {availableBudget.used.toLocaleString()} {availableBudget.currency}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sky-900 font-semibold">
+                      {availableBudget.available.toLocaleString()} {availableBudget.currency}
+                    </p>
+                    <p className="text-sky-600 text-xs mt-1">사용 가능</p>
+                  </div>
+                </div>
+
+                {/* 예산 사용률 바 */}
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${
+                        (availableBudget.used / availableBudget.total) > 0.9
+                          ? 'bg-red-500'
+                          : (availableBudget.used / availableBudget.total) > 0.7
+                          ? 'bg-yellow-500'
+                          : 'bg-sky-500'
+                      }`}
+                      style={{
+                        width: `${Math.min((availableBudget.used / availableBudget.total) * 100, 100)}%`
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1 text-right">
+                    {((availableBudget.used / availableBudget.total) * 100).toFixed(1)}% 사용됨
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 출금 제목 */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -427,6 +613,138 @@ export function CreateWithdrawalModal({
               placeholder="출금 목적과 상세 내용을 입력하세요"
               rows={3}
             />
+          </div>
+
+          {/* 결재자 지정 */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              결재자 지정 <span className="text-red-600">*</span>
+            </label>
+
+            {/* 드롭다운 버튼 */}
+            <div className="relative" ref={approverDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsApproverDropdownOpen(!isApproverDropdownOpen)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left flex items-center justify-between hover:border-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <span className={selectedApprovers.length === 0 ? 'text-gray-500' : 'text-gray-900'}>
+                  {selectedApprovers.length === 0
+                    ? '결재자를 선택하세요'
+                    : `${selectedApprovers.length}명 선택됨`}
+                </span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* 드롭다운 메뉴 */}
+              {isApproverDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {availableManagers.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                      선택 가능한 결재자가 없습니다
+                    </div>
+                  ) : (
+                    availableManagers.map(manager => (
+                      <label
+                        key={manager.id}
+                        className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedApprovers.includes(manager.id)}
+                          onChange={() => toggleApprover(manager.id)}
+                          className="mr-3 h-4 w-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-900">
+                          {manager.name} - {manager.department} ({manager.position})
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 순차 결재 순서 영역 */}
+            {selectedApprovers.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">순차 결재 순서:</p>
+                <div className="space-y-2">
+                  {selectedApprovers.map((approverId, index) => {
+                    const approver = availableManagers.find(m => m.id === approverId);
+                    if (!approver) return null;
+
+                    return (
+                      <div
+                        key={approverId}
+                        className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                      >
+                        {/* 순서 번호 및 결재자 정보 */}
+                        <div className="flex items-center space-x-3">
+                          <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-primary-100 text-primary-700 rounded-full text-sm font-semibold">
+                            {index + 1}
+                          </span>
+                          <span className="text-sm text-gray-900">
+                            {approver.name} - {approver.department}
+                          </span>
+                        </div>
+
+                        {/* 제어 버튼 */}
+                        <div className="flex items-center space-x-1">
+                          {/* 위로 이동 */}
+                          <button
+                            type="button"
+                            onClick={() => moveApproverUp(index)}
+                            disabled={index === 0}
+                            className={`p-1 rounded transition-colors ${
+                              index === 0
+                                ? 'opacity-30 cursor-not-allowed'
+                                : 'hover:bg-gray-200'
+                            }`}
+                            title="위로 이동"
+                          >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+
+                          {/* 아래로 이동 */}
+                          <button
+                            type="button"
+                            onClick={() => moveApproverDown(index)}
+                            disabled={index === selectedApprovers.length - 1}
+                            className={`p-1 rounded transition-colors ${
+                              index === selectedApprovers.length - 1
+                                ? 'opacity-30 cursor-not-allowed'
+                                : 'hover:bg-gray-200'
+                            }`}
+                            title="아래로 이동"
+                          >
+                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+
+                          {/* 제거 */}
+                          <button
+                            type="button"
+                            onClick={() => removeApprover(approverId)}
+                            className="p-1 rounded hover:bg-red-100 transition-colors"
+                            title="제거"
+                          >
+                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 파일 첨부 */}

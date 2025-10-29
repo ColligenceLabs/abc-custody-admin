@@ -52,6 +52,8 @@ import { getCorporateWithdrawals, createWithdrawal, getWithdrawalById } from "@/
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
+import { mockGroups } from "@/data/groupMockData";
+import { getRequiredApprovers } from "@/data/organizationUserMockData";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -630,6 +632,8 @@ export default function CorporateWithdrawalManagement({
         onRequestChange={setNewRequest}
         networkAssets={networkAssets}
         whitelistedAddresses={addresses}
+        groups={mockGroups}
+        managers={getRequiredApprovers()}
       />
 
       {/* 승인/반려 확인 팝업 */}
