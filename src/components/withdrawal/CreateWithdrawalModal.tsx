@@ -750,7 +750,7 @@ export function CreateWithdrawalModal({
           {/* 파일 첨부 */}
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              첨부 파일 (선택)
+              첨부 파일 <span className="text-gray-500 text-xs font-normal">(선택사항)</span>
             </label>
 
             {/* 파일 업로드 영역 */}
