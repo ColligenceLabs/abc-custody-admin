@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { CheckCircleIcon, ShieldCheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { SignupData } from '@/app/signup/page'
+import { requestPassVerification } from '@/utils/portonePass'
+import { verifyPassAuth } from '@/lib/api/auth'
 
 interface PassVerificationStepProps {
   initialData: SignupData;
@@ -24,7 +26,6 @@ export default function PassVerificationStep({
       setError(null)
 
       // 1. PortOne SDK 호출
-      const { requestPassVerification } = await import('@/utils/portonePass')
       const sdkResult = await requestPassVerification()
 
       if (!sdkResult.success) {
@@ -36,7 +37,6 @@ export default function PassVerificationStep({
       console.log('[PASS] identityVerificationId:', sdkResult.identityVerificationId)
 
       // 2. Backend API로 인증 정보 조회 및 중복 확인
-      const { verifyPassAuth } = await import('@/lib/api/auth')
       const result = await verifyPassAuth(sdkResult.identityVerificationId!)
 
       if (result.isDuplicate) {
