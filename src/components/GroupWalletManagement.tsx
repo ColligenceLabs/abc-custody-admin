@@ -14,7 +14,6 @@ import {
   ExclamationCircleIcon,
   UserIcon,
   CogIcon,
-  ArrowUpOnSquareIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
@@ -38,8 +37,6 @@ import GroupApprovalTab from "@/components/groups/GroupApprovalTab";
 import BudgetStatus from "@/components/groups/BudgetStatus";
 import RejectedManagementTab from "@/components/groups/RejectedManagementTab";
 import GroupAuditTab from "@/components/groups/GroupAuditTab";
-import { CreateGroupWithdrawalModal } from "@/components/withdrawal/CreateGroupWithdrawalModal";
-import { networkAssets, whitelistedAddresses } from "@/data/mockWithdrawalData";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -136,20 +133,6 @@ export default function GroupWalletManagement({
   const pathname = usePathname();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-
-  // 출금 신청 모달 관련 상태
-  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
-  const [newWithdrawalRequest, setNewWithdrawalRequest] = useState({
-    title: "",
-    fromAddress: "",
-    toAddress: "",
-    amount: 0,
-    network: "",
-    currency: "",
-    groupId: "",
-    description: "",
-    priority: "medium" as "low" | "medium" | "high" | "critical",
-  });
   const [activeTab, setActiveTab] = useState<
     "groups" | "approval" | "budget" | "rejected" | "audit"
   >(initialTab || "groups");
@@ -199,26 +182,6 @@ export default function GroupWalletManagement({
 
   const { t, language } = useLanguage();
 
-
-  // 출금 신청 처리
-  const handleCreateWithdrawalRequest = (request: any) => {
-    console.log("Creating withdrawal request:", request);
-    // TODO: 실제 API 호출
-    setShowWithdrawalModal(false);
-    setNewWithdrawalRequest({
-      title: "",
-      fromAddress: "",
-      toAddress: "",
-      amount: 0,
-      network: "",
-      currency: "",
-      groupId: "",
-      description: "",
-      priority: "medium" as "low" | "medium" | "high" | "critical",
-    });
-    alert("출금 신청이 완료되었습니다.");
-  };
-
   // 재승인 요청 처리
   const handleReapprovalRequest = (requestId: string) => {
     console.log("Re-approving group request:", requestId);
@@ -257,22 +220,13 @@ export default function GroupWalletManagement({
             목적별 그룹화로 체계적인 자산관리
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            그룹 생성
-          </button>
-          <button
-            onClick={() => setShowWithdrawalModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <ArrowUpOnSquareIcon className="h-5 w-5 mr-2" />
-            지출 신청
-          </button>
-        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <PlusIcon className="h-5 w-5 mr-2" />
+          그룹 생성
+        </button>
       </div>
 
       {/* 탭 네비게이션 */}
@@ -388,18 +342,6 @@ export default function GroupWalletManagement({
 
       {/* 감사 추적 탭 */}
       {activeTab === "audit" && <GroupAuditTab />}
-
-      {/* 출금 신청 모달 */}
-      <CreateGroupWithdrawalModal
-        isOpen={showWithdrawalModal}
-        onClose={() => setShowWithdrawalModal(false)}
-        onSubmit={handleCreateWithdrawalRequest}
-        newRequest={newWithdrawalRequest}
-        onRequestChange={setNewWithdrawalRequest}
-        networkAssets={networkAssets}
-        whitelistedAddresses={whitelistedAddresses}
-        groups={mockGroups}
-      />
     </div>
   );
 }
