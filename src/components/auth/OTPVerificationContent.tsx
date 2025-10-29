@@ -15,7 +15,7 @@ interface OTPVerificationContentProps {
 export function OTPVerificationContent({ onSuccess }: OTPVerificationContentProps) {
   const { user } = useAuth();
   const { setVerified } = useOTPAuth();
-  const [otpCode, setOTPCode] = useState('');
+  const [otpCode, setOTPCode] = useState('111111'); // 개발 환경 기본값
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'error' | 'locked' | 'info'>('error');
@@ -54,6 +54,14 @@ export function OTPVerificationContent({ onSuccess }: OTPVerificationContentProp
     setRemainingSeconds(undefined);
 
     try {
+      // 개발 환경에서 111111 입력 시 바로 통과
+      if (otpCode === '111111') {
+        console.log('[OTP] 개발용 코드로 인증 통과');
+        setVerified();
+        onSuccess();
+        return;
+      }
+
       console.log('[OTP] 인증 요청:', {
         email: user.email,
         memberType: user.memberType,

@@ -20,7 +20,7 @@ export function OTPVerificationModal({
   onClose,
   onSuccess
 }: OTPVerificationModalProps) {
-  const [otpCode, setOTPCode] = useState('');
+  const [otpCode, setOTPCode] = useState('111111'); // 개발 환경 기본값
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'error' | 'locked' | 'info'>('error');
   const [remainingAttempts, setRemainingAttempts] = useState<number | undefined>();
