@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 import { Modal } from "@/components/common/Modal";
 import {
   WithdrawalManagementProps,
@@ -420,7 +421,7 @@ export default function CorporateWithdrawalManagement({
             보안과 효율성을 모두 갖춘 기업용 출금 시스템
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        {user && hasPermission(user, 'withdrawals.create') && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -428,7 +429,7 @@ export default function CorporateWithdrawalManagement({
             <PlusIcon className="h-5 w-5 mr-2" />
             출금 신청
           </button>
-        </div>
+        )}
       </div>
 
       {/* 출금 프로세스 플로우 */}

@@ -11,6 +11,8 @@ import { convertToKRW } from "@/utils/approverAssignment";
 import { WithdrawalTableRow } from "./WithdrawalTableRow";
 import { ApprovalStatus } from "./ApprovalStatus";
 import { BlockchainInfo } from "./BlockchainInfo";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 
 interface ApprovalTabProps {
   withdrawalRequests: WithdrawalRequest[];
@@ -21,6 +23,7 @@ export default function ApprovalTab({
   withdrawalRequests,
   onApproval,
 }: ApprovalTabProps) {
+  const { user } = useAuth();
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -222,7 +225,7 @@ export default function ApprovalTab({
                             selectedRequest === requestId ? null : requestId
                           )
                         }
-                        showApprovalActions={true}
+                        showApprovalActions={user ? hasPermission(user, 'withdrawals.approve') : false}
                         onApproval={onApproval}
                       />
                     ))}
@@ -481,20 +484,22 @@ export default function ApprovalTab({
                           showProgressSummary={true}
                         />
 
-                        <div className="flex justify-end space-x-3">
-                          <button
-                            onClick={() => onApproval(request.id, "approve")}
-                            className="px-6 py-2 bg-sky-600 text-white text-sm rounded-lg hover:bg-sky-700 transition-colors"
-                          >
-                            승인
-                          </button>
-                          <button
-                            onClick={() => onApproval(request.id, "reject")}
-                            className="px-6 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-                          >
-                            반려
-                          </button>
-                        </div>
+                        {user && hasPermission(user, 'withdrawals.approve') && (
+                          <div className="flex justify-end space-x-3">
+                            <button
+                              onClick={() => onApproval(request.id, "approve")}
+                              className="px-6 py-2 bg-sky-600 text-white text-sm rounded-lg hover:bg-sky-700 transition-colors"
+                            >
+                              승인
+                            </button>
+                            <button
+                              onClick={() => onApproval(request.id, "reject")}
+                              className="px-6 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+                            >
+                              반려
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -11,12 +11,14 @@ import { convertToKRW } from "@/utils/approverAssignment";
 import { ProcessingTableRow } from "./ProcessingTableRow";
 import { WithdrawalStopModal } from "./WithdrawalStopModal";
 import { BlockchainInfo } from "./BlockchainInfo";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AirgapTabProps {
   withdrawalRequests: WithdrawalRequest[];
 }
 
 export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
+  const { user } = useAuth();
   const [processingSearchTerm, setProcessingSearchTerm] = useState("");
   const [processingStatusFilter, setProcessingStatusFilter] =
     useState<string>("all");
@@ -566,12 +568,15 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                                   출금 대기 중입니다
                                 </span>
                               </div>
-                              <button
-                                onClick={() => setStopModalRequest(request)}
-                                className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                              >
-                                출금 중지
-                              </button>
+                              {user && (request.initiator === user.name ||
+                                request.approvals.some(a => a.userId === user.id)) && (
+                                <button
+                                  onClick={() => setStopModalRequest(request)}
+                                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                                >
+                                  출금 중지
+                                </button>
+                              )}
                             </div>
                             <div className="mt-2 text-xs text-gray-600">
                               오출금 방지를 위한 대기 기간이 진행 중입니다.

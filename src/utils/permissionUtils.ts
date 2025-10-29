@@ -19,12 +19,17 @@ import {
  * 사용자가 특정 권한을 가지고 있는지 확인
  */
 export function hasPermission(user: User, permission: string): boolean {
-  // 관리자는 모든 권한 보유
+  // 개인회원은 모든 권한 허용
+  if (user.memberType === 'individual') {
+    return true;
+  }
+
+  // 기업회원: 관리자는 모든 권한 보유
   if (user.role === 'admin' || user.permissions.includes('permission.all')) {
     return true;
   }
 
-  // 사용자의 권한 목록에서 확인
+  // 기업회원: 권한 배열에서 확인
   return user.permissions.includes(permission);
 }
 
@@ -92,20 +97,38 @@ export function checkPermission(
  */
 export function getAllPermissions(): string[] {
   return [
-    'permission.assets.view',
-    'permission.assets.view_transactions',
-    'permission.assets.create_transactions',
-    'permission.users.view',
-    'permission.users.create',
-    'permission.users.edit',
-    'permission.users.manage_permissions',
-    'permission.policies.view',
-    'permission.policies.create',
-    'permission.policies.edit',
-    'permission.system.view_audit',
-    'permission.system.notifications',
-    'permission.system.security_settings',
-    'permission.system.admin'
+    // Groups
+    'groups.view',
+    'groups.create',
+    'groups.approve',
+    'groups.edit',
+    'groups.manage_budget',
+
+    // Withdrawals
+    'withdrawals.view',
+    'withdrawals.create',
+    'withdrawals.approve',
+
+    // Deposits
+    'deposits.view',
+    'deposits.create',
+    'deposits.approve',
+
+    // Transactions
+    'transactions.view',
+
+    // Users
+    'users.view',
+    'users.create',
+    'users.edit',
+    'users.deactivate',
+    'users.manage_permissions',
+
+    // System
+    'system.view_audit',
+    'system.view_settings',
+    'system.manage',
+    'system.subscription'
   ];
 }
 

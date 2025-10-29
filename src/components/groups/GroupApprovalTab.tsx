@@ -20,6 +20,8 @@ import {
   formatDate,
 } from "@/utils/groupsUtils";
 import GroupApprovalAuthModal from "./GroupApprovalAuthModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 
 // User ID로 사용자 이름 가져오기
 const getUserNameById = (userId: string): string => {
@@ -64,6 +66,7 @@ const formatCryptoAmountWithIcon = (cryptoAmount: any) => {
 
 export default function GroupApprovalTab(props: GroupApprovalTabProps) {
   const { groupRequests, onApproveRequest, onRejectRequest, onReapproveRequest } = props;
+  const { user } = useAuth();
 
   // props로 받은 데이터를 우선 사용하고, 없으면 mock 데이터 사용
   const requests = groupRequests || mockGroupRequests;
@@ -541,7 +544,7 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                           상세보기
                         </button>
                         <div className="h-4 w-px bg-gray-300"></div>
-                        {request.status === "pending" && (
+                        {request.status === "pending" && user && hasPermission(user, 'groups.approve') && (
                           <>
                             <button
                               onClick={() => handleApproveRequest(request.id)}
@@ -976,7 +979,7 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                     )}
 
                   {/* 액션 버튼 */}
-                  {(selectedRequest.status === "pending" ||
+                  {user && hasPermission(user, 'groups.approve') && (selectedRequest.status === "pending" ||
                     selectedRequest.status === "rejected") && (
                     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                       {selectedRequest.status === "pending" && (

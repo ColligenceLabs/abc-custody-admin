@@ -69,30 +69,53 @@ export interface UserPermissions {
 
 // 역할별 기본 권한 매핑
 export const DEFAULT_PERMISSIONS_BY_ROLE: Record<UserRole, string[]> = {
-  admin: [
-    'permission.all'
-  ],
-  manager: [
-    'permission.assets.view',
-    'permission.assets.view_transactions',
-    'permission.assets.create_transactions',
-    'permission.users.view',
-    'permission.users.create',
-    'permission.users.edit',
-    'permission.users.manage_permissions',
-    'permission.policies.view',
-    'permission.system.view_audit'
-  ],
-  operator: [
-    'permission.assets.view',
-    'permission.assets.view_transactions',
-    'permission.assets.create_transactions',
-    'permission.system.view_audit'
-  ],
   viewer: [
-    'permission.assets.view',
-    'permission.assets.view_transactions',
-    'permission.system.view_audit'
+    'groups.view',
+    'withdrawals.view',
+    'deposits.view',
+    'transactions.view',
+    'system.view_audit'
+  ],
+
+  operator: [
+    'groups.view',
+    'groups.create',
+    'withdrawals.view',
+    'withdrawals.create',
+    'deposits.view',
+    'deposits.create',
+    'transactions.view',
+    'system.view_audit'
+  ],
+
+  manager: [
+    'groups.view',
+    'groups.approve',
+    'withdrawals.view',
+    'withdrawals.approve',
+    'deposits.view',
+    'deposits.approve',
+    'transactions.view',
+    'users.view',
+    'system.view_audit'
+  ],
+
+  admin: [
+    'groups.view',
+    'groups.edit',
+    'groups.manage_budget',
+    'withdrawals.view',
+    'deposits.view',
+    'transactions.view',
+    'users.view',
+    'users.create',
+    'users.edit',
+    'users.deactivate',
+    'users.manage_permissions',
+    'system.view_audit',
+    'system.view_settings',
+    'system.manage',
+    'system.subscription'
   ]
 };
 

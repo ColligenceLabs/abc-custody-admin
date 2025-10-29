@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 import {
   WalletIcon,
   PlusIcon,
@@ -131,6 +133,7 @@ export default function GroupWalletManagement({
 }: GroupWalletManagementProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -220,13 +223,15 @@ export default function GroupWalletManagement({
             목적별 그룹화로 체계적인 자산관리
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          그룹 생성
-        </button>
+        {user && hasPermission(user, 'groups.create') && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            그룹 생성
+          </button>
+        )}
       </div>
 
       {/* 탭 네비게이션 */}
