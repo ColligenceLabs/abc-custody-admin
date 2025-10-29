@@ -15,6 +15,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 import {
   OrganizationUser,
   UserRole,
@@ -45,6 +47,7 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ plan }: UserManagementProps) {
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<UserRole | "all">("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -308,13 +311,15 @@ export default function UserManagement({ plan }: UserManagementProps) {
             <p className="text-sm text-gray-600">사용자 계정 및 권한 관리</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
-        >
-          <PlusIcon className="w-4 h-4 mr-2" />
-          사용자 추가
-        </button>
+        {currentUser && hasPermission(currentUser, 'users.create') && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+          >
+            <PlusIcon className="w-4 h-4 mr-2" />
+            사용자 추가
+          </button>
+        )}
       </div>
 
       {/* 통계 카드 */}
@@ -444,18 +449,20 @@ export default function UserManagement({ plan }: UserManagementProps) {
                       >
                         <ClockIcon className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => handleDeactivateUser(user)}
-                        className={`${
-                          user.status === 'inactive'
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-red-600 hover:text-red-900'
-                        }`}
-                        title={user.status === 'inactive' ? '비활성화된 사용자' : '사용자 비활성화'}
-                        disabled={user.status === 'inactive'}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
+                      {currentUser && hasPermission(currentUser, 'users.deactivate') && (
+                        <button
+                          onClick={() => handleDeactivateUser(user)}
+                          className={`${
+                            user.status === 'inactive'
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-red-600 hover:text-red-900'
+                          }`}
+                          title={user.status === 'inactive' ? '비활성화된 사용자' : '사용자 비활성화'}
+                          disabled={user.status === 'inactive'}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
