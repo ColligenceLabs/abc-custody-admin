@@ -14,9 +14,18 @@ import { KYCInfo } from "@/types/onboardingAml";
 
 interface KYCSectionProps {
   kyc: KYCInfo;
+  userId: string;
 }
 
-export function KYCSection({ kyc }: KYCSectionProps) {
+export function KYCSection({ kyc, userId }: KYCSectionProps) {
+  // 백엔드 API URL 생성
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const idCardImageUrl = userId
+    ? `${API_URL}/api/users/${userId}/kyc-idcard-image`
+    : kyc.idImageUrl;
+  const selfieImageUrl = userId
+    ? `${API_URL}/api/users/${userId}/kyc-selfie-image`
+    : null;
   return (
     <Card>
       <CardHeader>
@@ -37,16 +46,29 @@ export function KYCSection({ kyc }: KYCSectionProps) {
               <div className="font-medium">{kyc.idNumber}</div>
             </div>
           </div>
-          {kyc.idImageUrl && (
+          {idCardImageUrl && (
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <a
-                href={kyc.idImageUrl}
+                href={idCardImageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline"
               >
                 신분증 이미지 보기
+              </a>
+            </div>
+          )}
+          {selfieImageUrl && (
+            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <a
+                href={selfieImageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                셀피 이미지 보기
               </a>
             </div>
           )}
