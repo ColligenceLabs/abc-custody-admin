@@ -97,13 +97,16 @@ export const getRemainingWaitTime = (
 
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
     const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
 
     if (hours >= 24) {
       return '24시간';
     } else if (hours > 0) {
       return `${hours}시간 ${minutes}분`;
-    } else {
+    } else if (minutes > 0) {
       return `${minutes}분`;
+    } else {
+      return `${seconds}초`;
     }
   }
 
@@ -121,13 +124,16 @@ export const getRemainingWaitTime = (
 
     const hours = Math.floor(remainingMs / (1000 * 60 * 60));
     const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
 
     if (hours >= 24) {
       return '24시간';
     } else if (hours > 0) {
       return `${hours}시간 ${minutes}분`;
-    } else {
+    } else if (minutes > 0) {
       return `${minutes}분`;
+    } else {
+      return `${seconds}초`;
     }
   }
 
