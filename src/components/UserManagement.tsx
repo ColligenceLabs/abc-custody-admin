@@ -69,6 +69,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
     name: string;
     email: string;
     type: "add" | "edit" | "deactivate";
+    status?: UserStatus;
   } | null>(null);
 
   // 이메일 검증 상태
@@ -282,6 +283,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
         name: newUser.name,
         email: newUser.email,
         type: "add",
+        status: createdUser.status,
       });
       setShowAddModal(false);
       setShowSuccessMessage(true);
@@ -1048,6 +1050,11 @@ export default function UserManagement({ plan }: UserManagementProps) {
                   <p className="text-sm text-gray-500">
                     {successMessageData.name} ({successMessageData.email})
                   </p>
+                  {successMessageData.type === "add" && successMessageData.status === "pending" && (
+                    <p className="mt-1 text-sm text-sky-600">
+                      이메일 확인 링크가 발송되었습니다. 사용자가 이메일을 확인하면 자동으로 활성화됩니다.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
