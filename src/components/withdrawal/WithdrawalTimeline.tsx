@@ -36,9 +36,7 @@ export default function WithdrawalTimeline({
 
     if (diffMs > 0) {
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMinutes = Math.floor(
-        (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-      );
+      const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
       if (diffHours >= 24) {
         return "24시간";
@@ -61,7 +59,9 @@ export default function WithdrawalTimeline({
     ) {
       return "승인 대기 중...";
     } else if (
-      ["processing", "transferring", "success", "admin_rejected"].includes(withdrawal.status)
+      ["processing", "transferring", "success", "admin_rejected"].includes(
+        withdrawal.status
+      )
     ) {
       return "검증 완료";
     }
@@ -91,15 +91,15 @@ export default function WithdrawalTimeline({
         title: "보안 검증",
         description: getSecurityDescription(),
         timestamp: undefined, // 개인회원은 별도 타임스탬프 없음
-        status: ["aml_review", "approval_pending", "withdrawal_pending"].includes(
-          withdrawal.status
-        )
+        status: [
+          "aml_review",
+          "approval_pending",
+          "withdrawal_pending",
+        ].includes(withdrawal.status)
           ? "current"
-          : [
-              "processing",
-              "transferring",
-              "success",
-            ].includes(withdrawal.status)
+          : ["processing", "transferring", "success"].includes(
+              withdrawal.status
+            )
           ? "completed"
           : "pending",
         icon: <ShieldCheckIcon className="h-4 w-4" />,
@@ -145,7 +145,10 @@ export default function WithdrawalTimeline({
     ];
 
     // 실패 상태인 경우 마지막 단계를 실패로 표시
-    if (withdrawal.status === "failed" || withdrawal.status === "admin_rejected") {
+    if (
+      withdrawal.status === "failed" ||
+      withdrawal.status === "admin_rejected"
+    ) {
       const isAdminRejected = withdrawal.status === "admin_rejected";
       const failedStep: TimelineStep = {
         id: "failed",
@@ -153,8 +156,9 @@ export default function WithdrawalTimeline({
         description:
           withdrawal.withdrawalStoppedReason ||
           withdrawal.rejectionReason ||
-          withdrawal.rejectedReason ||
-          (isAdminRejected ? "관리자에 의해 거부되었습니다" : "출금 처리에 실패했습니다"),
+          (isAdminRejected
+            ? "관리자에 의해 거부되었습니다"
+            : "출금 처리에 실패했습니다"),
         timestamp: withdrawal.rejectedAt || withdrawal.withdrawalStoppedAt,
         status: "failed",
         icon: <ExclamationTriangleIcon className="h-4 w-4" />,
@@ -263,8 +267,7 @@ export default function WithdrawalTimeline({
                   {/* 실패 사유 / 관리자 거부 사유 */}
                   {step.status === "failed" &&
                     (withdrawal.withdrawalStoppedReason ||
-                      withdrawal.rejectionReason ||
-                      withdrawal.rejectedReason) && (
+                      withdrawal.rejectionReason) && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
                         <strong>
                           {withdrawal.status === "admin_rejected"
@@ -272,8 +275,7 @@ export default function WithdrawalTimeline({
                             : "실패 사유:"}
                         </strong>{" "}
                         {withdrawal.withdrawalStoppedReason ||
-                          withdrawal.rejectionReason ||
-                          withdrawal.rejectedReason}
+                          withdrawal.rejectionReason}
                       </div>
                     )}
 

@@ -550,6 +550,8 @@ export async function verifySmsPin(
 ): Promise<{
   success: boolean;
   message: string;
+  token?: string;
+  user?: User;
   locked?: boolean;
   unlockAt?: string;
   remainingSeconds?: number;
