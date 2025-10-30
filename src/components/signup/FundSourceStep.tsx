@@ -124,6 +124,15 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
       // 신분증 이미지 (있는 경우에만)
       if (initialData.idCardImageBase64) newUser.idCardImageBase64 = initialData.idCardImageBase64
 
+      // 셀피 이미지 (있는 경우에만)
+      if (initialData.selfieImageBase64) newUser.selfieImageBase64 = initialData.selfieImageBase64
+
+      // eKYC 결과 타입 (있는 경우에만)
+      if (initialData.kycResultType) newUser.kycResultType = initialData.kycResultType
+
+      // eKYC 원본 데이터 (있는 경우에만)
+      if (initialData.kycReviewData) newUser.kycReviewData = initialData.kycReviewData
+
       // 통신사 정보 (있는 경우에만)
       if (initialData.carrier) newUser.carrier = initialData.carrier
 

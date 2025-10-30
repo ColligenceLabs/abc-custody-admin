@@ -40,6 +40,9 @@ export interface SignupData {
   accountHolder?: string
   financeCode?: string
   idCardImageBase64?: string
+  selfieImageBase64?: string
+  kycResultType?: 1 | 2 | 5
+  kycReviewData?: any
   fundSource?: string
   fundSourceDetail?: string
   // PASS 본인인증 관련 (신규)
@@ -70,37 +73,78 @@ export default function SignupPage() {
 
         // review_result가 있는지 확인
         if (json.review_result) {
+          const reviewResult = json.review_result
           const kycData: Partial<SignupData> = {}
 
-          // 신분증 이미지 (마스킹된 이미지)
-          if (json.review_result.id_card?.id_card_image) {
-            kycData.idCardImageBase64 = json.review_result.id_card.id_card_image
-            console.log('[Signup] 신분증 이미지 데이터 추출 완료')
+          // DEBUG: 전체 review_result 구조 출력
+          console.log('[Signup] review_result 구조:', {
+            hasIdCard: !!reviewResult.id_card,
+            hasFaceCheck: !!reviewResult.face_check,
+            hasAccount: !!reviewResult.account,
+            resultType: reviewResult.result_type,
+            module: reviewResult.module,
+            faceCheckKeys: reviewResult.face_check ? Object.keys(reviewResult.face_check) : []
+          })
+
+          // result_type 저장 (1: 자동승인, 2: 자동거부, 5: 수동심사)
+          if (reviewResult.result_type) {
+            kycData.kycResultType = reviewResult.result_type
+            kycData.kycReviewData = reviewResult
+            console.log('[Signup] eKYC result_type:', reviewResult.result_type)
           }
 
-          // 계좌 정보
-          if (json.review_result.account) {
-            const account = json.review_result.account
+          // result_type이 2(자동거부)인 경우 차단
+          if (reviewResult.result_type === 2) {
+            alert('eKYC 인증이 거부되었습니다. 고객센터로 문의해주세요.')
+            console.error('[Signup] eKYC 자동거부 (result_type: 2)')
+            return
+          }
 
-            if (account.finance_company) {
-              kycData.bankName = account.finance_company
-            }
-            if (account.account_number) {
-              kycData.accountNumber = account.account_number
-            }
-            if (account.account_holder) {
-              kycData.accountHolder = account.account_holder
-            }
-            if (account.finance_code) {
-              kycData.financeCode = account.finance_code
+          // result_type이 1(자동승인) 또는 5(수동심사)인 경우에만 이미지 저장
+          if (reviewResult.result_type === 1 || reviewResult.result_type === 5) {
+            // 신분증 이미지 (마스킹된 이미지)
+            if (reviewResult.id_card?.id_card_image) {
+              kycData.idCardImageBase64 = reviewResult.id_card.id_card_image
+              console.log('[Signup] 신분증 이미지 데이터 추출 완료')
             }
 
-            console.log('[Signup] 계좌 정보 추출 완료:', {
-              bankName: kycData.bankName,
-              accountNumber: kycData.accountNumber,
-              accountHolder: kycData.accountHolder,
-              financeCode: kycData.financeCode
+            // 셀피 이미지 추가
+            console.log('[Signup] face_check 확인:', {
+              hasFaceCheck: !!reviewResult.face_check,
+              hasSelfie: !!reviewResult.face_check?.selfie_image,
+              selfieLength: reviewResult.face_check?.selfie_image?.length
             })
+            if (reviewResult.face_check?.selfie_image) {
+              kycData.selfieImageBase64 = reviewResult.face_check.selfie_image
+              console.log('[Signup] 셀피 이미지 데이터 추출 완료')
+            } else {
+              console.error('[Signup] 셀피 이미지 없음!')
+            }
+
+            // 계좌 정보
+            if (reviewResult.account) {
+              const account = reviewResult.account
+
+              if (account.finance_company) {
+                kycData.bankName = account.finance_company
+              }
+              if (account.account_number) {
+                kycData.accountNumber = account.account_number
+              }
+              if (account.account_holder) {
+                kycData.accountHolder = account.account_holder
+              }
+              if (account.finance_code) {
+                kycData.financeCode = account.finance_code
+              }
+
+              console.log('[Signup] 계좌 정보 추출 완료:', {
+                bankName: kycData.bankName,
+                accountNumber: kycData.accountNumber,
+                accountHolder: kycData.accountHolder,
+                financeCode: kycData.financeCode
+              })
+            }
           }
 
           // signupData 업데이트
