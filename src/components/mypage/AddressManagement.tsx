@@ -177,8 +177,8 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
       // API로 주소 추가
       const createdAddress = await createAddress(newAddressData);
 
-      // 로컬 상태 업데이트
-      setAddresses(prev => [...prev, createdAddress]);
+      // 로컬 상태 업데이트 (배열 맨 앞에 추가하여 즉시 표시)
+      setAddresses(prev => [createdAddress, ...prev]);
       setIsModalOpen(false);
       setIsSubmitting(false);
       toast({

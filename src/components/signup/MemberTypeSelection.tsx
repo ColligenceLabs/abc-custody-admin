@@ -14,7 +14,7 @@ export default function MemberTypeSelection({ onComplete }: MemberTypeSelectionP
 
   const handleSelectCorporate = () => {
     // 법인 회원은 별도 문의 페이지로 이동
-    window.location.href = 'https://example.com/corporate-inquiry'
+    window.location.href = 'https://docs.google.com/forms/d/1twO1LbgD8n1YJI-xmQmzuhjG7t18e8Vl-u5sS1ozL4I/edit'
   }
 
   return (

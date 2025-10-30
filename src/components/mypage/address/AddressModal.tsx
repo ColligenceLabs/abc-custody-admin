@@ -34,6 +34,23 @@ export default function AddressModal({ isOpen, onClose, onSubmit, initialType, i
     }
   }, [initialType]);
 
+  // 모달이 닫힐 때 폼 데이터 리셋
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        label: "",
+        address: "",
+        coin: "BTC",
+        type: initialType || "",
+        permissions: {
+          canDeposit: true,
+          canWithdraw: true
+        },
+        selectedVaspId: "",
+      });
+    }
+  }, [isOpen, initialType]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -65,8 +82,8 @@ export default function AddressModal({ isOpen, onClose, onSubmit, initialType, i
       return;
     }
 
+    // onSubmit은 비동기 함수이므로, 성공/실패 시 부모 컴포넌트에서 모달 닫기를 처리
     onSubmit(formData);
-    handleClose();
   };
 
   const handleClose = () => {
