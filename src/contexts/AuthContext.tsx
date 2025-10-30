@@ -17,6 +17,8 @@ import {
 } from '@/lib/api/auth'
 import { useSecurityPolicy, AuthStepType } from '@/contexts/SecurityPolicyContext'
 import { useServicePlan } from '@/contexts/ServicePlanContext'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { mapErrorMessage } from '@/utils/errorMessages'
 
 interface AuthStep {
   step: 'email' | 'otp' | 'sms' | 'ga_setup' | 'completed' | 'blocked'
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { policy, getRequiredAuthSteps, getSessionTimeoutMs, isFirstTimeUser } = useSecurityPolicy()
   const { setSelectedPlan } = useServicePlan()
+  const { t } = useLanguage()
 
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -285,6 +288,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('사용자 조회 실패:', error)
+
+      // 백엔드 에러를 현재 언어 설정에 맞게 변환
+      const errorMessage = mapErrorMessage(error, t);
+
       // API 호출 실패 시 fallback으로 mock 데이터 사용
       if (memberType === 'individual') {
         const individualUser = getIndividualUserByEmail(email)
@@ -311,6 +318,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (organizationUser) {
           foundUser = { ...organizationUser, memberType: 'corporate' } as User
         }
+      }
+
+      // Mock 데이터에서도 찾지 못한 경우, 백엔드 에러 메시지 반환
+      if (!foundUser) {
+        return { success: false, message: errorMessage };
       }
     }
 
@@ -577,6 +589,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isValid = result.success
 
       if (isValid) {
+        // JWT 토큰 저장 (백엔드에서 제공하는 경우)
+        if (result.token) {
+          localStorage.setItem('token', result.token)
+          localStorage.setItem('user', JSON.stringify(result.user || authStep.user))
+        }
+
         // 신규 사용자인 경우 GA 설정 단계로 이동
         if (authStep.isFirstTimeUser && !authStep.user.hasGASetup) {
           setAuthStep({
@@ -592,7 +610,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // 기존 사용자 - 로그인 성공
-        const userWithMemberType = { ...authStep.user, memberType: authStep.memberType }
+        const userWithMemberType = { ...(result.user || authStep.user), memberType: authStep.memberType }
         setUser(userWithMemberType)
         setIsAuthenticated(true)
         setAuthStep({
@@ -605,11 +623,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ServicePlan 설정
         setSelectedPlan(authStep.memberType === 'individual' ? 'individual' : 'enterprise')
 
-        // 세션 저장 (정책 기반 타임아웃)
+        // 세션 저장 (정책 기반 타임아웃, JWT 토큰 포함)
         const sessionTimeout = getSessionTimeoutMs()
         const sessionData = {
           user: userWithMemberType,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          ...(result.token && { token: result.token })
         }
 
         localStorage.setItem('auth_session', JSON.stringify(sessionData))

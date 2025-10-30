@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   UsersIcon,
   PlusIcon,
@@ -23,8 +23,15 @@ import {
   UserStatus,
   ROLE_NAMES,
 } from "@/types/organizationUser";
-import { MOCK_ORGANIZATION_USERS } from "@/data/organizationUserMockData";
 import { Modal } from "@/components/common/Modal";
+import {
+  getOrganizationUsers,
+  createOrganizationUser,
+  updateOrganizationUser,
+  deleteOrganizationUser,
+  getPermissionLogs,
+  PermissionLog,
+} from "@/lib/api/organizationUsers";
 import {
   formatOrganizationUserDisplay,
   getRoleName,
@@ -67,6 +74,13 @@ export default function UserManagement({ plan }: UserManagementProps) {
   // 이메일 검증 상태
   const [emailValidation, setEmailValidation] = useState<EmailValidationResult>({ valid: true });
 
+  // 이메일 중복 체크 상태
+  const [emailDuplicate, setEmailDuplicate] = useState<{
+    checking: boolean;
+    isDuplicate: boolean;
+    message: string;
+  }>({ checking: false, isDuplicate: false, message: '' });
+
   // 새 사용자 생성 폼 데이터
   const [newUser, setNewUser] = useState({
     name: "",
@@ -77,32 +91,36 @@ export default function UserManagement({ plan }: UserManagementProps) {
     position: "",
   });
 
-
-  // Mock 권한 변경 이력
-  const [permissionLogs] = useState<PermissionChangeLog[]>([
-    {
-      id: "log1",
-      userId: "2",
-      changedBy: "관리자",
-      changeType: "role_change",
-      oldValue: "operator",
-      newValue: "manager",
-      reason: "팀장 승진",
-      timestamp: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: "log2",
-      userId: "2",
-      changedBy: "관리자",
-      changeType: "permission_add",
-      newValue: "사용자 관리 권한",
-      reason: "업무 범위 확대",
-      timestamp: new Date(Date.now() - 172800000).toISOString()
-    }
-  ]);
+  // API 데이터 상태
+  const [users, setUsers] = useState<OrganizationUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [permissionLogs, setPermissionLogs] = useState<PermissionLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const { t, language } = useLanguage();
   const { companySettings } = useCompany();
+
+  // 조직 사용자 데이터 로드
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // TODO: 실제 organizationId를 컨텍스트나 props에서 가져와야 함
+        const organizationId = "ORG001"; // 임시 하드코딩
+        const data = await getOrganizationUsers(organizationId);
+        setUsers(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '사용자 목록 조회에 실패했습니다.');
+        console.error('사용자 목록 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const getStatusColor = (status: UserStatus) => {
     const colors = {
@@ -127,10 +145,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
   // 현재는 ORG001 하드코딩
   const currentOrganizationId = "ORG001";
 
-  const filteredUsers = MOCK_ORGANIZATION_USERS.filter((user) => {
-    // 현재 조직의 사용자만 표시
-    if (user.organizationId !== currentOrganizationId) return false;
-
+  const filteredUsers = users.filter((user) => {
     const matchesSearch =
       searchOrganizationUsers(searchTerm, currentOrganizationId).some(u => u.id === user.id) || searchTerm === "";
     const matchesRole = filterRole === "all" || user.role === filterRole;
@@ -148,6 +163,9 @@ export default function UserManagement({ plan }: UserManagementProps) {
   const handleEmailChange = (email: string) => {
     setNewUser(prev => ({ ...prev, email }));
 
+    // 중복 체크 상태 초기화
+    setEmailDuplicate({ checking: false, isDuplicate: false, message: '' });
+
     if (email.trim()) {
       const validation = validateEmailDomain(
         email,
@@ -160,6 +178,82 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }
   };
 
+  // 이메일 중복 확인
+  const checkEmailDuplicate = async (email: string) => {
+    console.log('[이메일 중복 확인] 시작:', email);
+
+    if (!email.trim()) {
+      console.log('[이메일 중복 확인] 이메일이 비어있음');
+      return;
+    }
+
+    // 이메일 형식 검증 실패 시 중복 체크 안 함
+    if (!emailValidation.valid) {
+      console.log('[이메일 중복 확인] 이메일 형식 검증 실패:', emailValidation);
+      return;
+    }
+
+    setEmailDuplicate({ checking: true, isDuplicate: false, message: '' });
+
+    try {
+      // 전체 사용자에서 이메일 중복 확인 (조직 필터링 없이)
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const token = localStorage.getItem('token');
+
+      console.log('[이메일 중복 확인] API 호출 중...');
+      const response = await fetch(`${API_URL}/api/users?email=${encodeURIComponent(email)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('이메일 중복 확인 API 호출 실패');
+      }
+
+      const users = await response.json();
+      console.log('[이메일 중복 확인] 사용자 목록:', users.length, '명');
+
+      // 이메일이 일치하는 사용자가 있는지 확인
+      const duplicate = users.length > 0;
+      console.log('[이메일 중복 확인] 중복 여부:', duplicate);
+
+      if (duplicate) {
+        setEmailDuplicate({
+          checking: false,
+          isDuplicate: true,
+          message: '* 이메일 주소 중복'
+        });
+        console.log('[이메일 중복 확인] 중복된 이메일 발견');
+      } else {
+        setEmailDuplicate({
+          checking: false,
+          isDuplicate: false,
+          message: ''
+        });
+        console.log('[이메일 중복 확인] 사용 가능한 이메일');
+      }
+    } catch (error) {
+      console.error('[이메일 중복 확인] 실패:', error);
+      setEmailDuplicate({
+        checking: false,
+        isDuplicate: false,
+        message: ''
+      });
+    }
+  };
+
+  // 이메일 입력 필드 focus out 시 중복 확인
+  const handleEmailBlur = () => {
+    console.log('[handleEmailBlur] 호출됨, 이메일:', newUser.email);
+    if (newUser.email.trim()) {
+      checkEmailDuplicate(newUser.email);
+    } else {
+      console.log('[handleEmailBlur] 이메일이 비어있어서 중복 체크 안 함');
+    }
+  };
+
   const handleAddUser = async () => {
     // 이메일 검증 확인
     if (!emailValidation.valid) {
@@ -167,11 +261,22 @@ export default function UserManagement({ plan }: UserManagementProps) {
       return;
     }
 
+    // 이메일 중복 확인
+    if (emailDuplicate.isDuplicate) {
+      alert("이미 사용 중인 이메일 주소입니다.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // 실제로는 API 호출
-      console.log("Adding user:", newUser);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const organizationId = "ORG001"; // TODO: 실제 organizationId 사용
+      const createdUser = await createOrganizationUser({
+        ...newUser,
+        organizationId,
+      });
+
+      // 로컬 상태 업데이트
+      setUsers(prev => [createdUser, ...prev]);
 
       setSuccessMessageData({
         name: newUser.name,
@@ -198,6 +303,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
       }, 5000);
     } catch (error) {
       console.error("Failed to add user:", error);
+      alert(error instanceof Error ? error.message : '사용자 추가에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,15 +324,19 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
     setIsSubmitting(true);
     try {
-      // 실제로는 API 호출 - 기본 정보와 권한 모두 저장
-      console.log('Updating user with permissions:', editingUser);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const updatedUser = await updateOrganizationUser(editingUser.id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        phone: editingUser.phone,
+        role: editingUser.role,
+        department: editingUser.department,
+        position: editingUser.position,
+        permissions: editingUser.permissions,
+        status: editingUser.status,
+      });
 
-      // Mock: 사용자 목록 업데이트
-      const updatedUser = {
-        ...editingUser,
-        updatedAt: new Date().toISOString()
-      };
+      // 로컬 상태 업데이트
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
 
       setSuccessMessageData({
         name: editingUser.name,
@@ -243,15 +353,27 @@ export default function UserManagement({ plan }: UserManagementProps) {
       }, 5000);
     } catch (error) {
       console.error('Failed to update user:', error);
+      alert(error instanceof Error ? error.message : '사용자 수정에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
 
-  const handleShowHistory = (user: OrganizationUser) => {
+  const handleShowHistory = async (user: OrganizationUser) => {
     setEditingUser(user);
     setShowHistoryModal(true);
+    setLoadingLogs(true);
+
+    try {
+      const logs = await getPermissionLogs(user.id);
+      setPermissionLogs(logs);
+    } catch (error) {
+      console.error('권한 변경 이력 조회 실패:', error);
+      setPermissionLogs([]);
+    } finally {
+      setLoadingLogs(false);
+    }
   };
 
   const handleDeactivateUser = (user: OrganizationUser) => {
@@ -268,15 +390,12 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
     setIsSubmitting(true);
     try {
-      console.log("Deactivating user:", deactivatingUser.id);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const updatedUser = await updateOrganizationUser(deactivatingUser.id, {
+        status: 'inactive',
+      });
 
-      // Mock: 사용자 상태를 비활성으로 변경
-      const updatedUser = {
-        ...deactivatingUser,
-        status: 'inactive' as UserStatus,
-        updatedAt: new Date().toISOString()
-      };
+      // 로컬 상태 업데이트
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
 
       setSuccessMessageData({
         name: deactivatingUser.name,
@@ -299,6 +418,35 @@ export default function UserManagement({ plan }: UserManagementProps) {
   };
 
   const userStats = getUserStatsByRole(currentOrganizationId);
+
+  // 로딩 상태
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">사용자 목록을 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -510,16 +658,28 @@ export default function UserManagement({ plan }: UserManagementProps) {
                 type="email"
                 value={newUser.email}
                 onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={handleEmailBlur}
                 className={`w-full px-3 py-2 border rounded-md focus:ring-sky-500 ${
-                  !emailValidation.valid
+                  !emailValidation.valid || emailDuplicate.isDuplicate
                     ? "border-red-300 focus:border-red-500 bg-red-50"
                     : "border-gray-300 focus:border-sky-500"
                 }`}
                 placeholder="hong@company.com"
+                disabled={emailDuplicate.checking}
               />
               {!emailValidation.valid && emailValidation.message && (
                 <p className="mt-1 text-sm text-red-600">
                   {emailValidation.message}
+                </p>
+              )}
+              {emailDuplicate.checking && (
+                <p className="mt-1 text-xs text-gray-500">
+                  이메일 중복 확인 중...
+                </p>
+              )}
+              {emailDuplicate.isDuplicate && emailDuplicate.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {emailDuplicate.message}
                 </p>
               )}
             </div>
@@ -783,9 +943,16 @@ export default function UserManagement({ plan }: UserManagementProps) {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-6">
-            <PermissionHistory
-              logs={permissionLogs.filter(log => log.userId === editingUser?.id)}
-            />
+            {loadingLogs ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">이력을 불러오는 중...</p>
+                </div>
+              </div>
+            ) : (
+              <PermissionHistory logs={permissionLogs as any} />
+            )}
           </div>
         </div>
       </Modal>

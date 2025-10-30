@@ -258,7 +258,10 @@ export async function verifyEmail(
   }
 
   if (!response.ok) {
-    throw new Error(data.message || '이메일 확인에 실패했습니다.');
+    // 에러 객체에 백엔드 응답 전체를 포함 (status, message 등)
+    const error: any = new Error(data.message || '이메일 확인에 실패했습니다.');
+    error.response = { data };
+    throw error;
   }
 
   return data;

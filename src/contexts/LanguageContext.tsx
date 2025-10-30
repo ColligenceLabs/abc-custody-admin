@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export type Language = "ko" | "en";
 
 interface LanguageContextType {
   language: Language;
+  setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   t: (key: string) => string;
 }
@@ -17,6 +18,8 @@ const LanguageContext = createContext<LanguageContextType | undefined>(
 interface LanguageProviderProps {
   children: ReactNode;
 }
+
+const LANGUAGE_STORAGE_KEY = 'abc-custody-language';
 
 const translations = {
   ko: {
@@ -200,6 +203,17 @@ const translations = {
     // Common
     "common.loading": "로딩 중...",
     "common.error": "오류가 발생했습니다",
+
+    // Error Messages
+    "error.account_pending": "관리자 승인 대기 중입니다. 관리자에게 연락하세요.",
+    "error.account_inactive": "비활성화된 계정입니다. 관리자에게 연락하세요.",
+    "error.account_suspended": "정지된 계정입니다. 관리자에게 연락하세요.",
+    "error.account_blocked": "차단된 계정입니다. 관리자에게 연락하세요.",
+    "error.user_not_found": "등록되지 않은 이메일입니다.",
+    "error.invalid_credentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
+    "error.account_locked": "계정이 일시적으로 잠겼습니다.",
+    "error.invalid_pin": "PIN 코드가 올바르지 않거나 만료되었습니다.",
+    "error.invalid_otp": "OTP 코드가 올바르지 않습니다.",
   },
   en: {
     // Header
@@ -385,14 +399,44 @@ const translations = {
     // Common
     "common.loading": "Loading...",
     "common.error": "An error occurred",
+
+    // Error Messages
+    "error.account_pending": "Your account is pending. Please contact administrator.",
+    "error.account_inactive": "Your account is inactive. Please contact administrator.",
+    "error.account_suspended": "Your account is suspended. Please contact administrator.",
+    "error.account_blocked": "Your account is blocked. Please contact administrator.",
+    "error.user_not_found": "User not found with this email and member type.",
+    "error.invalid_credentials": "Invalid email or password.",
+    "error.account_locked": "Account is temporarily locked.",
+    "error.invalid_pin": "PIN code is invalid or expired.",
+    "error.invalid_otp": "OTP code is invalid.",
   },
 };
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguage] = useState<Language>("ko");
+  const [language, setLanguageState] = useState<Language>("ko");
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // 초기화: localStorage에서 언어 설정 로드
+  useEffect(() => {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored === 'ko' || stored === 'en') {
+      setLanguageState(stored);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // 언어 변경 함수 (localStorage에 저장)
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    console.log(`[언어 설정] ${lang === 'ko' ? '한국어' : 'English'}로 변경`);
+  };
+
+  // 토글 함수 (기존 호환성 유지)
   const toggleLanguage = () => {
-    setLanguage((prev) => (prev === "ko" ? "en" : "ko"));
+    const newLang = language === "ko" ? "en" : "ko";
+    setLanguage(newLang);
   };
 
   const t = (key: string): string => {
@@ -401,8 +445,13 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     );
   };
 
+  // 초기화 전에는 렌더링하지 않음 (깜빡임 방지)
+  if (!isInitialized) {
+    return null;
+  }
+
   return (
-    <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
