@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowRightIcon,
@@ -38,6 +38,8 @@ export interface SignupData {
   bankName?: string
   accountNumber?: string
   accountHolder?: string
+  financeCode?: string
+  idCardImageBase64?: string
   fundSource?: string
   fundSourceDetail?: string
   // PASS 본인인증 관련 (신규)
@@ -55,6 +57,76 @@ export default function SignupPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<SignupStep>('type')
   const [signupData, setSignupData] = useState<SignupData>({})
+
+  // eKYC iframe postMessage 이벤트 리스너
+  useEffect(() => {
+    const handlePostMessage = (event: MessageEvent) => {
+      try {
+        // postMessage 데이터 디코딩
+        const decodedData = decodeURIComponent(atob(event.data))
+        const json = JSON.parse(decodedData)
+
+        console.log('[Signup] eKYC postMessage 수신:', json)
+
+        // review_result가 있는지 확인
+        if (json.review_result) {
+          const kycData: Partial<SignupData> = {}
+
+          // 신분증 이미지 (마스킹된 이미지)
+          if (json.review_result.id_card?.id_card_image) {
+            kycData.idCardImageBase64 = json.review_result.id_card.id_card_image
+            console.log('[Signup] 신분증 이미지 데이터 추출 완료')
+          }
+
+          // 계좌 정보
+          if (json.review_result.account) {
+            const account = json.review_result.account
+
+            if (account.finance_company) {
+              kycData.bankName = account.finance_company
+            }
+            if (account.account_number) {
+              kycData.accountNumber = account.account_number
+            }
+            if (account.account_holder) {
+              kycData.accountHolder = account.account_holder
+            }
+            if (account.finance_code) {
+              kycData.financeCode = account.finance_code
+            }
+
+            console.log('[Signup] 계좌 정보 추출 완료:', {
+              bankName: kycData.bankName,
+              accountNumber: kycData.accountNumber,
+              accountHolder: kycData.accountHolder,
+              financeCode: kycData.financeCode
+            })
+          }
+
+          // signupData 업데이트
+          if (Object.keys(kycData).length > 0) {
+            setSignupData(prev => ({
+              ...prev,
+              ...kycData
+            }))
+            console.log('[Signup] KYC 데이터 저장 완료')
+          }
+        }
+      } catch (error) {
+        // base64 디코딩 실패 또는 JSON 파싱 실패는 무시
+        // (일반 postMessage 이벤트일 수 있음)
+        console.debug('[Signup] postMessage 처리 실패 (무시):', error)
+      }
+    }
+
+    // 이벤트 리스너 등록
+    window.addEventListener('message', handlePostMessage)
+
+    // 클린업
+    return () => {
+      window.removeEventListener('message', handlePostMessage)
+    }
+  }, [])
 
   const steps = [
     { key: 'type' as SignupStep, label: '회원 유형', icon: UserGroupIcon },

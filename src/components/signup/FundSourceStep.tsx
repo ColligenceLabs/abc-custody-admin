@@ -119,6 +119,10 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
       if (initialData.bankName) newUser.bankName = initialData.bankName
       if (initialData.accountNumber) newUser.accountNumber = initialData.accountNumber
       if (initialData.accountHolder) newUser.accountHolder = initialData.accountHolder
+      if (initialData.financeCode) newUser.financeCode = initialData.financeCode
+
+      // 신분증 이미지 (있는 경우에만)
+      if (initialData.idCardImageBase64) newUser.idCardImageBase64 = initialData.idCardImageBase64
 
       // 통신사 정보 (있는 경우에만)
       if (initialData.carrier) newUser.carrier = initialData.carrier
