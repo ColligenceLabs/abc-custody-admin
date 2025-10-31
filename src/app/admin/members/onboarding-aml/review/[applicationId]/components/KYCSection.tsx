@@ -15,6 +15,7 @@ import { CheckCircle, XCircle, FileText, Eye } from "lucide-react";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { KYCInfo } from "@/types/onboardingAml";
 import { getIdCardTypeLabel } from "@/utils/kycUtils";
+import { useToast } from "@/hooks/use-toast";
 
 interface KYCSectionProps {
   kyc: KYCInfo;
@@ -22,6 +23,8 @@ interface KYCSectionProps {
 }
 
 export function KYCSection({ kyc, userId }: KYCSectionProps) {
+  const { toast } = useToast();
+
   // 백엔드 API URL 생성
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const idCardImageUrl = userId
@@ -34,6 +37,44 @@ export function KYCSection({ kyc, userId }: KYCSectionProps) {
   // 이미지 모달 상태
   const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
+
+  // 이미지 존재 여부 확인 후 모달 열기
+  const handleOpenImage = async (type: 'idcard' | 'selfie') => {
+    const imageUrl = type === 'idcard' ? idCardImageUrl : selfieImageUrl;
+
+    if (!imageUrl) {
+      toast({
+        variant: "destructive",
+        description: "등록된 이미지가 없습니다.",
+      });
+      return;
+    }
+
+    // HEAD 요청으로 이미지 존재 여부 확인
+    try {
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          description: "등록된 이미지가 없습니다.",
+        });
+        return;
+      }
+
+      // 이미지가 존재하면 모달 열기
+      if (type === 'idcard') {
+        setIsIdCardModalOpen(true);
+      } else {
+        setIsSelfieModalOpen(true);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: "이미지를 불러올 수 없습니다.",
+      });
+    }
+  };
 
   return (
     <Card>
@@ -56,28 +97,24 @@ export function KYCSection({ kyc, userId }: KYCSectionProps) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 pt-2">
-            {idCardImageUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsIdCardModalOpen(true)}
-                className="flex-shrink-0"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                신분증 이미지 보기
-              </Button>
-            )}
-            {selfieImageUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSelfieModalOpen(true)}
-                className="flex-shrink-0"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                셀피 이미지 보기
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenImage('idcard')}
+              className="flex-shrink-0"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              신분증 이미지 보기
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenImage('selfie')}
+              className="flex-shrink-0"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              셀피 이미지 보기
+            </Button>
           </div>
         </div>
 
