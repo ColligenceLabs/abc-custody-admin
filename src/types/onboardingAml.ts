@@ -64,6 +64,8 @@ export interface KYCInfo {
   phoneVerified: boolean;
   emailVerified: boolean;
   completedAt?: string;   // ISO 8601 형식
+  idCardType?: number;    // eKYC 신분증 유형 (1: 주민등록증, 2: 운전면허증, 3: 한국여권, 4: 외국인여권, 5: 외국인등록증)
+  residentNumber?: string; // 주민등록번호 (eKYC에서 추출)
 }
 
 /**

@@ -6,6 +6,7 @@
  * 실제 환경: REST API 호출로 교체 가능
  */
 
+import axios from 'axios';
 import {
   IndividualOnboarding,
   CorporateOnboarding,
@@ -37,22 +38,151 @@ import {
 
 import { applyEDDAutoAssignment } from './helpers/eddAutoAssignment';
 
+// API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+// Mock 데이터 사용 여부 (환경 변수로 제어)
+const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
+
+// ===========================
+// 백엔드 User 타입 정의
+// ===========================
+interface BackendUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  memberType: 'individual' | 'corporate';
+  status: 'active' | 'inactive' | 'pending';
+  createdAt: string;
+  updatedAt: string;
+  birthDate?: string;
+  gender?: 'male' | 'female';
+  nationality?: string;
+  countryCode?: string;
+  idCardImagePath?: string;
+  selfieImagePath?: string;
+  idCardType?: number;
+  residentNumber?: string;
+  kycResultType?: number;
+  kycReviewData?: any;
+  bankName?: string;
+  accountNumber?: string;
+  accountHolder?: string;
+  financeCode?: string;
+}
+
+// ===========================
+// 매핑 함수
+// ===========================
+
+/**
+ * Backend User를 IndividualOnboarding으로 변환
+ */
+function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding {
+  // 디버깅: 원본 user 데이터 확인
+  console.log('[mapUserToIndividualOnboarding] Backend User:', {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    idCardImagePath: user.idCardImagePath,
+    selfieImagePath: user.selfieImagePath,
+  });
+
+  return {
+    // 실제 데이터
+    id: user.id,
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+
+    // Mock/기본값: 등록 경로
+    registrationSource: 'ONLINE' as const,
+    registrationNote: undefined,
+
+    // Mock/기본값: KYC 정보
+    kyc: {
+      idType: 'RESIDENT_CARD' as const,
+      idNumber: user.residentNumber || '******-*******',
+      idImageUrl: user.idCardImagePath
+        ? `${API_URL}/api/users/${user.id}/kyc-image`
+        : '',
+      addressProofType: 'REGISTRY' as const,
+      addressProofUrl: '',
+      phoneVerified: true,
+      emailVerified: true,
+      completedAt: user.createdAt,
+      idCardType: user.idCardType,
+      residentNumber: user.residentNumber,
+    },
+
+    // Mock/기본값: AML (외부 시스템 연동 전)
+    aml: null,
+
+    // Mock/기본값: 위험도 평가 (외부 시스템 연동 전)
+    riskAssessment: null,
+
+    // Mock/기본값: 추가 절차
+    additionalProcedures: null,
+
+    // Mock/기본값: EDD
+    edd: null,
+    eddRequired: false,
+
+    // Mock/기본값: 관리자 검토
+    adminReview: {
+      status: user.status === 'active' ? 'APPROVED' :
+              user.status === 'inactive' ? 'REJECTED' : 'PENDING',
+      currentStep: user.status === 'active' ? 5 : 1,
+      reviewedBy: undefined,
+      reviewedAt: undefined,
+      decision: undefined,
+      decisionReason: undefined,
+      notes: [],
+    },
+  };
+}
+
 // ===========================
 // 개인회원 온보딩 API
 // ===========================
 
 /**
  * 개인회원 목록 조회
+ * Mock 데이터 + 실제 API 데이터를 합쳐서 반환
  */
 export async function fetchIndividualOnboardings(
   query: OnboardingListQuery = {}
 ): Promise<OnboardingListResponse<IndividualOnboarding>> {
-  // Mock: 로컬 데이터 필터링
-  await new Promise((resolve) => setTimeout(resolve, 300)); // 네트워크 지연 시뮬레이션
+  // 1. Mock 데이터 가져오기
+  let mockApplications = getIndividualOnboardings();
 
-  let applications = getIndividualOnboardings();
+  // 2. 실제 API 데이터 가져오기
+  let apiApplications: IndividualOnboarding[] = [];
+  try {
+    const params: any = {
+      memberType: 'individual',
+      _page: 1,
+      _limit: 1000, // 모든 데이터 가져오기
+      _sort: 'createdAt',
+      _order: 'desc',
+    };
 
-  // 필터링
+    const response = await axios.get<BackendUser[]>(`${API_URL}/api/users`, { params });
+    const users = response.data;
+    apiApplications = users.map(mapUserToIndividualOnboarding);
+  } catch (error) {
+    console.error('실제 API 데이터 조회 실패 (Mock 데이터만 사용):', error);
+  }
+
+  // 3. Mock 데이터 + API 데이터 합치기 (중복 제거: API 데이터 우선)
+  const apiIds = new Set(apiApplications.map(app => app.id));
+  const mockOnlyApplications = mockApplications.filter(app => !apiIds.has(app.id));
+  let applications = [...apiApplications, ...mockOnlyApplications];
+
+  // 4. 필터링
   if (query.status) {
     applications = applications.filter((app) => app.adminReview.status === query.status);
   }
@@ -77,7 +207,7 @@ export async function fetchIndividualOnboardings(
     );
   }
 
-  // 페이지네이션
+  // 5. 페이지네이션
   const page = query.page || 1;
   const limit = query.limit || 10;
   const totalPages = Math.ceil(applications.length / limit);
@@ -95,18 +225,42 @@ export async function fetchIndividualOnboardings(
 
 /**
  * 개인회원 상세 조회
+ * API 우선, 없으면 Mock 데이터 사용
  */
 export async function fetchIndividualOnboardingById(
   id: string
 ): Promise<IndividualOnboarding> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // 1. 실제 API에서 조회 시도
+  try {
+    const response = await axios.get<BackendUser>(`${API_URL}/api/users/${id}`);
+    const user = response.data;
 
-  const application = getIndividualOnboardingById(id);
-  if (!application) {
+    // memberType 확인
+    if (user.memberType !== 'individual') {
+      throw new Error(`User ${id} is not an individual member`);
+    }
+
+    // 매핑하여 반환
+    const mapped = mapUserToIndividualOnboarding(user);
+    console.log('[fetchIndividualOnboardingById] Mapped result:', {
+      id: mapped.id,
+      userId: mapped.userId,
+      userName: mapped.userName,
+      hasUserId: !!mapped.userId,
+    });
+    return mapped;
+  } catch (error: any) {
+    // API 실패 시 Mock 데이터에서 조회
+    if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+      const application = getIndividualOnboardingById(id);
+      if (application) {
+        return application;
+      }
+    }
+
+    console.error(`개인회원 온보딩 상세 조회 실패 (ID: ${id}):`, error);
     throw new Error(`Individual onboarding application not found: ${id}`);
   }
-
-  return application;
 }
 
 /**
