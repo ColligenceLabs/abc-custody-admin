@@ -8,8 +8,7 @@ export const MOCK_MEMBERS: Member[] = [
     status: 'active',
     createdAt: '2024-12-01T09:00:00Z',
     plan: 'enterprise',
-    hasAgreedToAllTerms: true,
-    termsAgreedAt: '2024-12-01T09:05:00Z'
+    hasAgreedToAllTerms: true
   },
   {
     memberId: 'M002',
@@ -17,8 +16,7 @@ export const MOCK_MEMBERS: Member[] = [
     status: 'active',
     createdAt: '2024-12-15T10:00:00Z',
     plan: 'professional',
-    hasAgreedToAllTerms: true,
-    termsAgreedAt: '2024-12-15T10:05:00Z'
+    hasAgreedToAllTerms: true
   },
 
   // 개인 회원
@@ -28,8 +26,7 @@ export const MOCK_MEMBERS: Member[] = [
     status: 'active',
     createdAt: '2025-01-10T11:00:00Z',
     plan: 'basic',
-    hasAgreedToAllTerms: true,
-    termsAgreedAt: '2025-01-10T11:05:00Z'
+    hasAgreedToAllTerms: true
   },
   {
     memberId: 'M101',
@@ -37,8 +34,7 @@ export const MOCK_MEMBERS: Member[] = [
     status: 'active',
     createdAt: '2025-01-15T14:00:00Z',
     plan: 'professional',
-    hasAgreedToAllTerms: true,
-    termsAgreedAt: '2025-01-15T14:05:00Z'
+    hasAgreedToAllTerms: true
   },
   {
     memberId: 'M102',
@@ -46,8 +42,7 @@ export const MOCK_MEMBERS: Member[] = [
     status: 'active',
     createdAt: '2025-01-20T16:00:00Z',
     plan: 'basic',
-    hasAgreedToAllTerms: true,
-    termsAgreedAt: '2025-01-20T16:05:00Z'
+    hasAgreedToAllTerms: true
   }
 ];
 

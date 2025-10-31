@@ -142,6 +142,25 @@ export default function FundSourceStep({ initialData, onComplete, onBack }: Fund
         newUser.fundSourceDetail = fundSourceDetail
       }
 
+      // 주소 정보 (개별 컬럼으로 저장)
+      if (initialData.zipCode) newUser.zipCode = initialData.zipCode
+      if (initialData.address) newUser.addressLine = initialData.address
+      if (initialData.detailAddress) newUser.detailAddress = initialData.detailAddress
+
+      // 약관 동의 정보 (개별 컬럼으로 저장)
+      if (initialData.serviceTermsAgreed !== undefined) {
+        newUser.serviceTermsAgreed = initialData.serviceTermsAgreed
+      }
+      if (initialData.personalInfoAgreed !== undefined) {
+        newUser.personalInfoAgreed = initialData.personalInfoAgreed
+      }
+      if (initialData.carrierTermsAgreed !== undefined) {
+        newUser.carrierTermsAgreed = initialData.carrierTermsAgreed
+      }
+      if (initialData.marketingAgreed !== undefined) {
+        newUser.marketingAgreed = initialData.marketingAgreed
+      }
+
       // API로 사용자 생성
       const createdUser = await createUser(newUser)
       console.log('사용자 생성 완료:', createdUser)

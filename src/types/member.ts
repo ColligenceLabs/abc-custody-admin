@@ -10,7 +10,6 @@ export interface Member {
   createdAt: string;
   plan: string;
   hasAgreedToAllTerms: boolean;
-  termsAgreedAt?: string;
 }
 
 // 회원 타입별 한국어 이름

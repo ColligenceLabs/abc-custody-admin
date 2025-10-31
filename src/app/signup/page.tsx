@@ -17,10 +17,11 @@ import {
 import MemberTypeSelection from '@/components/signup/MemberTypeSelection'
 import EmailVerificationStep from '@/components/signup/EmailVerificationStep'
 import PassVerificationStep from '@/components/signup/PassVerificationStep'
+import PersonalInfoConfirmStep from '@/components/signup/PersonalInfoConfirmStep'
 import IDAndAccountVerificationStep from '@/components/signup/IDAndAccountVerificationStep'
 import FundSourceStep from '@/components/signup/FundSourceStep'
 
-export type SignupStep = 'type' | 'email' | 'phone' | 'kyc' | 'fund' | 'completed'
+export type SignupStep = 'type' | 'email' | 'phone' | 'info' | 'kyc' | 'fund' | 'completed'
 
 export interface SignupData {
   memberType?: 'individual' | 'corporate'
@@ -54,6 +55,15 @@ export interface SignupData {
   passCi?: string
   passDi?: string
   passIdentityId?: string
+  // 주소 관련
+  zipCode?: string
+  address?: string
+  detailAddress?: string
+  // 약관 동의
+  serviceTermsAgreed?: boolean
+  personalInfoAgreed?: boolean
+  marketingAgreed?: boolean
+  carrierTermsAgreed?: boolean
 }
 
 export default function SignupPage() {
@@ -176,6 +186,7 @@ export default function SignupPage() {
     { key: 'type' as SignupStep, label: '회원 유형', icon: UserGroupIcon },
     { key: 'email' as SignupStep, label: '이메일 인증', icon: EnvelopeIcon },
     { key: 'phone' as SignupStep, label: '본인인증', icon: DocumentTextIcon },
+    { key: 'info' as SignupStep, label: '정보 확인', icon: UserIcon },
     { key: 'kyc' as SignupStep, label: 'eKYC 인증', icon: CreditCardIcon },
     { key: 'fund' as SignupStep, label: '자금출처', icon: DocumentCheckIcon },
   ]
@@ -187,7 +198,7 @@ export default function SignupPage() {
   const handleStepComplete = (step: SignupStep, data: Partial<SignupData>) => {
     setSignupData(prev => ({ ...prev, ...data }))
 
-    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'kyc', 'fund', 'completed']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'info', 'kyc', 'fund', 'completed']
     const currentIndex = stepOrder.indexOf(step)
     const nextStep = stepOrder[currentIndex + 1]
 
@@ -197,7 +208,7 @@ export default function SignupPage() {
   }
 
   const handleBack = () => {
-    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'kyc', 'fund']
+    const stepOrder: SignupStep[] = ['type', 'email', 'phone', 'info', 'kyc', 'fund']
     const currentIndex = stepOrder.indexOf(currentStep)
 
     if (currentIndex > 0) {
@@ -300,6 +311,14 @@ export default function SignupPage() {
               }));
               handleStepComplete('phone', data);
             }}
+            onBack={handleBack}
+          />
+        )}
+
+        {currentStep === 'info' && (
+          <PersonalInfoConfirmStep
+            initialData={signupData}
+            onComplete={(data) => handleStepComplete('info', data)}
             onBack={handleBack}
           />
         )}
