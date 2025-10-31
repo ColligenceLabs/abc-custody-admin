@@ -10,6 +10,7 @@ export interface CreateOrganizationUserRequest {
   department?: string;
   position?: string;
   organizationId: string;
+  organizationName?: string;
   memberId?: string;
   permissions?: string[];
 }

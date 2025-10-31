@@ -280,10 +280,14 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
     setIsSubmitting(true);
     try {
-      const organizationId = "ORG001"; // TODO: 실제 organizationId 사용
+      // 현재 로그인한 사용자의 organizationId 사용
+      const organizationId = currentUser?.organizationId || currentUser?.id;
+      const organizationName = currentUser?.organizationName;
+
       const createdUser = await createOrganizationUser({
         ...newUser,
         organizationId,
+        organizationName,
       });
 
       // 로컬 상태 업데이트
