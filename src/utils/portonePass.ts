@@ -14,6 +14,18 @@ declare global {
 }
 
 /**
+ * HTTP 환경에서도 동작하는 fallback UUID 생성 함수
+ * crypto.randomUUID()는 HTTPS에서만 동작하므로 대체 함수 제공
+ */
+function generateFallbackUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+/**
  * PASS 본인인증 요청
  * @returns identityVerificationId 또는 에러
  */
@@ -36,7 +48,11 @@ export async function requestPassVerification(): Promise<{
     }
 
     // 고유한 identityVerificationId 생성
-    const identityVerificationId = `identity-verification-${crypto.randomUUID()}`;
+    // HTTP 환경에서도 동작하도록 fallback UUID 생성 함수 사용
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : generateFallbackUUID();
+    const identityVerificationId = `identity-verification-${uuid}`;
 
     console.log('[PortOne] PASS 본인인증 시작:', {
       storeId,
