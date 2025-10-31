@@ -216,7 +216,7 @@ export default function OnboardingReviewPage() {
       </Card>
 
       {/* KYC Section */}
-      <KYCSection kyc={application.kyc} />
+      <KYCSection kyc={application.kyc} userId={application.userId} />
 
       {/* AML Section (외부 결과 읽기 전용) */}
       {application.aml && <AMLSection aml={application.aml} />}

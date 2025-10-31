@@ -7,10 +7,14 @@
 
 "use client";
 
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, XCircle, FileText, Eye } from "lucide-react";
+import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { KYCInfo } from "@/types/onboardingAml";
+import { getIdCardTypeLabel } from "@/utils/kycUtils";
 
 interface KYCSectionProps {
   kyc: KYCInfo;
@@ -21,11 +25,25 @@ export function KYCSection({ kyc, userId }: KYCSectionProps) {
   // 백엔드 API URL 생성
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const idCardImageUrl = userId
-    ? `${API_URL}/api/users/${userId}/kyc-idcard-image`
+    ? `${API_URL}/api/users/${userId}/kyc-image`
     : kyc.idImageUrl;
   const selfieImageUrl = userId
     ? `${API_URL}/api/users/${userId}/kyc-selfie-image`
     : null;
+
+  // 디버깅: 이미지 URL 상태 확인
+  console.log('[KYCSection] Debug Info:', {
+    userId,
+    hasUserId: !!userId,
+    idCardImageUrl,
+    selfieImageUrl,
+    hasSelfieUrl: !!selfieImageUrl,
+    kycIdImageUrl: kyc.idImageUrl
+  });
+
+  // 이미지 모달 상태
+  const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
+  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
   return (
     <Card>
@@ -40,39 +58,37 @@ export function KYCSection({ kyc, userId }: KYCSectionProps) {
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <div className="text-sm text-muted-foreground mb-1">신분증 유형</div>
-              <div className="font-medium">{kyc.idType}</div>
+              <div className="font-medium">{getIdCardTypeLabel(kyc.idCardType)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">신분증 번호</div>
-              <div className="font-medium">{kyc.idNumber}</div>
+              <div className="font-medium">{kyc.residentNumber || kyc.idNumber}</div>
             </div>
           </div>
-          {idCardImageUrl && (
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <a
-                href={idCardImageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {idCardImageUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsIdCardModalOpen(true)}
+                className="flex-shrink-0"
               >
+                <Eye className="h-4 w-4 mr-2" />
                 신분증 이미지 보기
-              </a>
-            </div>
-          )}
-          {selfieImageUrl && (
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <a
-                href={selfieImageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+              </Button>
+            )}
+            {selfieImageUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSelfieModalOpen(true)}
+                className="flex-shrink-0"
               >
+                <Eye className="h-4 w-4 mr-2" />
                 셀피 이미지 보기
-              </a>
-            </div>
-          )}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* 주소 증명 */}
@@ -142,6 +158,24 @@ export function KYCSection({ kyc, userId }: KYCSectionProps) {
           </div>
         )}
       </CardContent>
+
+      {/* 이미지 뷰어 모달 */}
+      {idCardImageUrl && (
+        <ImageViewerModal
+          isOpen={isIdCardModalOpen}
+          onClose={() => setIsIdCardModalOpen(false)}
+          imageUrl={idCardImageUrl}
+          title="신분증 이미지"
+        />
+      )}
+      {selfieImageUrl && (
+        <ImageViewerModal
+          isOpen={isSelfieModalOpen}
+          onClose={() => setIsSelfieModalOpen(false)}
+          imageUrl={selfieImageUrl}
+          title="셀피 이미지"
+        />
+      )}
     </Card>
   );
 }
