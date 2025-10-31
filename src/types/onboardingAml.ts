@@ -288,6 +288,12 @@ export interface CorporateOnboarding {
   companyId: string;
   companyName: string;
   businessNumber: string;
+  corporateRegistryNumber?: string;  // 법인등록번호
+  establishedDate?: string;          // 설립일자
+  corporateAddress?: string;         // 법인 소재지 주소
+  corporateNationality?: string;     // 법인 국가
+  industry?: string;                 // 업종
+  businessDescription?: string;      // 주요 사업내용
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
 

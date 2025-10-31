@@ -173,7 +173,6 @@ export default function CorporateOnboardingReviewPage() {
           </Link>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">법인회원 온보딩 검토</h2>
-            <p className="text-muted-foreground">{application.companyName} | {application.businessNumber}</p>
           </div>
         </div>
         <Button variant="outline" onClick={loadApplication}>
@@ -210,7 +209,17 @@ export default function CorporateOnboardingReviewPage() {
       </Card>
 
       {/* Corporate Info Section */}
-      <CorporateInfoSection corporateInfo={application.corporateInfo} />
+      <CorporateInfoSection
+        corporateInfo={application.corporateInfo}
+        companyName={application.companyName}
+        businessNumber={application.businessNumber}
+        corporateRegistryNumber={application.corporateRegistryNumber}
+        establishedDate={application.establishedDate}
+        corporateAddress={application.corporateAddress}
+        corporateNationality={application.corporateNationality}
+        industry={application.industry}
+        businessDescription={application.businessDescription}
+      />
 
       {/* UBO Structure (외부 검증 결과 읽기 전용) */}
       {application.ubo && <UBOStructureViewer ubo={application.ubo} />}
