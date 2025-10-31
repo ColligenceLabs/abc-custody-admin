@@ -81,41 +81,52 @@ export function ManualRegistrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>수동 등록</DialogTitle>
-          <DialogDescription>
-            오프라인에서 받은 서류를 기반으로 신청을 등록합니다.
-            등록 후 외부 AML 스크리닝이 자동으로 진행됩니다.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl h-[90vh] flex flex-col p-0 gap-0">
+        {/* Fixed Header */}
+        <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b">
+          <DialogHeader>
+            <DialogTitle>수동 등록</DialogTitle>
+            <DialogDescription>
+              오프라인에서 받은 서류를 기반으로 신청을 등록합니다.
+              등록 후 외부 AML 스크리닝이 자동으로 진행됩니다.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "individual" | "corporate")}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="individual" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              개인회원
-            </TabsTrigger>
-            <TabsTrigger value="corporate" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              법인회원
-            </TabsTrigger>
-          </TabsList>
+          {/* Tabs in Header */}
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "individual" | "corporate")} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="individual" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                개인회원
+              </TabsTrigger>
+              <TabsTrigger value="corporate" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                법인회원
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-          <TabsContent value="individual" className="mt-6">
-            <IndividualRegistrationForm
-              onSubmit={handleIndividualSubmit}
-              onCancel={handleCancel}
-            />
-          </TabsContent>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="px-6 py-6">
+            <Tabs value={activeTab}>
+              <TabsContent value="individual" className="mt-0">
+                <IndividualRegistrationForm
+                  onSubmit={handleIndividualSubmit}
+                  onCancel={handleCancel}
+                />
+              </TabsContent>
 
-          <TabsContent value="corporate" className="mt-6">
-            <CorporateRegistrationForm
-              onSubmit={handleCorporateSubmit}
-              onCancel={handleCancel}
-            />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="corporate" className="mt-0">
+                <CorporateRegistrationForm
+                  onSubmit={handleCorporateSubmit}
+                  onCancel={handleCancel}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

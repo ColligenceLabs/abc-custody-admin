@@ -2,7 +2,7 @@
  * IndividualFilters Component
  * 개인회원 온보딩 필터
  *
- * 상태, 위험도, 등록 경로 기준으로 필터링
+ * 상태, 위험도 기준으로 필터링
  */
 
 "use client";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
-import { OnboardingListQuery, OnboardingStatus, RiskLevel, RegistrationSource } from "@/types/onboardingAml";
+import { OnboardingListQuery, OnboardingStatus, RiskLevel } from "@/types/onboardingAml";
 
 interface IndividualFiltersProps {
   filters: OnboardingListQuery;
@@ -31,7 +31,6 @@ export function IndividualFilters({ filters, onFilterChange }: IndividualFilters
     onFilterChange({
       status: undefined,
       riskLevel: undefined,
-      registrationSource: undefined,
       search: undefined,
     });
   };
@@ -39,14 +38,13 @@ export function IndividualFilters({ filters, onFilterChange }: IndividualFilters
   const hasActiveFilters = !!(
     filters.status ||
     filters.riskLevel ||
-    filters.registrationSource ||
     filters.search
   );
 
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4">
           {/* 검색 */}
           <div className="space-y-2">
             <Label htmlFor="search">검색</Label>
@@ -102,30 +100,6 @@ export function IndividualFilters({ filters, onFilterChange }: IndividualFilters
                 <SelectItem value="LOW">낮음 (LOW)</SelectItem>
                 <SelectItem value="MEDIUM">중간 (MEDIUM)</SelectItem>
                 <SelectItem value="HIGH">높음 (HIGH)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 등록 경로 필터 */}
-          <div className="space-y-2">
-            <Label htmlFor="registrationSource">등록 경로</Label>
-            <Select
-              value={filters.registrationSource || 'all'}
-              onValueChange={(value) =>
-                onFilterChange({
-                  registrationSource: value === 'all' ? undefined : value as RegistrationSource
-                })
-              }
-            >
-              <SelectTrigger id="registrationSource">
-                <SelectValue placeholder="전체" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="ONLINE">온라인 신청</SelectItem>
-                <SelectItem value="OFFLINE_BRANCH">지점 방문</SelectItem>
-                <SelectItem value="PHONE_INQUIRY">전화 문의</SelectItem>
-                <SelectItem value="EMAIL_REQUEST">이메일 요청</SelectItem>
               </SelectContent>
             </Select>
           </div>

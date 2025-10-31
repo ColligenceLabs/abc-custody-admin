@@ -169,10 +169,6 @@ export interface IndividualOnboarding {
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
 
-  // 신청 경로 정보
-  registrationSource: RegistrationSource;
-  registrationNote?: string;        // 오프라인 등록 시 사유
-
   // 1단계: KYC (신원확인)
   kyc: KYCInfo;
 
@@ -288,10 +284,6 @@ export interface CorporateOnboarding {
   businessNumber: string;
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
-
-  // 신청 경로 정보
-  registrationSource: RegistrationSource;
-  registrationNote?: string;
 
   // 1단계: 법인 기본정보 확인
   corporateInfo: CorporateInfo;
@@ -416,8 +408,6 @@ export interface ManualRegisterIndividualRequest {
   userName: string;
   userEmail: string;
   kyc: Omit<KYCInfo, 'completedAt'>;
-  registrationSource: Exclude<RegistrationSource, 'ONLINE'>;
-  registrationNote?: string;
 
   // 신규 추가 필드 (필수)
   nationality: string;       // 국적 (필수)
@@ -457,8 +447,6 @@ export interface ManualRegisterCorporateRequest {
     email: string;
     phone: string;
   };
-  registrationSource: Exclude<RegistrationSource, 'ONLINE'>;
-  registrationNote?: string;
 }
 
 /**
@@ -501,7 +489,6 @@ export interface OnboardingListQuery {
   limit?: number;
   status?: OnboardingStatus;
   riskLevel?: RiskLevel;
-  registrationSource?: RegistrationSource;
   search?: string;
 }
 

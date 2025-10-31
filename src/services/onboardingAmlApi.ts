@@ -193,10 +193,6 @@ export async function fetchIndividualOnboardings(
     );
   }
 
-  if (query.registrationSource) {
-    applications = applications.filter((app) => app.registrationSource === query.registrationSource);
-  }
-
   if (query.search) {
     const searchLower = query.search.toLowerCase();
     applications = applications.filter(
@@ -280,8 +276,6 @@ export async function manualRegisterIndividual(
     userEmail: request.userEmail,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    registrationSource: request.registrationSource,
-    registrationNote: request.registrationNote,
     kyc: {
       ...request.kyc,
       completedAt: new Date().toISOString(),
@@ -504,10 +498,6 @@ export async function fetchCorporateOnboardings(
     );
   }
 
-  if (query.registrationSource) {
-    applications = applications.filter((app) => app.registrationSource === query.registrationSource);
-  }
-
   if (query.search) {
     const searchLower = query.search.toLowerCase();
     applications = applications.filter(
@@ -566,8 +556,6 @@ export async function manualRegisterCorporate(
     businessNumber: request.businessNumber,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    registrationSource: request.registrationSource,
-    registrationNote: request.registrationNote,
     corporateInfo: {
       ...request.corporateInfo,
       completedAt: new Date().toISOString(),

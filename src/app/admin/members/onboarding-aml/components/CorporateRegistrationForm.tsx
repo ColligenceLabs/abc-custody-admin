@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ManualRegisterCorporateRequest, RegistrationSource, IdType, AddressProofType } from "@/types/onboardingAml";
+import { ManualRegisterCorporateRequest, IdType, AddressProofType } from "@/types/onboardingAml";
 import { Upload, Loader2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmailVerificationInput } from "@/components/ui/EmailVerificationInput";
@@ -78,10 +78,6 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
   const [contactEmail, setContactEmail] = useState("");
   const [contactEmailVerified, setContactEmailVerified] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
-
-  // 등록 정보
-  const [registrationSource, setRegistrationSource] = useState<Exclude<RegistrationSource, 'ONLINE'>>("OFFLINE_BRANCH");
-  const [registrationNote, setRegistrationNote] = useState("");
 
   // 파일 업로드 시뮬레이션 (Mock)
   const handleFileUpload = async (fieldName: string): Promise<string> => {
@@ -251,8 +247,6 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
           email: contactEmail,
           phone: contactPhone,
         },
-        registrationSource,
-        registrationNote: registrationNote || undefined,
 
         // 신규 필드 추가 (필수)
         corporateRegistryNumber,
@@ -662,40 +656,6 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
               onChange={(e) => setContactPhone(e.target.value)}
               placeholder="010-1234-5678"
               required
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 등록 정보 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>등록 경로</CardTitle>
-          <CardDescription>오프라인 등록 사유를 입력하세요</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="registrationSource">등록 경로 *</Label>
-            <Select value={registrationSource} onValueChange={(value) => setRegistrationSource(value as Exclude<RegistrationSource, 'ONLINE'>)}>
-              <SelectTrigger id="registrationSource">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="OFFLINE_BRANCH">지점 방문</SelectItem>
-                <SelectItem value="PHONE_INQUIRY">전화 문의</SelectItem>
-                <SelectItem value="EMAIL_REQUEST">이메일 요청</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="registrationNote">등록 사유 (선택)</Label>
-            <Textarea
-              id="registrationNote"
-              value={registrationNote}
-              onChange={(e) => setRegistrationNote(e.target.value)}
-              placeholder="예: 강남 지점 방문. 대표이사 직접 신청."
-              rows={3}
             />
           </div>
         </CardContent>

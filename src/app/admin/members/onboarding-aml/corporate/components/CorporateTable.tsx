@@ -15,7 +15,6 @@ import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
 import { CorporateOnboarding } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
-import { RegistrationSourceBadge } from "../../components/RegistrationSourceBadge";
 import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
 
 interface CorporateTableProps {
@@ -73,7 +72,6 @@ export function CorporateTable({
             <thead className="border-b bg-muted/50">
               <tr>
                 <th className="text-left p-4 font-medium text-sm">회사명 / 사업자번호</th>
-                <th className="text-left p-4 font-medium text-sm">등록 경로</th>
                 <th className="text-left p-4 font-medium text-sm">진행 단계</th>
                 <th className="text-left p-4 font-medium text-sm">위험도</th>
                 <th className="text-left p-4 font-medium text-sm">EDD</th>
@@ -91,11 +89,6 @@ export function CorporateTable({
                       <div className="font-medium">{application.companyName}</div>
                       <div className="text-sm text-muted-foreground font-mono">{application.businessNumber}</div>
                     </div>
-                  </td>
-
-                  {/* 등록 경로 */}
-                  <td className="p-4">
-                    <RegistrationSourceBadge source={application.registrationSource} />
                   </td>
 
                   {/* 진행 단계 */}

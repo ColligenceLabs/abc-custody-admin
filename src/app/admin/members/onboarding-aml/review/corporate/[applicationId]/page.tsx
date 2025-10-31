@@ -23,7 +23,6 @@ import {
 } from "@/services/onboardingAmlApi";
 import { RiskLevelBadge } from "../../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../../components/OnboardingStatusBadge";
-import { RegistrationSourceBadge } from "../../../components/RegistrationSourceBadge";
 import { CompactProcessIndicator } from "../../../components/CompactProcessIndicator";
 import { ApprovalDialog } from "../../../components/ApprovalDialog";
 import { RejectionDialog } from "../../../components/RejectionDialog";
@@ -185,14 +184,10 @@ export default function CorporateOnboardingReviewPage() {
 
       {/* Status Overview */}
       <Card className="p-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
             <div className="text-sm font-medium text-muted-foreground mb-2">상태</div>
             <OnboardingStatusBadge status={application.adminReview.status} />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">등록 경로</div>
-            <RegistrationSourceBadge source={application.registrationSource} />
           </div>
           <div>
             <div className="text-sm font-medium text-muted-foreground mb-2">위험도</div>
