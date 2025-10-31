@@ -110,6 +110,22 @@ export default function IDAndAccountVerificationStep({
         console.log('json', json);
         console.log(json.result + ' 처리 필요');
 
+        // eKYC 응답 전체 로깅 (신분증 유형별 데이터 확인용)
+        if (json.review_result) {
+          console.log('========================================');
+          console.log('eKYC 전체 응답 (review_result):');
+          console.log(JSON.stringify(json.review_result, null, 2));
+          console.log('========================================');
+
+          // 신분증 데이터 상세 로깅
+          if (json.review_result.id_card) {
+            console.log('========================================');
+            console.log('신분증 데이터 (id_card):');
+            console.log(JSON.stringify(json.review_result.id_card, null, 2));
+            console.log('========================================');
+          }
+        }
+
         // 데모 코드와 동일한 result 처리
         if (json.result === "success") {
           // success 처리 (review_result 있는 경우)
