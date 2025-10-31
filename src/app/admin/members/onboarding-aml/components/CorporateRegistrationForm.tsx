@@ -127,52 +127,11 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 유효성 검사
-    if (!companyName || !businessNumber) {
+    // 최소 필수 항목만 검증 (법인명, 담당자 정보)
+    if (!companyName) {
       toast({
         variant: "destructive",
-        description: "회사명과 사업자번호는 필수 입력 항목입니다.",
-      });
-      return;
-    }
-
-    if (!corporateRegistryNumber) {
-      toast({
-        variant: "destructive",
-        description: "법인 등록번호는 필수 입력 항목입니다.",
-      });
-      return;
-    }
-
-    if (!corporateNationality || !corporateCountryCode) {
-      toast({
-        variant: "destructive",
-        description: "법인 국가는 필수 입력 항목입니다.",
-      });
-      return;
-    }
-
-    if (!corporateAddress) {
-      toast({
-        variant: "destructive",
-        description: "사업장 소재지 주소는 필수 입력 항목입니다.",
-      });
-      return;
-    }
-
-    if (!businessLicenseUrl || !corporateRegistryUrl || !articlesOfIncorporationUrl ||
-        !shareholderListUrl || !representativeIdUrl || !representativeSealCertUrl) {
-      toast({
-        variant: "destructive",
-        description: "모든 법인 서류를 업로드해야 합니다.",
-      });
-      return;
-    }
-
-    if (!repIdNumber || !repIdImageUrl || !repAddressProofUrl) {
-      toast({
-        variant: "destructive",
-        description: "대표자 KYC 정보는 필수 입력 항목입니다.",
+        description: "법인명은 필수 입력 항목입니다.",
       });
       return;
     }
@@ -180,91 +139,47 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
     if (!contactName || !contactEmail || !contactPhone) {
       toast({
         variant: "destructive",
-        description: "담당자 정보는 필수 입력 항목입니다.",
+        description: "담당자 정보(이름, 이메일, 전화번호)는 필수 입력 항목입니다.",
       });
       return;
-    }
-
-    if (!contactEmailVerified) {
-      toast({
-        variant: "destructive",
-        description: "담당자 이메일 인증을 완료해주세요.",
-      });
-      return;
-    }
-
-    // 주소 형식 검증 (필수)
-    if (corporateAddress.type === 'korea') {
-      if (!corporateAddress.postalCode || !corporateAddress.address) {
-        toast({
-          variant: "destructive",
-          description: "사업장 주소를 완전히 입력해주세요.",
-        });
-        return;
-      }
-    } else if (corporateAddress.type === 'international') {
-      if (!corporateAddress.fullAddress) {
-        toast({
-          variant: "destructive",
-          description: "사업장 주소를 입력해주세요.",
-        });
-        return;
-      }
     }
 
     setLoading(true);
 
     try {
-      // 법인회원 ID 생성
-      const userId = generateUserId('CORPORATE');
-
-      const data: ManualRegisterCorporateRequest = {
-        id: userId,
-        companyName,
-        businessNumber,
-        corporateInfo: {
-          businessLicenseUrl,
-          corporateRegistryUrl,
-          articlesOfIncorporationUrl,
-          shareholderListUrl,
-          representativeIdUrl,
-          representativeSealCertUrl,
+      // 간소화된 법인 계정 생성 API 호출
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/corporate-accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        representativeKyc: {
-          idType: repIdType,
-          idNumber: repIdNumber,
-          idImageUrl: repIdImageUrl,
-          addressProofType: repAddressProofType,
-          addressProofUrl: repAddressProofUrl,
-          phoneVerified: false,
-          emailVerified: false,
-        },
-        initialUboInfo: uboList
-          .filter(ubo => ubo.name && ubo.sharePercentage > 0)
-          .map(ubo => ({
-            name: ubo.name,
-            sharePercentage: ubo.sharePercentage,
-            relationship: ubo.relationship,
-            // idNumber, idImageUrl 제거 - EDD 단계에서 수집
-          })),
-        contactPerson: {
-          name: contactName,
-          email: contactEmail,
-          phone: contactPhone,
-        },
+        body: JSON.stringify({
+          companyName,
+          contactName,
+          contactEmail,
+          contactPhone
+        })
+      });
 
-        // 신규 필드 추가 (필수)
-        corporateRegistryNumber,
-        corporateNationality,
-        corporateCountryCode,
-        corporateAddress,
-      };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || '계정 생성에 실패했습니다.');
+      }
 
-      await onSubmit(data);
-    } catch (error) {
+      const result = await response.json();
+
+      toast({
+        description: `법인 계정이 생성되었습니다. (ID: ${result.data.user.id})`,
+      });
+
+      // 성공 시 폼 초기화 또는 모달 닫기
+      if (onSubmit) {
+        await onSubmit(result.data.user);
+      }
+    } catch (error: any) {
       toast({
         variant: "destructive",
-        description: "등록에 실패했습니다. 다시 시도해주세요.",
+        description: error?.message || "등록에 실패했습니다. 다시 시도해주세요.",
       });
     } finally {
       setLoading(false);
@@ -292,51 +207,49 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="businessNumber">사업자번호 *</Label>
+            <Label htmlFor="businessNumber">사업자번호</Label>
             <Input
               id="businessNumber"
               value={businessNumber}
               onChange={(e) => setBusinessNumber(e.target.value)}
               placeholder="123-45-67890"
-              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="corporateRegistryNumber">법인 등록번호 *</Label>
+            <Label htmlFor="corporateRegistryNumber">법인 등록번호</Label>
             <Input
               id="corporateRegistryNumber"
               value={corporateRegistryNumber}
               onChange={(e) => setCorporateRegistryNumber(e.target.value)}
               placeholder="110111-0000001"
-              required
             />
           </div>
 
-          {/* 신규 추가: 법인 국적 선택 (필수) */}
+          {/* 신규 추가: 법인 국적 선택 (선택) */}
           <NationalitySelectField
             value={corporateNationality}
             countryCode={corporateCountryCode}
             onChange={handleCorporateNationalityChange}
             label="국가"
-            required={true}
+            required={false}
           />
 
-          {/* 신규 추가: 사업장 소재지 주소 입력 (조건부 렌더링, 필수) */}
+          {/* 신규 추가: 사업장 소재지 주소 입력 (조건부 렌더링, 선택) */}
           {corporateCountryCode && (
             corporateCountryCode === 'KR' ? (
               <AddressSearchField
                 value={corporateAddress as AddressKorea | null}
                 onChange={(addr) => setCorporateAddress(addr)}
                 label="사업장 소재지 주소"
-                required={true}
+                required={false}
               />
             ) : (
               <InternationalAddressField
                 value={corporateAddress as AddressInternational | null}
                 onChange={(addr) => setCorporateAddress(addr)}
                 label="사업장 소재지 주소"
-                required={true}
+                required={false}
               />
             )
           )}
@@ -353,7 +266,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
           <div className="grid gap-4 md:grid-cols-2">
             {/* 사업자등록증 */}
             <div className="space-y-2">
-              <Label>사업자등록증 *</Label>
+              <Label>사업자등록증</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -372,7 +285,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
             {/* 법인등기부등본 */}
             <div className="space-y-2">
-              <Label>법인등기부등본 *</Label>
+              <Label>법인등기부등본</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -391,7 +304,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
             {/* 정관 */}
             <div className="space-y-2">
-              <Label>정관 *</Label>
+              <Label>정관</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -410,7 +323,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
             {/* 주주명부 */}
             <div className="space-y-2">
-              <Label>주주명부 *</Label>
+              <Label>주주명부</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -429,7 +342,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
             {/* 대표자 신분증 */}
             <div className="space-y-2">
-              <Label>대표자 신분증 *</Label>
+              <Label>대표자 신분증</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -448,7 +361,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
             {/* 대표자 인감증명서 */}
             <div className="space-y-2">
-              <Label>대표자 인감증명서 *</Label>
+              <Label>대표자 인감증명서</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
@@ -477,7 +390,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="repIdType">신분증 종류 *</Label>
+              <Label htmlFor="repIdType">신분증 종류</Label>
               <Select value={repIdType} onValueChange={(value) => setRepIdType(value as IdType)}>
                 <SelectTrigger id="repIdType">
                   <SelectValue />
@@ -491,19 +404,18 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="repIdNumber">신분증 번호 *</Label>
+              <Label htmlFor="repIdNumber">신분증 번호</Label>
               <Input
                 id="repIdNumber"
                 value={repIdNumber}
                 onChange={(e) => setRepIdNumber(e.target.value)}
                 placeholder="123456-1234567"
-                required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>신분증 이미지 (앞뒤면) *</Label>
+            <Label>신분증 이미지 (앞뒤면)</Label>
             <div className="flex flex-col gap-2">
               <Button
                 type="button"
@@ -522,7 +434,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="repAddressProofType">주소증명 종류 *</Label>
+              <Label htmlFor="repAddressProofType">주소증명 종류</Label>
               <Select value={repAddressProofType} onValueChange={(value) => setRepAddressProofType(value as AddressProofType)}>
                 <SelectTrigger id="repAddressProofType">
                   <SelectValue />
@@ -536,7 +448,7 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
             </div>
 
             <div className="space-y-2">
-              <Label>주소증명 이미지 *</Label>
+              <Label>주소증명 이미지</Label>
               <div className="flex flex-col gap-2">
                 <Button
                   type="button"
