@@ -494,44 +494,72 @@ export async function requestIndividualAmlRescan(
 export async function fetchCorporateOnboardings(
   query: OnboardingListQuery = {}
 ): Promise<OnboardingListResponse<CorporateOnboarding>> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  // 실제 DB에서 법인 회원 조회
+  try {
+    const params = new URLSearchParams({
+      memberType: 'corporate',
+      _page: String(query.page || 1),
+      _limit: String(query.limit || 20),
+      _sort: 'createdAt',
+      _order: 'desc'
+    });
 
-  let applications = getCorporateOnboardings();
+    if (query.status) {
+      params.append('status', query.status.toLowerCase());
+    }
 
-  // 필터링
-  if (query.status) {
-    applications = applications.filter((app) => app.adminReview.status === query.status);
+    const response = await axios.get(`${API_URL}/api/users?${params.toString()}`);
+    const users = response.data;
+    const totalCount = parseInt(response.headers['x-total-count'] || users.length);
+
+    // Backend User를 CorporateOnboarding으로 변환
+    const applications = users.map((user: BackendUser) => mapUserToCorporateOnboarding(user));
+
+    return {
+      applications,
+      total: totalCount,
+      page: query.page || 1,
+      limit: query.limit || 20,
+    };
+  } catch (error) {
+    console.error('Failed to fetch corporate users:', error);
+    // 에러 시 빈 배열 반환
+    return {
+      applications: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    };
   }
+}
 
-  if (query.riskLevel) {
-    applications = applications.filter(
-      (app) => app.riskAssessment?.overallRiskLevel === query.riskLevel
-    );
-  }
-
-  if (query.search) {
-    const searchLower = query.search.toLowerCase();
-    applications = applications.filter(
-      (app) =>
-        app.companyName.toLowerCase().includes(searchLower) ||
-        app.businessNumber.toLowerCase().includes(searchLower) ||
-        app.id.toLowerCase().includes(searchLower)
-    );
-  }
-
-  // 페이지네이션
-  const page = query.page || 1;
-  const limit = query.limit || 10;
-  const totalPages = Math.ceil(applications.length / limit);
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedApplications = applications.slice(startIndex, endIndex);
-
+/**
+ * Backend User를 CorporateOnboarding으로 변환
+ */
+function mapUserToCorporateOnboarding(user: BackendUser): CorporateOnboarding {
   return {
-    applications: paginatedApplications,
-    total: applications.length,
-    page,
-    totalPages,
+    id: user.id,
+    userId: user.id,
+    companyName: (user as any).organizationName || '법인명 미입력',
+    businessNumber: (user as any).businessNumber || '',
+    submittedAt: user.createdAt,
+    adminReview: {
+      status: user.status === 'active' ? 'APPROVED' : user.status === 'pending' ? 'PENDING' : 'REJECTED',
+      reviewedBy: null,
+      reviewedAt: null,
+      comments: null,
+    },
+    riskAssessment: null,
+    eddRequired: false,
+    eddStatus: null,
+    kycInfo: null,
+    corporateInfo: null,
+    uboInfo: null,
+    contactPerson: {
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+    },
   };
 }
 
