@@ -433,6 +433,7 @@ export interface ManualRegisterIndividualRequest {
  * UBO 신분증 정보는 EDD 단계에서 수집
  */
 export interface ManualRegisterCorporateRequest {
+  id?: string;  // 법인회원 ID (자동 생성)
   companyName: string;
   businessNumber: string;
   corporateInfo: Omit<CorporateInfo, 'completedAt'>;

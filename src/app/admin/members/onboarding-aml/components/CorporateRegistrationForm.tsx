@@ -22,6 +22,7 @@ import { NationalitySelectField } from "./NationalitySelectField";
 import { AddressSearchField } from "./AddressSearchField";
 import { InternationalAddressField } from "./InternationalAddressField";
 import { UserAddress, AddressKorea, AddressInternational } from "@/types/address";
+import { generateUserId } from "@/utils/idGenerator";
 
 interface CorporateRegistrationFormProps {
   onSubmit: (data: ManualRegisterCorporateRequest) => Promise<void>;
@@ -214,7 +215,11 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
     setLoading(true);
 
     try {
+      // 법인회원 ID 생성
+      const userId = generateUserId('CORPORATE');
+
       const data: ManualRegisterCorporateRequest = {
+        id: userId,
         companyName,
         businessNumber,
         corporateInfo: {
