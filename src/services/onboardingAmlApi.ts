@@ -63,6 +63,7 @@ interface BackendUser {
   idCardImagePath?: string;
   selfieImagePath?: string;
   idCardType?: number;
+  personalId?: string;
   residentNumber?: string;
   kycResultType?: number;
   kycReviewData?: any;
@@ -70,6 +71,10 @@ interface BackendUser {
   accountNumber?: string;
   accountHolder?: string;
   financeCode?: string;
+  // 주소 정보
+  zipCode?: string;
+  addressLine?: string;
+  detailAddress?: string;
 }
 
 // ===========================
@@ -95,6 +100,9 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     userId: user.id,
     userName: user.name,
     userEmail: user.email,
+    userPhone: user.phone,
+    userGender: user.gender,
+    userNationality: user.countryCode || user.nationality,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
 
@@ -105,7 +113,7 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     // Mock/기본값: KYC 정보
     kyc: {
       idType: 'RESIDENT_CARD' as const,
-      idNumber: user.residentNumber || '******-*******',
+      idNumber: user.personalId || '******-*******',
       idImageUrl: user.idCardImagePath
         ? `${API_URL}/api/users/${user.id}/kyc-image`
         : '',
@@ -115,7 +123,10 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
       emailVerified: true,
       completedAt: user.createdAt,
       idCardType: user.idCardType,
-      residentNumber: user.residentNumber,
+      // 회원가입 시 등록한 주소
+      zipCode: user.zipCode,
+      address: user.addressLine,
+      detailAddress: user.detailAddress,
     },
 
     // Mock/기본값: AML (외부 시스템 연동 전)

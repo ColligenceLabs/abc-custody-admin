@@ -23,7 +23,6 @@ import {
 } from "@/services/onboardingAmlApi";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
-import { RegistrationSourceBadge } from "../../components/RegistrationSourceBadge";
 import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
 import { ApprovalDialog } from "../../components/ApprovalDialog";
 import { RejectionDialog } from "../../components/RejectionDialog";
@@ -175,7 +174,6 @@ export default function OnboardingReviewPage() {
           </Link>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">개인회원 온보딩 검토</h2>
-            <p className="text-muted-foreground">{application.userName} | {application.userEmail}</p>
           </div>
         </div>
         <Button variant="outline" onClick={loadApplication}>
@@ -186,14 +184,10 @@ export default function OnboardingReviewPage() {
 
       {/* Status Overview */}
       <Card className="p-6">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
             <div className="text-sm font-medium text-muted-foreground mb-2">상태</div>
             <OnboardingStatusBadge status={application.adminReview.status} />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">등록 경로</div>
-            <RegistrationSourceBadge source={application.registrationSource} />
           </div>
           <div>
             <div className="text-sm font-medium text-muted-foreground mb-2">위험도</div>
@@ -216,7 +210,15 @@ export default function OnboardingReviewPage() {
       </Card>
 
       {/* KYC Section */}
-      <KYCSection kyc={application.kyc} userId={application.userId} />
+      <KYCSection
+        kyc={application.kyc}
+        userId={application.userId}
+        userName={application.userName}
+        userEmail={application.userEmail}
+        userPhone={application.userPhone || '-'}
+        userGender={application.userGender}
+        userNationality={application.userNationality}
+      />
 
       {/* AML Section (외부 결과 읽기 전용) */}
       {application.aml && <AMLSection aml={application.aml} />}

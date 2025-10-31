@@ -71,7 +71,7 @@ export function IndividualTable({
           <table className="w-full">
             <thead className="border-b bg-muted/50">
               <tr>
-                <th className="text-left p-4 font-medium text-sm">신청자</th>
+                <th className="text-left p-4 font-medium text-sm">회원명</th>
                 <th className="text-left p-4 font-medium text-sm">진행 단계</th>
                 <th className="text-left p-4 font-medium text-sm">위험도</th>
                 <th className="text-left p-4 font-medium text-sm">EDD</th>
@@ -82,12 +82,17 @@ export function IndividualTable({
             </thead>
             <tbody className="divide-y">
               {applications.map((application) => (
-                <tr key={application.id} className="hover:bg-muted/30 transition-colors">
+                <tr
+                  key={application.id}
+                  className="hover:bg-muted/30 transition-colors"
+                >
                   {/* 신청자 */}
                   <td className="p-4">
                     <div>
                       <div className="font-medium">{application.userName}</div>
-                      <div className="text-sm text-muted-foreground">{application.userEmail}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {application.userEmail}
+                      </div>
                     </div>
                   </td>
 
@@ -109,7 +114,9 @@ export function IndividualTable({
                         source="SYSTEM"
                       />
                     ) : (
-                      <span className="text-sm text-muted-foreground">평가 대기</span>
+                      <span className="text-sm text-muted-foreground">
+                        평가 대기
+                      </span>
                     )}
                   </td>
 
@@ -117,42 +124,59 @@ export function IndividualTable({
                   <td className="p-4">
                     {application.eddRequired ? (
                       application.edd?.submittedAt ? (
-                        <Badge variant="default" className="text-sky-600 bg-sky-50 border-sky-200">
+                        <Badge
+                          variant="default"
+                          className="text-sky-600 bg-sky-50 border-sky-200"
+                        >
                           <FileText className="h-3 w-3 mr-1" />
                           제출 완료
                         </Badge>
                       ) : (
-                        <Link href={`/admin/members/onboarding-aml/edd-request/individual/${application.id}`}>
-                          <Badge variant="outline" className="text-yellow-600 border-yellow-300 hover:bg-yellow-50 cursor-pointer">
+                        <Link
+                          href={`/admin/members/onboarding-aml/edd-request/individual/${application.id}`}
+                        >
+                          <Badge
+                            variant="outline"
+                            className="text-yellow-600 border-yellow-300 hover:bg-yellow-50 cursor-pointer"
+                          >
                             <FileText className="h-3 w-3 mr-1" />
                             요청 필요
                           </Badge>
                         </Link>
                       )
                     ) : (
-                      <span className="text-sm text-muted-foreground">불필요</span>
+                      <span className="text-sm text-muted-foreground">
+                        불필요
+                      </span>
                     )}
                   </td>
 
                   {/* 상태 */}
                   <td className="p-4">
-                    <OnboardingStatusBadge status={application.adminReview.status} />
+                    <OnboardingStatusBadge
+                      status={application.adminReview.status}
+                    />
                   </td>
 
                   {/* 신청일 */}
                   <td className="p-4">
                     <div className="text-sm">
-                      {new Date(application.createdAt).toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                      })}
+                      {new Date(application.createdAt).toLocaleDateString(
+                        "ko-KR",
+                        {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        }
+                      )}
                     </div>
                   </td>
 
                   {/* 작업 */}
                   <td className="p-4 text-center">
-                    <Link href={`/admin/members/onboarding-aml/review/${application.id}`}>
+                    <Link
+                      href={`/admin/members/onboarding-aml/review/${application.id}`}
+                    >
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4 mr-1" />
                         검토
@@ -198,7 +222,7 @@ export function IndividualTable({
                   return (
                     <Button
                       key={pageNum}
-                      variant={currentPage === pageNum ? 'default' : 'outline'}
+                      variant={currentPage === pageNum ? "default" : "outline"}
                       size="sm"
                       onClick={() => onPageChange(pageNum)}
                       className="w-10"

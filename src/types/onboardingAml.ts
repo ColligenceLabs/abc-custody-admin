@@ -64,7 +64,7 @@ export type AddressProofType = 'REGISTRY' | 'UTILITY_BILL';
  */
 export interface KYCInfo {
   idType: IdType;
-  idNumber: string;
+  idNumber: string;       // 신분증 번호 (DB의 personalId와 연결)
   idImageUrl: string;
   addressProofType: AddressProofType;
   addressProofUrl: string;
@@ -72,7 +72,10 @@ export interface KYCInfo {
   emailVerified: boolean;
   completedAt?: string;   // ISO 8601 형식
   idCardType?: number;    // eKYC 신분증 유형 (1: 주민등록증, 2: 운전면허증, 3: 한국여권, 4: 외국인여권, 5: 외국인등록증)
-  residentNumber?: string; // 주민등록번호 (eKYC에서 추출)
+  // 회원가입 시 등록한 주소
+  zipCode?: string;
+  address?: string;
+  detailAddress?: string;
 }
 
 /**
@@ -166,6 +169,9 @@ export interface IndividualOnboarding {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone?: string;
+  userGender?: 'male' | 'female';
+  userNationality?: string;
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
 
