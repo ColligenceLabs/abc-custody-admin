@@ -105,11 +105,21 @@ export default function UserManagement({ plan }: UserManagementProps) {
   // 조직 사용자 데이터 로드
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!currentUser) return;
+
       try {
         setLoading(true);
         setError(null);
-        // TODO: 실제 organizationId를 컨텍스트나 props에서 가져와야 함
-        const organizationId = "ORG001"; // 임시 하드코딩
+
+        // 개인회원은 사용자 관리 기능 불필요
+        if (currentUser.memberType === 'individual') {
+          setUsers([]);
+          setLoading(false);
+          return;
+        }
+
+        // 법인회원: organizationId로 같은 조직 사용자 조회
+        const organizationId = currentUser.organizationId || currentUser.id;
         const data = await getOrganizationUsers(organizationId);
         setUsers(data);
       } catch (err) {
@@ -121,7 +131,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
     };
 
     fetchUsers();
-  }, []);
+  }, [currentUser]);
 
   const getStatusColor = (status: UserStatus) => {
     const colors = {
