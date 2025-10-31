@@ -46,6 +46,8 @@ export interface SignupData {
   kycReviewData?: any
   fundSource?: string
   fundSourceDetail?: string
+  transactionPurpose?: string
+  transactionPurposeDetail?: string
   // PASS 본인인증 관련 (신규)
   passVerified?: boolean
   passName?: string
