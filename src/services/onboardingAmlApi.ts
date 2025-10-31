@@ -494,10 +494,11 @@ export async function requestIndividualAmlRescan(
 export async function fetchCorporateOnboardings(
   query: OnboardingListQuery = {}
 ): Promise<OnboardingListResponse<CorporateOnboarding>> {
-  // 실제 DB에서 법인 회원 조회
+  // 실제 DB에서 법인 대표 계정만 조회
   try {
     const params = new URLSearchParams({
       memberType: 'corporate',
+      isOrganizationOwner: 'true',  // 법인 대표 계정만
       _page: String(query.page || 1),
       _limit: String(query.limit || 20),
       _sort: 'createdAt',
