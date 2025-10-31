@@ -4,25 +4,38 @@
  */
 
 /**
- * eKYC idCardType 매핑 (숫자 → 한글 표시)
+ * eKYC idCardType 매핑 (eKYC 원본값 → 한글 표시)
  *
- * @param idCardType - eKYC에서 반환된 신분증 유형 번호
+ * @param idCardType - eKYC에서 반환된 신분증 유형 (1, 2, 3, 4, 5-1, 5-2, 5-3)
  * @returns 한글 신분증 유형 또는 기본값
  */
-export function getIdCardTypeLabel(idCardType: number | null | undefined): string {
+export function getIdCardTypeLabel(idCardType: string | null | undefined): string {
   if (!idCardType) {
     return '미확인';
   }
 
-  const idCardTypeMap: Record<number, string> = {
-    1: '주민등록증',
-    2: '운전면허증',
-    3: '한국여권',
-    4: '외국인여권',
-    5: '외국인등록증',
+  const idCardTypeMap: Record<string, string> = {
+    '1': '주민등록증',
+    '2': '운전면허증',
+    '3': '한국여권',
+    '4': '외국인여권',
+    '5-1': '외국인등록증',
+    '5-2': '국내거소신고증',
+    '5-3': '영주증',
   };
 
   return idCardTypeMap[idCardType] || '기타 신분증';
+}
+
+/**
+ * 외국인 신분증 여부 확인
+ *
+ * @param idCardType - eKYC 신분증 유형
+ * @returns 외국인 신분증 여부
+ */
+export function isForeignIdCard(idCardType: string | null | undefined): boolean {
+  if (!idCardType) return false;
+  return idCardType === '4' || idCardType.startsWith('5-');
 }
 
 /**

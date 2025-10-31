@@ -42,9 +42,16 @@ export interface ReviewNote {
 // ===========================
 
 /**
- * 신분증 타입
+ * 신분증 타입 (eKYC 원본값)
+ * 1: 주민등록증
+ * 2: 운전면허증
+ * 3: 한국여권
+ * 4: 외국인여권
+ * 5-1: 외국인등록증
+ * 5-2: 국내거소신고증
+ * 5-3: 영주증
  */
-export type IdType = 'RESIDENT_CARD' | 'DRIVER_LICENSE' | 'PASSPORT';
+export type IdCardType = '1' | '2' | '3' | '4' | '5-1' | '5-2' | '5-3';
 
 /**
  * 주소 증명 타입
