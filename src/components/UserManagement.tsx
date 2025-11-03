@@ -12,6 +12,8 @@ import {
   ClockIcon,
   XMarkIcon,
   CheckIcon,
+  EllipsisVerticalIcon,
+  EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -30,6 +32,7 @@ import {
   updateOrganizationUser,
   deleteOrganizationUser,
   getPermissionLogs,
+  resendVerificationEmail,
   PermissionLog,
 } from "@/lib/api/organizationUsers";
 import {
@@ -42,12 +45,12 @@ import {
 import {
   getRoleColor
 } from "@/utils/permissionUtils";
-import PermissionPreview from "@/components/user/PermissionPreview";
 import PermissionHistory from "@/components/user/PermissionHistory";
 import { PermissionChangeLog } from "@/types/permission";
 import { useCompany } from "@/contexts/CompanyContext";
 import { EmailValidationResult } from "@/types/company";
 import { validateEmailDomain } from "@/utils/emailValidation";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserManagementProps {
   plan: ServicePlan;
@@ -55,6 +58,7 @@ interface UserManagementProps {
 
 export default function UserManagement({ plan }: UserManagementProps) {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<UserRole | "all">("all");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -98,6 +102,9 @@ export default function UserManagement({ plan }: UserManagementProps) {
   const [error, setError] = useState<string | null>(null);
   const [permissionLogs, setPermissionLogs] = useState<PermissionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  // 드롭다운 메뉴 상태
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const { t, language } = useLanguage();
   const { companySettings } = useCompany();
@@ -268,13 +275,21 @@ export default function UserManagement({ plan }: UserManagementProps) {
   const handleAddUser = async () => {
     // 이메일 검증 확인
     if (!emailValidation.valid) {
-      alert(emailValidation.message || "이메일 주소를 확인해주세요.");
+      toast({
+        variant: "destructive",
+        title: "이메일 오류",
+        description: emailValidation.message || "이메일 주소를 확인해주세요.",
+      });
       return;
     }
 
     // 이메일 중복 확인
     if (emailDuplicate.isDuplicate) {
-      alert("이미 사용 중인 이메일 주소입니다.");
+      toast({
+        variant: "destructive",
+        title: "이메일 중복",
+        description: "이미 사용 중인 이메일 주소입니다.",
+      });
       return;
     }
 
@@ -319,7 +334,11 @@ export default function UserManagement({ plan }: UserManagementProps) {
       }, 5000);
     } catch (error) {
       console.error("Failed to add user:", error);
-      alert(error instanceof Error ? error.message : '사용자 추가에 실패했습니다.');
+      toast({
+        variant: "destructive",
+        title: "사용자 추가 실패",
+        description: error instanceof Error ? error.message : '사용자 추가에 실패했습니다.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -369,7 +388,11 @@ export default function UserManagement({ plan }: UserManagementProps) {
       }, 5000);
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert(error instanceof Error ? error.message : '사용자 수정에 실패했습니다.');
+      toast({
+        variant: "destructive",
+        title: "사용자 수정 실패",
+        description: error instanceof Error ? error.message : '사용자 수정에 실패했습니다.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -399,6 +422,27 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }
     setDeactivatingUser(user);
     setShowDeactivateModal(true);
+    setOpenDropdownId(null); // 드롭다운 닫기
+  };
+
+  const handleResendEmail = async (user: OrganizationUser) => {
+    setOpenDropdownId(null); // 드롭다운 닫기
+
+    try {
+      await resendVerificationEmail(user.id);
+
+      toast({
+        title: "이메일 재발송 완료",
+        description: `${user.name} (${user.email})에게 검증 이메일을 재발송했습니다.`,
+      });
+    } catch (error) {
+      console.error('이메일 재발송 실패:', error);
+      toast({
+        variant: "destructive",
+        title: "이메일 재발송 실패",
+        description: error instanceof Error ? error.message : "이메일 재발송에 실패했습니다.",
+      });
+    }
   };
 
   const confirmDeactivate = async () => {
@@ -597,35 +641,79 @@ export default function UserManagement({ plan }: UserManagementProps) {
                     {user.lastLogin ? formatDate(user.lastLogin) : "로그인 기록 없음"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
+                    <div className="relative inline-block text-left">
                       <button
-                        onClick={() => handleEditUser(user)}
-                        className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="사용자 정보 및 권한 수정"
-                        disabled={user.status === 'inactive'}
+                        onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
+                        className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100"
+                        title="작업"
                       >
-                        <PencilIcon className="w-4 h-4" />
+                        <EllipsisVerticalIcon className="w-5 h-5" />
                       </button>
-                      <button
-                        onClick={() => handleShowHistory(user)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="권한 변경 이력"
-                      >
-                        <ClockIcon className="w-4 h-4" />
-                      </button>
-                      {currentUser && hasPermission(currentUser, 'users.deactivate') && (
-                        <button
-                          onClick={() => handleDeactivateUser(user)}
-                          className={`${
-                            user.status === 'inactive'
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-red-600 hover:text-red-900'
-                          }`}
-                          title={user.status === 'inactive' ? '비활성화된 사용자' : '사용자 비활성화'}
-                          disabled={user.status === 'inactive'}
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+
+                      {/* 드롭다운 메뉴 */}
+                      {openDropdownId === user.id && (
+                        <>
+                          {/* 백드롭 */}
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setOpenDropdownId(null)}
+                          />
+
+                          {/* 메뉴 */}
+                          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                            <div className="py-1">
+                              {/* 수정 */}
+                              {currentUser && hasPermission(currentUser, 'users.edit') && (
+                                <button
+                                  onClick={() => {
+                                    handleEditUser(user);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  disabled={user.status === 'inactive'}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                >
+                                  <PencilIcon className="w-4 h-4 mr-3" />
+                                  사용자 수정
+                                </button>
+                              )}
+
+                              {/* 이메일 재발송 */}
+                              {currentUser && hasPermission(currentUser, 'users.resend_email') && (
+                                <button
+                                  onClick={() => handleResendEmail(user)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                                >
+                                  <EnvelopeIcon className="w-4 h-4 mr-3" />
+                                  이메일 재발송
+                                </button>
+                              )}
+
+                              {/* 변경 이력 */}
+                              <button
+                                onClick={() => {
+                                  handleShowHistory(user);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                              >
+                                <ClockIcon className="w-4 h-4 mr-3" />
+                                권한 변경 이력
+                              </button>
+
+                              {/* 비활성화 */}
+                              {currentUser && hasPermission(currentUser, 'users.deactivate') && (
+                                <button
+                                  onClick={() => handleDeactivateUser(user)}
+                                  disabled={user.status === 'inactive'}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-gray-100 flex items-center border-t border-gray-100"
+                                >
+                                  <TrashIcon className="w-4 h-4 mr-3" />
+                                  사용자 비활성화
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   </td>
@@ -750,12 +838,34 @@ export default function UserManagement({ plan }: UserManagementProps) {
                   />
                   <div className="flex-1">
                     <div className="font-medium">{ROLE_NAMES[role]}</div>
-                    <div className="text-sm opacity-75 mt-1">
-                      {role === 'admin' && '시스템 전체 관리'}
-                      {role === 'manager' && '정책 설정, 사용자 관리, 승인'}
-                      {role === 'operator' && '일반 거래 처리'}
-                      {role === 'viewer' && '데이터 조회, 리포트 확인'}
-                    </div>
+                    <ul className="text-xs opacity-75 mt-1.5 space-y-0.5">
+                      {role === 'admin' && (
+                        <>
+                          <li>• 사용자 생성/비활성화</li>
+                          <li>• 시스템 설정</li>
+                          <li>• 구독 관리</li>
+                          <li>• 그룹 수정/예산 관리</li>
+                        </>
+                      )}
+                      {role === 'manager' && (
+                        <>
+                          <li>• 그룹 승인/반려</li>
+                          <li>• 출금 승인/반려</li>
+                        </>
+                      )}
+                      {role === 'operator' && (
+                        <>
+                          <li>• 그룹 생성/중지</li>
+                          <li>• 출금 신청/정지</li>
+                        </>
+                      )}
+                      {role === 'viewer' && (
+                        <>
+                          <li>• 모든 조회만 가능</li>
+                          <li>• 생성/수정/승인 모두 불가</li>
+                        </>
+                      )}
+                    </ul>
                   </div>
                   {newUser.role === role && (
                     <CheckIcon className="w-5 h-5 text-current flex-shrink-0" />
@@ -765,10 +875,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
             </div>
           </div>
 
-          {/* 권한 미리보기 */}
-          <PermissionPreview role={newUser.role} />
-
-            <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4">
               <button
                 onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -902,12 +1009,34 @@ export default function UserManagement({ plan }: UserManagementProps) {
                       />
                       <div className="flex-1">
                         <div className="font-medium">{ROLE_NAMES[role]}</div>
-                        <div className="text-sm opacity-75 mt-1">
-                          {role === 'admin' && '시스템 전체 관리'}
-                          {role === 'manager' && '정책 설정, 사용자 관리, 승인'}
-                          {role === 'operator' && '일반 거래 처리'}
-                          {role === 'viewer' && '데이터 조회, 리포트 확인'}
-                        </div>
+                        <ul className="text-xs opacity-75 mt-1.5 space-y-0.5">
+                          {role === 'admin' && (
+                            <>
+                              <li>• 사용자 생성/비활성화</li>
+                              <li>• 시스템 설정</li>
+                              <li>• 구독 관리</li>
+                              <li>• 그룹 수정/예산 관리</li>
+                            </>
+                          )}
+                          {role === 'manager' && (
+                            <>
+                              <li>• 그룹 승인/반려</li>
+                              <li>• 출금 승인/반려</li>
+                            </>
+                          )}
+                          {role === 'operator' && (
+                            <>
+                              <li>• 그룹 생성/중지</li>
+                              <li>• 출금 신청/정지</li>
+                            </>
+                          )}
+                          {role === 'viewer' && (
+                            <>
+                              <li>• 모든 조회만 가능</li>
+                              <li>• 생성/수정/승인 모두 불가</li>
+                            </>
+                          )}
+                        </ul>
                       </div>
                       {editingUser.role === role && (
                         <CheckIcon className="w-5 h-5 text-current flex-shrink-0" />
@@ -916,9 +1045,6 @@ export default function UserManagement({ plan }: UserManagementProps) {
                   ))}
                 </div>
               </div>
-
-              {/* 권한 미리보기 */}
-              <PermissionPreview role={editingUser.role} />
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button

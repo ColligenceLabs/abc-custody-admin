@@ -49,165 +49,195 @@ interface RolePermissions {
 // 권한체계 설계서 기반 역할별 권한 정보
 const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
   admin: {
-    description: "시스템 관리 및 사용자 관리 전용. 신청/승인 업무에서 분리됨.",
+    description: "시스템 관리자. 사용자 생성/비활성화, 시스템 설정, 구독 관리 담당.",
     categories: [
       {
         name: "사용자 관리",
         icon: UserIcon,
-        permissions: ["사용자 생성", "사용자 목록 조회", "사용자 수정", "사용자 비활성화", "권한 관리"],
+        permissions: ["사용자 생성", "사용자 수정", "사용자 비활성화", "이메일 재발송"],
         hasAccess: true
       },
       {
         name: "그룹 관리",
         icon: UserGroupIcon,
-        permissions: ["그룹 목록 조회", "그룹 수정", "예산 관리"],
+        permissions: ["그룹 수정", "예산 관리"],
         hasAccess: "partial",
-        restrictions: ["그룹 생성 신청 불가", "그룹 승인/반려 불가"]
+        restrictions: ["그룹 생성 불가", "승인/반려 불가"]
       },
       {
-        name: "입출금 관리",
+        name: "입금 관리",
         icon: BanknotesIcon,
-        permissions: ["입출금 내역 조회"],
+        permissions: ["입금 주소 조회", "입금 히스토리", "자산 추가"],
         hasAccess: "partial",
-        restrictions: ["출금 신청 불가", "출금 승인 불가", "입금 생성 불가", "입금 승인 불가"]
+        restrictions: ["입금 생성 불가", "입금 승인 불가"]
       },
       {
-        name: "거래내역",
-        icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "CSV 다운로드", "거래 검색/필터링"],
-        hasAccess: true
+        name: "출금 관리",
+        icon: BanknotesIcon,
+        permissions: ["출금 내역 조회"],
+        hasAccess: "partial",
+        restrictions: ["출금 신청 불가", "승인/반려 불가"]
       },
       {
-        name: "시스템 설정",
+        name: "부가서비스",
         icon: SparklesIcon,
-        permissions: ["시스템 설정 변경", "구독 관리", "결제 정보 관리", "회사 정보 설정"],
+        permissions: ["스테이킹", "대출 신청", "교환", "가상자산 판매/구매"],
         hasAccess: true
       },
       {
-        name: "감사 추적",
-        icon: DocumentTextIcon,
-        permissions: ["감사 추적 조회", "시스템 로그 조회"],
+        name: "마이페이지",
+        icon: CogIcon,
+        permissions: ["보안 설정", "주소 관리", "계좌 연동"],
+        hasAccess: true
+      },
+      {
+        name: "시스템 관리",
+        icon: ShieldCheckIcon,
+        permissions: ["시스템 설정", "구독 관리"],
         hasAccess: true
       }
     ],
-    keyPermissions: ["사용자 생성/비활성화", "시스템 설정 변경", "구독 관리", "그룹 예산 관리"]
+    keyPermissions: ["사용자 생성/비활성화", "시스템 설정", "구독 관리", "그룹 수정/예산 관리"]
   },
   manager: {
-    description: "승인 전용. 그룹/출금/입금 승인 담당, 생성 불가.",
+    description: "매니저. 그룹/출금/입금 승인/반려 담당, 생성 불가.",
     categories: [
       {
         name: "그룹 관리",
         icon: UserGroupIcon,
-        permissions: ["그룹 목록 조회", "그룹 승인/반려"],
+        permissions: ["그룹 승인", "그룹 반려"],
         hasAccess: "partial",
         restrictions: ["그룹 생성 불가", "그룹 수정 불가"]
       },
       {
-        name: "입출금 관리",
+        name: "출금 관리",
         icon: BanknotesIcon,
-        permissions: ["입출금 내역 조회", "출금 승인/반려", "입금 승인"],
+        permissions: ["출금 승인", "출금 반려"],
         hasAccess: "partial",
-        restrictions: ["출금 신청 불가", "입금 생성 불가"]
+        restrictions: ["출금 신청 불가", "출금 정지 불가"]
+      },
+      {
+        name: "입금 관리",
+        icon: BanknotesIcon,
+        permissions: ["입금 내역 조회"],
+        hasAccess: "partial",
+        restrictions: ["입금 생성 불가", "자산 추가 불가"]
       },
       {
         name: "거래내역",
         icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "CSV 다운로드"],
-        hasAccess: true
-      },
-      {
-        name: "사용자 조회",
-        icon: UserIcon,
-        permissions: ["사용자 목록 조회"],
-        hasAccess: "partial",
-        restrictions: ["사용자 생성/수정 불가"]
-      },
-      {
-        name: "감사 추적",
-        icon: DocumentTextIcon,
-        permissions: ["감사 추적 조회"],
-        hasAccess: true
-      }
-    ],
-    keyPermissions: ["그룹 승인/반려", "출금 승인/반려", "입금 승인"]
-  },
-  operator: {
-    description: "신청 전용. 그룹/출금/입금 생성 담당, 승인 불가.",
-    categories: [
-      {
-        name: "그룹 관리",
-        icon: UserGroupIcon,
-        permissions: ["그룹 목록 조회", "그룹 생성 신청"],
-        hasAccess: "partial",
-        restrictions: ["그룹 승인/반려 불가", "그룹 수정 불가"]
-      },
-      {
-        name: "입출금 관리",
-        icon: BanknotesIcon,
-        permissions: ["입출금 내역 조회", "출금 신청", "입금 생성"],
-        hasAccess: "partial",
-        restrictions: ["출금 승인/반려 불가", "입금 승인 불가"]
-      },
-      {
-        name: "거래내역",
-        icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "CSV 다운로드"],
+        permissions: ["거래내역 조회", "다운로드"],
         hasAccess: true
       },
       {
         name: "사용자 관리",
         icon: UserIcon,
-        permissions: [],
-        hasAccess: false,
-        restrictions: ["사용자 관리 권한 없음"]
+        permissions: ["사용자 목록 조회"],
+        hasAccess: "partial",
+        restrictions: ["사용자 생성/수정/비활성화 불가"]
       },
       {
-        name: "감사 추적",
-        icon: DocumentTextIcon,
-        permissions: ["감사 추적 조회"],
-        hasAccess: true
+        name: "부가서비스",
+        icon: SparklesIcon,
+        permissions: ["조회만 가능"],
+        hasAccess: "partial",
+        restrictions: ["생성/실행 불가"]
       }
     ],
-    keyPermissions: ["그룹 생성 신청", "출금 신청", "입금 생성"]
+    keyPermissions: ["그룹 승인/반려", "출금 승인/반려"]
   },
-  viewer: {
-    description: "조회 전용. 모든 생성/수정/승인 불가.",
+  operator: {
+    description: "운영자. 그룹 생성/중지, 출금 신청/정지 담당.",
     categories: [
       {
         name: "그룹 관리",
         icon: UserGroupIcon,
-        permissions: ["그룹 목록 조회"],
+        permissions: ["그룹 생성", "그룹 수정", "그룹 중지", "처리 완료"],
         hasAccess: "partial",
-        restrictions: ["그룹 생성 불가", "그룹 승인 불가"]
+        restrictions: ["승인/반려 불가"]
+      },
+      {
+        name: "출금 관리",
+        icon: BanknotesIcon,
+        permissions: ["출금 신청", "출금 정지"],
+        hasAccess: "partial",
+        restrictions: ["승인/반려 불가"]
+      },
+      {
+        name: "입금 관리",
+        icon: BanknotesIcon,
+        permissions: ["입금 내역 조회"],
+        hasAccess: "partial",
+        restrictions: ["입금 생성 불가", "자산 추가 불가"]
+      },
+      {
+        name: "거래내역",
+        icon: ChartBarIcon,
+        permissions: ["거래내역 조회", "다운로드"],
+        hasAccess: true
+      },
+      {
+        name: "사용자 관리",
+        icon: UserIcon,
+        permissions: ["사용자 목록 조회"],
+        hasAccess: "partial",
+        restrictions: ["사용자 생성/수정/비활성화 불가"]
+      },
+      {
+        name: "부가서비스",
+        icon: SparklesIcon,
+        permissions: ["조회만 가능"],
+        hasAccess: "partial",
+        restrictions: ["생성/실행 불가"]
+      }
+    ],
+    keyPermissions: ["그룹 생성/중지", "출금 신청/정지"]
+  },
+  viewer: {
+    description: "조회자. 조회 전용, 모든 생성/수정/승인 불가.",
+    categories: [
+      {
+        name: "그룹 관리",
+        icon: UserGroupIcon,
+        permissions: ["그룹 목록 조회", "감사 추적", "CSV 내보내기"],
+        hasAccess: "partial",
+        restrictions: ["그룹 생성 불가", "승인/반려 불가"]
       },
       {
         name: "입출금 관리",
         icon: BanknotesIcon,
         permissions: ["입출금 내역 조회"],
         hasAccess: "partial",
-        restrictions: ["출금 신청 불가", "출금 승인 불가", "입금 생성 불가", "입금 승인 불가"]
+        restrictions: ["출금 신청 불가", "승인/반려 불가", "입금 생성 불가"]
       },
       {
         name: "거래내역",
         icon: ChartBarIcon,
-        permissions: ["거래내역 조회", "CSV 다운로드"],
+        permissions: ["거래내역 조회", "다운로드"],
         hasAccess: true
       },
       {
         name: "사용자 관리",
         icon: UserIcon,
-        permissions: [],
-        hasAccess: false,
-        restrictions: ["사용자 관리 권한 없음"]
+        permissions: ["사용자 목록 조회"],
+        hasAccess: "partial",
+        restrictions: ["사용자 생성/수정/비활성화 불가"]
       },
       {
-        name: "감사 추적",
-        icon: DocumentTextIcon,
-        permissions: ["감사 추적 조회"],
+        name: "부가서비스",
+        icon: SparklesIcon,
+        permissions: ["조회만 가능"],
+        hasAccess: "partial",
+        restrictions: ["생성/실행 불가"]
+      },
+      {
+        name: "마이페이지",
+        icon: CogIcon,
+        permissions: ["개인정보", "본인인증", "eKYC", "AML 재이행"],
         hasAccess: true
       }
     ],
-    keyPermissions: ["모든 데이터 조회", "거래 내역 확인", "리포트 다운로드"]
+    keyPermissions: ["모든 조회만 가능", "생성/수정/승인 모두 불가"]
   }
 };
 
@@ -228,79 +258,28 @@ export default function PermissionPreview({
 
       {/* 역할 정보 */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center mb-2">
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(role)}`}>
             {ROLE_NAMES[role]}
           </span>
-          <span className="text-xs text-gray-500">
-            {isAdmin ? '전체 시스템 권한' :
-             role === 'manager' ? '관리 및 승인 권한' :
-             role === 'operator' ? '실무 작업 권한' :
-             '조회 전용 권한'}
-          </span>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 mb-3">
           {roleData.description}
         </p>
-      </div>
 
-      {/* 관리자 안내 메시지 */}
-      {isAdmin && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center">
-            <ShieldCheckIcon className="w-4 h-4 text-indigo-600 mr-2" />
-            <p className="text-sm font-medium text-indigo-800">
-              모든 시스템 기능 사용 가능
-            </p>
-          </div>
+        {/* 주요 권한 */}
+        <div className="p-3 bg-sky-50 border border-sky-200 rounded-lg">
+          <h4 className="text-sm font-medium text-sky-900 mb-2">주요 권한</h4>
+          <ul className="space-y-1">
+            {roleData.keyPermissions.map((permission, index) => (
+              <li key={index} className="flex items-start text-xs text-sky-700">
+                <CheckIcon className="w-3 h-3 text-sky-600 mr-1.5 mt-0.5 flex-shrink-0" />
+                <span>{permission}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
-
-      {/* 간략한 권한 요약 */}
-      <div className="grid grid-cols-2 gap-2">
-        {roleData.categories.map((category) => {
-          const IconComponent = category.icon;
-          const hasFullAccess = category.hasAccess === true;
-          const hasPartialAccess = category.hasAccess === "partial";
-          const hasNoAccess = category.hasAccess === false;
-
-          return (
-            <div key={category.name} className="flex items-center p-2 bg-white border border-gray-200 rounded text-sm">
-              <IconComponent className={`w-4 h-4 mr-2 flex-shrink-0 ${
-                isAdmin ? 'text-indigo-600' :
-                hasFullAccess ? 'text-sky-600' :
-                hasPartialAccess ? 'text-yellow-600' :
-                'text-gray-400'
-              }`} />
-              <span className={`text-xs font-medium flex-1 ${
-                isAdmin ? 'text-indigo-900' :
-                hasFullAccess ? 'text-sky-900' :
-                hasPartialAccess ? 'text-yellow-900' :
-                'text-gray-500'
-              }`}>
-                {category.name}
-              </span>
-              {hasFullAccess || isAdmin ? (
-                <CheckIcon className="w-3 h-3 text-sky-600 flex-shrink-0" />
-              ) : hasPartialAccess ? (
-                <span className="text-yellow-600 text-xs">부분</span>
-              ) : (
-                <XMarkIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
-              )}
-            </div>
-          );
-        })}
       </div>
-
-      {/* 주요 권한 */}
-      {roleData.keyPermissions.length > 0 && (
-        <div className="mt-4 p-3 bg-sky-50 border border-sky-200 rounded-lg">
-          <h4 className="text-sm font-medium text-sky-900 mb-1">주요 권한</h4>
-          <div className="text-xs text-sky-700">
-            {roleData.keyPermissions.join(', ')}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

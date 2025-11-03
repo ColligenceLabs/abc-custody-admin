@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { ServicePlan } from "@/app/page";
 import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissionUtils";
 import CompanySettingsTab from "./CompanySettingsTab";
 import CorporateSubscriptionTab from "./CorporateSubscriptionTab";
 import IndividualSubscriptionTab from "./IndividualSubscriptionTab";
@@ -67,7 +68,7 @@ export default function SettingManagement({
               name: "회사 정보",
               icon: BuildingOfficeIcon,
               description: "브랜딩 및 도메인 설정",
-              visible: user?.memberType === 'corporate',
+              visible: user?.memberType === 'corporate' && user && hasPermission(user, 'system.manage'),
             },
             {
               id: "subscription",
@@ -94,7 +95,9 @@ export default function SettingManagement({
       </div>
 
       {/* 회사 정보 탭 */}
-      {activeTab === "company" && <CompanySettingsTab />}
+      {activeTab === "company" && user && hasPermission(user, 'system.manage') && (
+        <CompanySettingsTab />
+      )}
 
       {/* 구독 관리 탭 - 회원 유형에 따라 분기 */}
       {activeTab === "subscription" && (

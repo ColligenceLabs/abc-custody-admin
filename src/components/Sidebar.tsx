@@ -211,7 +211,7 @@ export default function Sidebar({ plan, activeTab, onTabChange, onPlanChange }: 
       name: user?.memberType === 'corporate' ? '설정 및 구독' : '구독 관리',
       icon: WrenchScrewdriverIcon,
       path: '/setting',
-      available: true
+      available: user?.memberType === 'individual' || (user?.memberType === 'corporate' && (user?.role === 'admin' || user?.role === 'viewer'))
     }
   ]
 

@@ -169,3 +169,28 @@ export async function getPermissionLogs(
 
   return response.json();
 }
+
+/**
+ * 이메일 인증 재발송
+ */
+export async function resendVerificationEmail(userId: string): Promise<void> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(
+    `${API_URL}/api/users/${userId}/send-verification-email`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || '이메일 재발송에 실패했습니다.');
+  }
+
+  return response.json();
+}

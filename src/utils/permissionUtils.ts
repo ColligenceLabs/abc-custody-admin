@@ -24,11 +24,6 @@ export function hasPermission(user: User, permission: string): boolean {
     return true;
   }
 
-  // 기업회원: 관리자는 모든 권한 보유
-  if (user.role === 'admin' || user.permissions.includes('permission.all')) {
-    return true;
-  }
-
   // 기업회원: 권한 배열에서 확인
   return user.permissions.includes(permission);
 }
