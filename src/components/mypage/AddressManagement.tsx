@@ -83,8 +83,10 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
         setIsLoading(true);
         setError(null);
 
-        // userId로 주소 목록 조회
-        const data = await getAddresses(user.id);
+        // 법인회원: 조직의 모든 주소 조회, 개인회원: 본인 주소만 조회
+        const data = user.memberType === 'corporate' && user.organizationId
+          ? await getAddresses(undefined, user.organizationId)
+          : await getAddresses(user.id);
 
         // 일일 사용량 리셋이 필요한 주소 처리
         const updatedAddresses = data.map(resetDailyUsageIfNeeded);
@@ -396,13 +398,16 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
                     <option value="both">입출금 모두</option>
                   </select>
                 </div>
-                <button
-                  onClick={openPersonalModal}
-                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  개인 지갑 주소 추가
-                </button>
+                {/* 개인회원은 항상 표시, 법인회원은 Admin만 표시 */}
+                {(user?.memberType === 'individual' || user?.role === 'admin') && (
+                  <button
+                    onClick={openPersonalModal}
+                    className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    개인 지갑 주소 추가
+                  </button>
+                )}
               </div>
             </div>
 
@@ -446,13 +451,16 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
                     <option value="both">입출금 모두</option>
                   </select>
                 </div>
-                <button
-                  onClick={openVaspModal}
-                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  거래소/VASP 주소 추가
-                </button>
+                {/* 개인회원은 항상 표시, 법인회원은 Admin만 표시 */}
+                {(user?.memberType === 'individual' || user?.role === 'admin') && (
+                  <button
+                    onClick={openVaspModal}
+                    className="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    거래소/VASP 주소 추가
+                  </button>
+                )}
               </div>
             </div>
 
