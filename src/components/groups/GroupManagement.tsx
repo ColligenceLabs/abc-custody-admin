@@ -26,6 +26,7 @@ import { mockGroups } from "@/data/groupMockData";
 import { MOCK_USERS } from "@/data/userMockData";
 import BudgetSetupForm from "./BudgetSetupForm";
 import BudgetDistribution from "./BudgetDistribution";
+import { createGroup } from "@/services/groupApi";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -554,7 +555,7 @@ export default function GroupManagement({
     }
   };
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     const validApprovers = requiredApprovers.filter((id) => id !== "");
 
     // budgetSetup에서 기존 예산 필드로 데이터 복사
@@ -655,49 +656,80 @@ export default function GroupManagement({
         alert("그룹 정보가 수정되었습니다.");
       }
     } else {
-      // 생성 모드
-      const groupRequest = {
-        id: `req-${Date.now()}`,
-        ...newGroup,
-        monthlyBudget: getCurrentMonthBudget(),
-        quarterlyBudget: getCurrentQuarterBudget(),
-        yearlyBudget: getYearlyBudget(),
-        status: "pending",
-        requestedBy: "현재사용자", // TODO: 실제 사용자 정보
-        requestedAt: new Date().toISOString(),
-        requiredApprovals: validApprovers,
-        approvals: [],
-        rejections: [],
-      };
-
-      console.log("Creating group approval request:", groupRequest);
-
-      // 임시로 새 그룹을 groups 상태에 추가 (실제로는 승인 후 추가되어야 함)
-      const newGroupForList: WalletGroup = {
-        ...groupRequest,
-        id: `group-${Date.now()}`,
-        balance: { amount: 0, currency: newGroup.currency },
-        budgetUsed: { amount: 0, currency: newGroup.currency },
-        quarterlyBudgetUsed: { amount: 0, currency: newGroup.currency },
-        yearlyBudgetUsed: { amount: 0, currency: newGroup.currency },
-        members: [],
-        createdAt: new Date().toISOString().split("T")[0],
-        status: "pending",
-        requiredApprovals: validApprovers,
-        budgetSetup: newGroup.budgetSetup || undefined,
-      };
-
-      setGroups((prevGroups) => [...prevGroups, newGroupForList]);
-
-      if (onCreateGroupRequest) {
-        onCreateGroupRequest(groupRequest);
+      // 생성 모드 - API 호출
+      if (!currentUser) {
+        alert("사용자 정보를 찾을 수 없습니다.");
+        return;
       }
 
-      if (onCreateGroup) {
-        onCreateGroup();
-      }
+      try {
+        // 백엔드 API 요청 데이터 준비
+        const apiRequest = {
+          name: newGroup.name,
+          type: newGroup.type,
+          description: newGroup.description,
+          currency: newGroup.currency,
+          budgetYear: newGroup.budgetSetup?.year || new Date().getFullYear(),
+          yearlyBudgetAmount: newGroup.budgetSetup?.yearlyBudget || 0,
+          monthlyBudgets: newGroup.budgetSetup?.monthlyBudgets.map(mb => ({
+            month: mb.month,
+            amount: mb.amount
+          })) || [],
+          quarterlyBudgets: newGroup.budgetSetup?.quarterlyBudgets.map(qb => ({
+            quarter: qb.quarter,
+            amount: qb.amount
+          })) || [],
+          approverIds: validApprovers,
+          organizationId: currentUser.organizationId || currentUser.id,
+          requestedBy: currentUser.id
+        };
 
-      alert("그룹 생성 요청이 승인 대기 상태로 등록되었습니다.");
+        console.log('[handleCreateGroup] API Request:', apiRequest);
+
+        // 백엔드 API 호출
+        const createdGroup = await createGroup(apiRequest);
+
+        console.log('[handleCreateGroup] Group created:', createdGroup);
+
+        // 로컬 상태 업데이트 (UI 즉시 반영)
+        const newGroupForList: WalletGroup = {
+          id: createdGroup.id,
+          name: createdGroup.name,
+          type: createdGroup.type,
+          description: createdGroup.description,
+          currency: createdGroup.currency,
+          balance: { amount: 0, currency: createdGroup.currency },
+          monthlyBudget: getCurrentMonthBudget(),
+          quarterlyBudget: getCurrentQuarterBudget(),
+          yearlyBudget: getYearlyBudget(),
+          budgetUsed: { amount: 0, currency: createdGroup.currency },
+          quarterlyBudgetUsed: { amount: 0, currency: createdGroup.currency },
+          yearlyBudgetUsed: { amount: 0, currency: createdGroup.currency },
+          members: [],
+          createdAt: createdGroup.createdAt,
+          status: createdGroup.status,
+          requiredApprovals: validApprovers,
+          budgetSetup: newGroup.budgetSetup || undefined,
+          requestedBy: createdGroup.requestedBy,
+          requestedAt: createdGroup.requestedAt,
+        };
+
+        setGroups((prevGroups) => [...prevGroups, newGroupForList]);
+
+        if (onCreateGroupRequest) {
+          onCreateGroupRequest(newGroupForList);
+        }
+
+        if (onCreateGroup) {
+          onCreateGroup();
+        }
+
+        alert("그룹 생성 요청이 DB에 저장되었습니다. 승인 대기 중입니다.");
+      } catch (error: any) {
+        console.error('[handleCreateGroup] 그룹 생성 실패:', error);
+        alert(`그룹 생성 실패: ${error.response?.data?.message || error.message}`);
+        return;
+      }
     }
 
     // 초기화
