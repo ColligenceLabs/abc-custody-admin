@@ -210,9 +210,9 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
 
   // 필터링 및 페이지네이션 로직
   const getFilteredRequests = () => {
-    // 반려 및 아카이브된 항목 제외 (pending, approved만 표시)
+    // pending 상태만 표시 (승인 완료, 반려, 아카이브 제외)
     let filtered = requests.filter(
-      (request) => request.status === "pending" || request.status === "approved"
+      (request) => request.status === "pending"
     );
 
     // 상태 필터
