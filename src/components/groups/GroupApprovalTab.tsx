@@ -880,7 +880,7 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                       필수 결재자 승인 현황
                     </h6>
                     <div className="space-y-3 mb-4">
-                      {selectedRequest.requiredApprovals.map(
+                      {(selectedRequest.requiredApprovals || []).map(
                         (approver, index) => {
                           const state = getApprovalState(
                             approver,
@@ -928,10 +928,10 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                     <div className="pt-3 border-t border-gray-200">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">
-                          승인 진행률: {selectedRequest.approvals.length}/
-                          {selectedRequest.requiredApprovals.length}
-                          {selectedRequest.rejections.length > 0 &&
-                            ` (반려 ${selectedRequest.rejections.length}건)`}
+                          승인 진행률: {selectedRequest.approvals?.length || 0}/
+                          {selectedRequest.requiredApprovals?.length || 0}
+                          {(selectedRequest.rejections?.length || 0) > 0 &&
+                            ` (반려 ${selectedRequest.rejections?.length || 0}건)`}
                         </span>
                         <span
                           className={`font-medium ${
@@ -985,7 +985,7 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                           </div>
                           <div className="mb-3">
                             <span className="text-sm font-medium text-red-900">
-                              {selectedRequest.rejections[0]?.userName ||
+                              {selectedRequest.rejections?.[0]?.userName ||
                                 "관리자"}
                             </span>
                           </div>
