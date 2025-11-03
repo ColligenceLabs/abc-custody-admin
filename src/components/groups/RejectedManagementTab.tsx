@@ -342,12 +342,6 @@ export default function RejectedManagementTab({
                                 <>
                                   <div className="h-4 w-px bg-gray-300"></div>
                                   <button
-                                    onClick={() => onReapprovalRequest(request.id)}
-                                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                                  >
-                                    재승인 요청
-                                  </button>
-                                  <button
                                     onClick={() => onArchive(request.id)}
                                     className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
                                   >
