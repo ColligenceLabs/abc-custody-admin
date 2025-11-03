@@ -22,8 +22,24 @@ export default function LoginPage() {
   const router = useRouter()
   const { authStep, login, verifyOtp, verifySms, sendSms, resetAuth, completeGASetup } = useAuth()
   const { getRequiredAuthSteps } = useSecurityPolicy()
-  const [memberType, setMemberType] = useState<'individual' | 'corporate'>('individual')
-  const [email, setEmail] = useState('')
+  const [memberType, setMemberType] = useState<'individual' | 'corporate'>(() => {
+    // localStorage에서 이전 선택값 불러오기
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('preferred_member_type')
+      if (saved === 'individual' || saved === 'corporate') {
+        return saved
+      }
+    }
+    return 'individual'
+  })
+  const [email, setEmail] = useState(() => {
+    // localStorage에서 마지막 로그인 이메일 불러오기
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('last_login_email')
+      return savedEmail || ''
+    }
+    return ''
+  })
   const [otpCode, setOtpCode] = useState('')
   const [smsCode, setSmsCode] = useState('')
   const [loading, setLoading] = useState(false)
@@ -79,29 +95,17 @@ export default function LoginPage() {
     }
   }, [authStep.step])
 
-  // 회원 유형별 기본 이메일 로드
+  // 회원 유형 변경 시 저장된 이메일이 없으면 초기화
   useEffect(() => {
-    const loadDefaultEmail = async () => {
-      try {
-        const users = await fetch('http://localhost:4000/api/users').then(res => res.json())
-
-        if (memberType === 'individual') {
-          const individualUser = users.find((u: any) => u.memberType === 'individual')
-          if (individualUser) {
-            setEmail(individualUser.email)
-          }
-        } else {
-          const corporateUser = users.find((u: any) => u.email === 'ceo@company.com')
-          if (corporateUser) {
-            setEmail(corporateUser.email)
-          }
-        }
-      } catch (error) {
-        console.error('기본 이메일 로드 실패:', error)
+    // 회원 유형이 변경되었을 때만 실행
+    // 이미 저장된 이메일이 있으면 유지
+    if (!email) {
+      // 이메일이 없는 경우에만 localStorage 확인
+      const savedEmail = localStorage.getItem('last_login_email')
+      if (savedEmail) {
+        setEmail(savedEmail)
       }
     }
-
-    loadDefaultEmail()
   }, [memberType])
 
   // SMS 자동 발송 (OTP 단계 완료 후)
@@ -124,6 +128,8 @@ export default function LoginPage() {
   // 회원 유형 변경 핸들러
   const handleMemberTypeChange = (type: 'individual' | 'corporate') => {
     setMemberType(type)
+    // localStorage에 선택값 저장
+    localStorage.setItem('preferred_member_type', type)
   }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -133,6 +139,8 @@ export default function LoginPage() {
 
     const result = await login(email, memberType)
     if (result.success) {
+      // 로그인 성공 시 이메일 저장
+      localStorage.setItem('last_login_email', email)
       setMessage({ type: 'success', text: result.message || '' })
     } else {
       // 차단 상태인 경우 blocked 페이지로 이동

@@ -26,7 +26,6 @@ import { mockGroups } from "@/data/groupMockData";
 import { MOCK_USERS } from "@/data/userMockData";
 import BudgetSetupForm from "./BudgetSetupForm";
 import BudgetDistribution from "./BudgetDistribution";
-import PolicyBasedApproverSetup from "./PolicyBasedApproverSetup";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -46,6 +45,7 @@ interface GroupManagementProps {
   onCloseCreateModal?: () => void;
   onOpenCreateModal?: () => void;
   onCreateGroupRequest?: (request: any) => void;
+  currentUser?: any; // 현재 로그인한 사용자
 }
 
 // 가상자산 아이콘 컴포넌트
@@ -184,6 +184,7 @@ export default function GroupManagement({
   onCloseCreateModal,
   onOpenCreateModal,
   onCreateGroupRequest,
+  currentUser,
 }: GroupManagementProps) {
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
   const [groups, setGroups] = useState<WalletGroup[]>(mockGroups);
@@ -216,6 +217,36 @@ export default function GroupManagement({
   // 필수 결재자 관련 상태
   const [requiredApprovers, setRequiredApprovers] = useState<string[]>([""]);
 
+  // DB에서 불러온 Manager 목록
+  const [managers, setManagers] = useState<User[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+
+  // DB에서 같은 조직의 Manager 불러오기
+  useEffect(() => {
+    const fetchManagers = async () => {
+      if (!currentUser?.organizationId) return;
+
+      setLoadingManagers(true);
+      try {
+        const API_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const response = await fetch(
+          `${API_URL}/api/users?role=manager&organizationId=${currentUser.organizationId}&status=active`
+        );
+        const data = await response.json();
+        setManagers(data);
+      } catch (error) {
+        console.error("Manager 목록 불러오기 실패:", error);
+        // 실패 시 빈 배열 유지
+        setManagers([]);
+      } finally {
+        setLoadingManagers(false);
+      }
+    };
+
+    fetchManagers();
+  }, [currentUser?.organizationId]);
+
   // 관리자로 선택 가능한 사용자 필터링 (활성 상태이고 admin, manager, required_approver 역할)
   const getEligibleUsers = () => {
     return MOCK_USERS.filter(
@@ -225,20 +256,13 @@ export default function GroupManagement({
     );
   };
 
-  // 결재자로 선택 가능한 사용자 필터링 (활성 상태이고 결재 권한이 있는 역할)
+  // 결재자로 선택 가능한 사용자 필터링 (DB에서 불러온 같은 조직의 Manager만)
   const getEligibleApprovers = (excludeCurrentSelection: boolean = true) => {
     const selectedUserIds = excludeCurrentSelection
       ? requiredApprovers.filter((id) => id !== "")
       : [];
-    const managerUserId = newGroup.manager;
 
-    return MOCK_USERS.filter(
-      (user) =>
-        user.status === "active" &&
-        ["required_approver", "approver", "admin"].includes(user.role) &&
-        !selectedUserIds.includes(user.id) &&
-        user.id !== managerUserId
-    );
+    return managers.filter((user) => !selectedUserIds.includes(user.id));
   };
 
   // 필수 결재자 관리 함수들
@@ -268,7 +292,6 @@ export default function GroupManagement({
     quarterlyBudget: { amount: 0, currency: "BTC" as CryptoCurrency },
     yearlyBudget: { amount: 0, currency: "BTC" as CryptoCurrency },
     budgetSetup: null as BudgetSetup | null, // 새로운 예산 설정
-    manager: "",
   });
 
   // 그룹 자산 변경 시 모든 예산의 자산도 함께 변경
@@ -382,22 +405,20 @@ export default function GroupManagement({
       newGroup.description.trim() !== "" &&
       isBudgetValid();
 
-    // 수정 모드일 때는 관리자와 결재자 검증 제외
+    // 수정 모드일 때는 결재자 검증 제외
     if (isEditMode) {
       return basicFieldsValid;
     }
 
-    // 생성 모드일 때는 관리자, 예산, 결재자 필수
+    // 생성 모드일 때는 예산, 결재자 필수
     // 예산이 설정된 경우에만 결재자가 자동으로 설정됨
-    const hasValidBudget = newGroup.budgetSetup && newGroup.budgetSetup.baseAmount > 0;
-    const hasValidApprovers = hasValidBudget ? validApprovers.length > 0 : false;
+    const hasValidBudget =
+      newGroup.budgetSetup && newGroup.budgetSetup.baseAmount > 0;
+    const hasValidApprovers = hasValidBudget
+      ? validApprovers.length > 0
+      : false;
 
-    return (
-      basicFieldsValid &&
-      newGroup.manager !== "" &&
-      !!hasValidBudget &&
-      hasValidApprovers
-    );
+    return basicFieldsValid && !!hasValidBudget && hasValidApprovers;
   };
 
   // 그룹 상세보기 열기
@@ -1328,31 +1349,6 @@ export default function GroupManagement({
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  관리자 *
-                </label>
-                <select
-                  value={newGroup.manager}
-                  onChange={(e) =>
-                    setNewGroup({ ...newGroup, manager: e.target.value })
-                  }
-                  disabled={isEditMode}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${
-                    isEditMode
-                      ? "bg-gray-50 text-gray-600 cursor-not-allowed"
-                      : "focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  }`}
-                >
-                  <option value="">관리자 선택</option>
-                  {getEligibleUsers().map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.department}) - {ROLE_NAMES[user.role]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* 예산 설정 - 필수 결재자보다 먼저 */}
               <div className="pt-4 border-t border-gray-200">
                 <div className="mb-4">
@@ -1360,7 +1356,8 @@ export default function GroupManagement({
                     예산 설정
                   </h4>
                   <p className="text-xs text-gray-500">
-                    기준 예산을 설정하면 자동으로 하위 기간별 예산이 분배되고, 금액에 따른 필수 결재자가 자동으로 설정됩니다
+                    기준 예산을 설정하면 자동으로 하위 기간별 예산이 분배되고,
+                    금액에 따른 필수 결재자가 자동으로 설정됩니다
                   </p>
                 </div>
 
@@ -1394,18 +1391,99 @@ export default function GroupManagement({
                 </div>
               </div>
 
-              {/* 정책 기반 필수 결재자 설정 */}
-              {newGroup.budgetSetup && newGroup.budgetSetup.baseAmount > 0 && (
-                <div className="pt-4 border-t border-gray-200">
-                  <PolicyBasedApproverSetup
-                    budgetAmount={newGroup.budgetSetup.baseAmount}
-                    currency={newGroup.currency}
-                    onApproversChange={(approvers) => setRequiredApprovers(approvers)}
-                    managerId={newGroup.manager}
-                    disabled={isEditMode}
-                  />
-                </div>
-              )}
+              {/* 승인자(결재자) 설정 */}
+              {newGroup.budgetSetup &&
+                newGroup.budgetSetup.baseAmount > 0 &&
+                !isEditMode && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">
+                        승인자 지정 *
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        그룹 생성을 승인할 Manager를 선택하세요.
+                      </p>
+                    </div>
+
+                    {loadingManagers ? (
+                      <div className="flex items-center justify-center py-4">
+                        <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mr-2" />
+                        <span className="text-sm text-gray-600">
+                          Manager 목록 불러오는 중...
+                        </span>
+                      </div>
+                    ) : managers.length === 0 ? (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          같은 조직에 Manager 역할을 가진 사용자가 없습니다.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {requiredApprovers.map((approverId, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <div className="flex-1">
+                              <select
+                                value={approverId}
+                                onChange={(e) =>
+                                  handleApproverChange(index, e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              >
+                                <option value="">승인자 선택</option>
+                                {getEligibleApprovers(true).map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} ({user.department}) -{" "}
+                                    {ROLE_NAMES[user.role]}
+                                  </option>
+                                ))}
+                                {approverId &&
+                                  !getEligibleApprovers(true).find(
+                                    (u) => u.id === approverId
+                                  ) && (
+                                    <option value={approverId}>
+                                      {managers.find((u) => u.id === approverId)
+                                        ?.name || "선택된 사용자"}
+                                    </option>
+                                  )}
+                              </select>
+                            </div>
+                            {requiredApprovers.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveApprover(index)}
+                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+
+                        {requiredApprovers.filter((id) => id !== "").length <
+                          getEligibleApprovers(false).length && (
+                          <button
+                            type="button"
+                            onClick={handleAddApprover}
+                            className="flex items-center text-sm text-primary-600 hover:text-primary-700"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-1" />
+                            승인자 추가
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {!loadingManagers &&
+                      managers.length > 0 &&
+                      requiredApprovers.filter((id) => id !== "").length ===
+                        0 && (
+                        <p className="mt-2 text-xs text-red-600">
+                          최소 1명의 승인자를 선택해야 합니다
+                        </p>
+                      )}
+                  </div>
+                )}
 
               {/* 에러 메시지 */}
               {errorMessage && (
@@ -1444,9 +1522,9 @@ export default function GroupManagement({
                 }`}
                 title={
                   !isFormValid()
-                    ? !isEditMode && !newGroup.manager
-                      ? "관리자를 선택해주세요"
-                      : !isEditMode && (!newGroup.budgetSetup || newGroup.budgetSetup.baseAmount <= 0)
+                    ? !isEditMode &&
+                      (!newGroup.budgetSetup ||
+                        newGroup.budgetSetup.baseAmount <= 0)
                       ? "예산을 먼저 설정해주세요"
                       : !isBudgetValid()
                       ? "예산 배분을 정확히 맞춰주세요"
@@ -1524,14 +1602,6 @@ export default function GroupManagement({
                       </label>
                       <p className="text-base text-gray-800 leading-relaxed">
                         {selectedGroupForDetail.description}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        관리자
-                      </label>
-                      <p className="text-base font-semibold text-gray-900">
-                        {getUserNameById(selectedGroupForDetail.manager)}
                       </p>
                     </div>
                     <div>
