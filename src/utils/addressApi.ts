@@ -6,16 +6,19 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 /**
  * 주소 목록 조회
  * @param userId - 사용자 ID (users 테이블의 id 참조, 선택적)
+ * @param organizationId - 조직 ID (법인회원용, 선택적)
  * @param type - 주소 타입 필터 (선택적)
  * @returns WhitelistedAddress 배열
  */
 export async function getAddresses(
   userId?: string,
+  organizationId?: string,
   type?: "personal" | "vasp"
 ): Promise<WhitelistedAddress[]> {
   try {
     const params = new URLSearchParams();
     if (userId) params.append("userId", userId);
+    if (organizationId) params.append("organizationId", organizationId);
     if (type) params.append("type", type);
 
     const queryString = params.toString();
