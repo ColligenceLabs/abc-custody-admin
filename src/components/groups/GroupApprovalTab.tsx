@@ -568,9 +568,9 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                         >
                           상세보기
                         </button>
-                        <div className="h-4 w-px bg-gray-300"></div>
                         {request.status === "pending" && user && hasPermission(user, 'groups.approve') && (
                           <>
+                            <div className="h-4 w-px bg-gray-300"></div>
                             <button
                               onClick={() => handleApproveRequest(request.id)}
                               className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
@@ -586,12 +586,15 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                           </>
                         )}
                         {request.status === "rejected" && (
-                          <button
-                            onClick={() => handleReapproveRequest(request.id)}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                          >
-                            재승인 처리
-                          </button>
+                          <>
+                            <div className="h-4 w-px bg-gray-300"></div>
+                            <button
+                              onClick={() => handleReapproveRequest(request.id)}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                            >
+                              재승인 처리
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
