@@ -281,8 +281,8 @@ export default function UserManagement({ plan }: UserManagementProps) {
     setIsSubmitting(true);
     try {
       // 현재 로그인한 사용자의 organizationId 사용
-      const organizationId = currentUser?.organizationId || currentUser?.id;
-      const organizationName = currentUser?.organizationName;
+      const organizationId = currentUser?.organizationId || currentUser?.id || '';
+      const organizationName = currentUser?.organizationName || '';
 
       const createdUser = await createOrganizationUser({
         ...newUser,

@@ -36,6 +36,9 @@ export interface User {
   memberType?: 'individual' | 'corporate';  // 회원 유형
   totpSecret?: string;          // TOTP secret key (base32) - 서버에 저장
   birthDate?: string;           // 생년월일 (YYYY-MM-DD 형식)
+  organizationId?: string;      // 조직 ID (법인회원용)
+  organizationName?: string;    // 조직명 (법인회원용)
+  isOrganizationOwner?: boolean; // 조직 소유자 여부
   // 주의: 백업 코드는 보안상 서버에 저장하지 않음 (사용자만 보관)
 }
 

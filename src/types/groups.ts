@@ -99,7 +99,7 @@ export interface WalletGroup {
   policyMatchInfo?: PolicyMatchInfo;
 
   members: string[];
-  manager: string;
+  manager?: string; // 선택적 필드로 변경 (더 이상 사용하지 않음)
   createdAt: string;
   status?: GroupStatus;
   requestedBy?: string;

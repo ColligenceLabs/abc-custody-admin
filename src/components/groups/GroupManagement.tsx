@@ -443,7 +443,6 @@ export default function GroupManagement({
         quarterlyBudget: selectedGroupForDetail.quarterlyBudget,
         yearlyBudget: selectedGroupForDetail.yearlyBudget,
         budgetSetup: selectedGroupForDetail.budgetSetup || null,
-        manager: selectedGroupForDetail.manager,
       });
 
       // 결재자 정보 설정
@@ -599,7 +598,6 @@ export default function GroupManagement({
                 pendingQuarterlyBudget: getCurrentQuarterBudget(),
                 pendingYearlyBudget: getYearlyBudget(),
                 pendingBudgetSetup: newGroup.budgetSetup || undefined,
-                manager: newGroup.manager,
                 requiredApprovals: validApprovers,
                 status: newStatus,
                 budgetModifiedAt: new Date().toISOString(),
@@ -612,7 +610,6 @@ export default function GroupManagement({
                 name: newGroup.name,
                 type: newGroup.type,
                 description: newGroup.description,
-                manager: newGroup.manager,
                 requiredApprovals: validApprovers,
                 status: newStatus,
               };
@@ -690,7 +687,6 @@ export default function GroupManagement({
       quarterlyBudget: { amount: 0, currency: "BTC" },
       yearlyBudget: { amount: 0, currency: "BTC" },
       budgetSetup: null,
-      manager: "",
     });
     // 필수 결재자 상태 초기화
     setRequiredApprovers([""]);
@@ -1058,10 +1054,6 @@ export default function GroupManagement({
                   <div className="space-y-2 py-2 border-t border-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <UserIcon className="h-4 w-4 mr-1" />
-                          {getUserNameById(group.manager)}
-                        </div>
                         <div className="flex items-center text-xs text-gray-500">
                           <svg
                             className="h-4 w-4 mr-1"
