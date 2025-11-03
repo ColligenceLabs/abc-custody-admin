@@ -75,6 +75,15 @@ interface BackendUser {
   zipCode?: string;
   addressLine?: string;
   detailAddress?: string;
+  // 법인 관련 필드
+  organizationId?: string;
+  organizationName?: string;
+  isOrganizationOwner?: boolean;
+  businessNumber?: string;
+  corporateRegistryNumber?: string;
+  corporateNationality?: string;
+  corporateCountryCode?: string;
+  corporateAddress?: string;
 }
 
 // ===========================
@@ -541,8 +550,14 @@ function mapUserToCorporateOnboarding(user: BackendUser): CorporateOnboarding {
   return {
     id: user.id,
     userId: user.id,
-    companyName: (user as any).organizationName || '법인명 미입력',
-    businessNumber: (user as any).businessNumber || '',
+    companyId: user.organizationId || user.id,
+    companyName: user.organizationName || '법인명 미입력',
+    businessNumber: user.businessNumber || '',
+    corporateRegistryNumber: user.corporateRegistryNumber,
+    corporateAddress: user.corporateAddress,
+    corporateNationality: user.corporateNationality,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
     submittedAt: user.createdAt,
     adminReview: {
       status: user.status === 'active' ? 'APPROVED' : user.status === 'pending' ? 'PENDING' : 'REJECTED',
@@ -554,8 +569,16 @@ function mapUserToCorporateOnboarding(user: BackendUser): CorporateOnboarding {
     eddRequired: false,
     eddStatus: null,
     kycInfo: null,
-    corporateInfo: null,
-    uboInfo: null,
+    corporateInfo: {
+      businessLicenseUrl: '',
+      corporateRegistryUrl: '',
+      articlesOfIncorporationUrl: '',
+      shareholderListUrl: '',
+      representativeIdUrl: '',
+      representativeSealCertUrl: '',
+      completedAt: user.createdAt,
+    },
+    ubo: null,
     contactPerson: {
       name: user.name,
       email: user.email,
@@ -570,14 +593,37 @@ function mapUserToCorporateOnboarding(user: BackendUser): CorporateOnboarding {
 export async function fetchCorporateOnboardingById(
   id: string
 ): Promise<CorporateOnboarding> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // 1. 실제 API에서 조회 시도
+  try {
+    const response = await axios.get<BackendUser>(`${API_URL}/api/users/${id}`);
+    const user = response.data;
 
-  const application = getCorporateOnboardingById(id);
-  if (!application) {
+    // memberType 확인
+    if (user.memberType !== 'corporate') {
+      throw new Error(`User ${id} is not a corporate member`);
+    }
+
+    // 매핑하여 반환
+    const mapped = mapUserToCorporateOnboarding(user);
+    console.log('[fetchCorporateOnboardingById] Mapped result:', {
+      id: mapped.id,
+      userId: mapped.userId,
+      companyName: mapped.companyName,
+      hasUserId: !!mapped.userId,
+    });
+    return mapped;
+  } catch (error: any) {
+    // API 실패 시 Mock 데이터에서 조회
+    if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
+      const application = getCorporateOnboardingById(id);
+      if (application) {
+        return application;
+      }
+    }
+
+    console.error(`법인회원 온보딩 상세 조회 실패 (ID: ${id}):`, error);
     throw new Error(`Corporate onboarding application not found: ${id}`);
   }
-
-  return application;
 }
 
 /**
