@@ -286,18 +286,18 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
     request: GroupCreationRequest,
     index: number
   ) => {
-    const approval = request.approvals.find((a) => a.userName === approver);
-    const rejection = request.rejections.find((r) => r.userName === approver);
+    const approval = request.approvals?.find((a) => a.userName === approver);
+    const rejection = request.rejections?.find((r) => r.userName === approver);
 
     // 순차적 결재 로직: 이전 결재자들이 모두 승인했는지 확인
-    const previousApprovers = request.requiredApprovals.slice(0, index);
+    const previousApprovers = request.requiredApprovals?.slice(0, index) || [];
     const allPreviousApproved = previousApprovers.every((prevApprover) =>
-      request.approvals.some((a) => a.userName === prevApprover)
+      request.approvals?.some((a) => a.userName === prevApprover)
     );
 
     // 이전 결재자가 반려했는지 확인
     const anyPreviousRejected = previousApprovers.some((prevApprover) =>
-      request.rejections.some((r) => r.userName === prevApprover)
+      request.rejections?.some((r) => r.userName === prevApprover)
     );
 
     if (approval) {
