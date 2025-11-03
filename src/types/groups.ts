@@ -75,6 +75,7 @@ export interface WalletGroup {
   name: string;
   type: GroupType;
   description: string;
+  currency?: CryptoCurrency; // 그룹의 기본 통화
   balance: CryptoAmount;
   monthlyBudget: CryptoAmount;
   quarterlyBudget: CryptoAmount;
