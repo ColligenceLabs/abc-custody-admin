@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ClockIcon,
   XCircleIcon,
@@ -22,12 +22,7 @@ import {
 import GroupApprovalAuthModal from "./GroupApprovalAuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissionUtils";
-
-// User ID로 사용자 이름 가져오기
-const getUserNameById = (userId: string): string => {
-  const user = MOCK_USERS.find(u => u.id === userId);
-  return user ? user.name : userId; // ID를 찾지 못하면 ID 자체를 반환
-};
+import { User } from "@/types/user";
 
 interface GroupApprovalTabProps {
   groupRequests?: GroupCreationRequest[];
@@ -97,6 +92,40 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
   const [pendingApprovalRequest, setPendingApprovalRequest] = useState<
     string | null
   >(null);
+
+  // DB에서 사용자 정보를 불러와서 캐싱
+  const [usersMap, setUsersMap] = useState<Record<string, User>>({});
+
+  // 사용자 정보 불러오기
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!user?.organizationId) return;
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const response = await fetch(`${API_URL}/api/users?organizationId=${user.organizationId}`);
+        const users = await response.json();
+
+        // ID를 키로 하는 맵 생성
+        const map: Record<string, User> = {};
+        users.forEach((u: User) => {
+          map[u.id] = u;
+        });
+        setUsersMap(map);
+      } catch (error) {
+        console.error('사용자 목록 불러오기 실패:', error);
+      }
+    };
+
+    fetchUsers();
+  }, [user?.organizationId]);
+
+  // User ID로 사용자 이름 가져오기
+  const getUserNameById = (userId: string | undefined): string => {
+    if (!userId) return '알 수 없음';
+    const foundUser = usersMap[userId] || MOCK_USERS.find(u => u.id === userId);
+    return foundUser ? foundUser.name : userId;
+  };
 
   const handleApproveRequest = (requestId: string) => {
     setShowApprovalModal({ show: true, requestId, action: "approve" });
@@ -198,8 +227,7 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
         (request) =>
           request.name.toLowerCase().includes(searchLower) ||
           request.description.toLowerCase().includes(searchLower) ||
-          getUserNameById(request.requestedBy).toLowerCase().includes(searchLower) ||
-          getUserNameById(request.manager).toLowerCase().includes(searchLower)
+          getUserNameById(request.requestedBy).toLowerCase().includes(searchLower)
       );
     }
 
@@ -495,9 +523,6 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                         <p className="text-sm text-gray-500">
                           {request.description}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          관리자: {getUserNameById(request.manager)}
-                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -713,14 +738,6 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                             {getTypeName(selectedRequest.type)}
                           </span>
                         </div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wide">
-                          관리자
-                        </span>
-                        <p className="text-sm font-medium text-gray-900 mt-1">
-                          {getUserNameById(selectedRequest.manager)}
-                        </p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 uppercase tracking-wide">
@@ -1169,12 +1186,6 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                         <span className="text-gray-500">요청자:</span>
                         <span className="ml-1 font-medium">
                           {getUserNameById(request.requestedBy)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">관리자:</span>
-                        <span className="ml-1 font-medium">
-                          {getUserNameById(request.manager)}
                         </span>
                       </div>
                       <div>
