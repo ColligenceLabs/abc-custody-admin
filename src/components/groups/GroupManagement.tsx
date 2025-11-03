@@ -47,6 +47,7 @@ interface GroupManagementProps {
   onOpenCreateModal?: () => void;
   onCreateGroupRequest?: (request: any) => void;
   currentUser?: any; // 현재 로그인한 사용자
+  initialGroups?: WalletGroup[]; // 외부에서 전달받은 그룹 목록
 }
 
 // 가상자산 아이콘 컴포넌트
@@ -186,9 +187,17 @@ export default function GroupManagement({
   onOpenCreateModal,
   onCreateGroupRequest,
   currentUser,
+  initialGroups,
 }: GroupManagementProps) {
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
-  const [groups, setGroups] = useState<WalletGroup[]>(mockGroups);
+  const [groups, setGroups] = useState<WalletGroup[]>(initialGroups || mockGroups);
+
+  // initialGroups가 변경되면 groups 업데이트
+  useEffect(() => {
+    if (initialGroups) {
+      setGroups(initialGroups);
+    }
+  }, [initialGroups]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
