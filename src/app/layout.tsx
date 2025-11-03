@@ -7,6 +7,7 @@ import { SecurityPolicyProvider } from "@/contexts/SecurityPolicyContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { OTPAuthProvider } from "@/contexts/OTPAuthContext";
+import { OnboardingProvider } from "@/contexts/OnboardingContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ErrorGuard from "@/components/ErrorGuard";
 import MetaMaskErrorHandler from "@/components/MetaMaskErrorHandler";
@@ -134,7 +135,9 @@ export default function RootLayout({
                   <AuthProvider>
                     <OTPAuthProvider>
                       <CompanyProvider>
-                        <SidebarProvider>{children}</SidebarProvider>
+                        <OnboardingProvider>
+                          <SidebarProvider>{children}</SidebarProvider>
+                        </OnboardingProvider>
                       </CompanyProvider>
                     </OTPAuthProvider>
                   </AuthProvider>

@@ -18,10 +18,29 @@ export interface OrganizationUser {
   gaSetupDate?: string;
   isFirstLogin: boolean;
 
-  // 새로 추가된 필드
+  // 조직 관련 필드
   organizationUserId: string;
   organizationId: string;
   memberId: string;
+
+  // 온보딩 관련 필드
+  creationMethod?: 'admin_invited' | 'self_signup';
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string;
+
+  // 주소 설정 관련
+  addressVerified?: boolean;
+  whitelistAddresses?: string[];
+
+  // PASS 인증 관련
+  passVerified?: boolean;
+  passVerifiedAt?: string;
+  passName?: string;
+  passPhone?: string;
+  passBirthDate?: string;
+  passGender?: string;
+  passCI?: string;
+  passDI?: string;
 }
 
 // user.ts에서 재사용

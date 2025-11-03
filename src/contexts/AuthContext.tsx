@@ -852,8 +852,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('auth_session', JSON.stringify(sessionData))
       document.cookie = `auth_session=${JSON.stringify(sessionData)}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
 
-      // 대시보드로 이동
-      router.push('/overview')
+      // 리다이렉트 분기: 기업 사용자이면서 온보딩 미완료 시 온보딩으로
+      const needsOnboarding =
+        memberType === 'corporate' &&
+        updatedUser.creationMethod === 'admin_invited' &&
+        !updatedUser.onboardingCompleted;
+
+      if (needsOnboarding) {
+        console.log('[completeGASetup] 기업 온보딩 필요, PASS 인증부터 시작');
+        // GA는 이미 설정했으므로 PASS 인증 단계부터 시작
+        router.push('/onboarding/corporate/pass');
+      } else {
+        console.log('[completeGASetup] 대시보드로 이동');
+        router.push('/overview');
+      }
     } catch (error: any) {
       console.error('GA 설정 완료 오류:', error)
       alert(error.message || 'GA 설정 완료 중 오류가 발생했습니다.')
