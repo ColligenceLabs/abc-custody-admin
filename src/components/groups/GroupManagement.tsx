@@ -224,16 +224,29 @@ export default function GroupManagement({
   // DB에서 같은 조직의 Manager 불러오기
   useEffect(() => {
     const fetchManagers = async () => {
-      if (!currentUser?.organizationId) return;
+      if (!currentUser?.organizationId) {
+        console.log('[fetchManagers] No organizationId, currentUser:', currentUser);
+        return;
+      }
 
+      console.log('[fetchManagers] Fetching managers for organizationId:', currentUser.organizationId);
       setLoadingManagers(true);
       try {
         const API_URL =
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const response = await fetch(
-          `${API_URL}/api/users?role=manager&organizationId=${currentUser.organizationId}&status=active`
-        );
+        const url = `${API_URL}/api/users?role=manager&organizationId=${currentUser.organizationId}&status=active`;
+        console.log('[fetchManagers] API URL:', url);
+
+        const response = await fetch(url);
         const data = await response.json();
+
+        console.log('[fetchManagers] Response:', {
+          status: response.status,
+          dataType: Array.isArray(data) ? 'array' : typeof data,
+          count: Array.isArray(data) ? data.length : 'N/A',
+          data: data
+        });
+
         setManagers(data);
       } catch (error) {
         console.error("Manager 목록 불러오기 실패:", error);

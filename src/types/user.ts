@@ -26,10 +26,10 @@ export interface User {
   phone: string;
   role: UserRole;
   status: UserStatus;
-  lastLogin: string;
+  lastLogin: string | null;
   permissions: string[];
   department: string;
-  position: string;
+  position: string | null;
   hasGASetup: boolean;          // GA 설정 완료 여부
   gaSetupDate?: string;         // GA 설정 완료 일시
   isFirstLogin: boolean;        // 최초 로그인 여부

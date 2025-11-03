@@ -145,7 +145,11 @@ export const getRecentlyActiveUsers = (days: number = 7): User[] => {
     if (!user.lastLogin) return false;
     const lastLoginDate = new Date(user.lastLogin);
     return lastLoginDate >= cutoffDate && user.status === 'active';
-  }).sort((a, b) => new Date(b.lastLogin).getTime() - new Date(a.lastLogin).getTime());
+  }).sort((a, b) => {
+    const aTime = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+    const bTime = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+    return bTime - aTime;
+  });
 };
 
 /**
