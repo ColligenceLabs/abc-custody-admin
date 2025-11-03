@@ -224,8 +224,20 @@ export default function GroupManagement({
   // DB에서 같은 조직의 Manager 불러오기
   useEffect(() => {
     const fetchManagers = async () => {
-      if (!currentUser?.organizationId) {
-        console.log('[fetchManagers] No organizationId, currentUser:', currentUser);
+      console.log('[fetchManagers] Effect triggered, currentUser:', currentUser);
+      console.log('[fetchManagers] organizationId:', currentUser?.organizationId);
+
+      if (!currentUser) {
+        console.log('[fetchManagers] currentUser is null/undefined');
+        return;
+      }
+
+      if (!currentUser.organizationId) {
+        console.log('[fetchManagers] No organizationId in currentUser:', {
+          id: currentUser.id,
+          name: currentUser.name,
+          organizationId: currentUser.organizationId
+        });
         return;
       }
 
@@ -258,7 +270,7 @@ export default function GroupManagement({
     };
 
     fetchManagers();
-  }, [currentUser?.organizationId]);
+  }, [currentUser]);
 
   // 관리자로 선택 가능한 사용자 필터링 (활성 상태이고 admin, manager, required_approver 역할)
   const getEligibleUsers = () => {
