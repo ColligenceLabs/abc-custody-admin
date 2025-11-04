@@ -1,24 +1,21 @@
-// 개인회원 출금 상태
+// 개인회원 출금 상태 (공통 프로세스)
 export type IndividualWithdrawalStatus =
-  | "withdrawal_wait"      // 출금대기 (24시간 홀드)
-  | "aml_review"          // AML 검토 중
-  | "approval_pending"    // 승인 대기 (AML 통과 후)
-  | "aml_issue"          // AML 문제 감지
-  | "transferring"       // 출금중 (TxHash 기록됨, 블록체인 전송 중)
-  | "processing"         // 블록체인 전송 처리 중
-  | "withdrawal_pending" // BlockDaemon API 호출 완료, 관리자 승인 대기
-  | "success"            // 출금 완료
-  | "failed"             // 기술적 실패 (재시도 가능)
-  | "admin_rejected"     // 관리자 거부 (재시도 불가)
-  | "withdrawal_stopped"; // 사용자 취소
+  | "withdrawal_wait"      // 출금 대기 (24시간)
+  | "withdrawal_stopped"   // 출금 정지 (사용자가 대기 중 정지)
+  | "aml_review"          // AML 검증 중
+  | "aml_issue"           // AML 이슈 발생
+  | "processing"          // 출금 처리 대기 (관리자 Hot/Cold 선택 대기)
+  | "transferring"        // 출금 중 (BlockDaemon 처리 중)
+  | "success"             // 출금 성공
+  | "failed"              // 출금 실패 (BlockDaemon 실패)
+  | "admin_rejected";     // 관리자 거부
 
-// 기업회원 출금 상태
+// 기업회원 출금 상태 (기업 전용 + 공통)
 export type CorporateWithdrawalStatus =
   | IndividualWithdrawalStatus
-  | "withdrawal_request"   // 출금 신청 (최초)
-  | "withdrawal_reapply"   // 재신청 (반려 후)
-  | "rejected"           // 결재 반려
-  | "archived";          // 아카이브 처리 (종료)
+  | "withdrawal_request"   // 출금 신청 (기업회원 최초 신청)
+  | "withdrawal_rejected"  // 결재 반려 (기업회원)
+  | "archived";            // 아카이브 처리 (기업회원 종료)
 
 // 통합 출금 상태 (하위 호환성 유지)
 export type WithdrawalStatus = IndividualWithdrawalStatus | CorporateWithdrawalStatus;

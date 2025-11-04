@@ -15,27 +15,15 @@ interface PersonalInfoConfirmStepProps {
   onBack: () => void;
 }
 
-// 다음 주소 검색 API 타입 정의
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (options: {
-        oncomplete: (data: DaumPostcodeData) => void;
-      }) => {
-        open: () => void;
-      };
-    };
-  }
-}
-
-interface DaumPostcodeData {
+// Daum Postcode 타입 (글로벌 타입 참조)
+type DaumPostcodeData = {
   zonecode: string;
   address: string;
   roadAddress: string;
   jibunAddress: string;
   buildingName: string;
   userSelectedType: 'R' | 'J';
-}
+};
 
 export default function PersonalInfoConfirmStep({
   initialData,

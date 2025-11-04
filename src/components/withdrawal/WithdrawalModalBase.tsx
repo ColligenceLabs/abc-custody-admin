@@ -81,20 +81,32 @@ export function WithdrawalModalBase<T extends BaseFormData>({
       return;
     }
 
-    // 네트워크 매핑 (테스트넷 환경)
-    const networkMapping: Record<string, string> = {
-      'Ethereum': 'Holesky',
-      'Bitcoin': 'bitcoin',  // DB에 소문자로 저장됨
-      'Solana': 'solana'
-    };
-
-    const apiNetwork = networkMapping[formData.network] || formData.network;
-
-    getUserBalances(userId, formData.currency, apiNetwork)
+    // 네트워크와 관계없이 자산 기준으로 조회 (대소문자 구분 없이 모든 네트워크 합산)
+    getUserBalances(userId, formData.currency)
       .then((balances) => {
         if (balances.length > 0) {
-          setAvailableBalance(parseFloat(balances[0].availableBalance));
-          setBalanceError("");
+          // 선택한 네트워크와 관련된 모든 네트워크의 잔액 합산
+          // 예: holesky 선택 시 "Holesky", "holesky", "Ethereum" 모두 포함
+          const networkLower = formData.network.toLowerCase();
+          const relevantBalances = balances.filter(balance => {
+            const balanceNetworkLower = balance.network.toLowerCase();
+            // holesky/ethereum 네트워크는 모두 포함
+            if (networkLower === 'holesky' || networkLower === 'ethereum') {
+              return balanceNetworkLower === 'holesky' || balanceNetworkLower === 'ethereum';
+            }
+            return balanceNetworkLower === networkLower;
+          });
+
+          if (relevantBalances.length > 0) {
+            const totalAvailable = relevantBalances.reduce((sum, balance) => {
+              return sum + parseFloat(balance.availableBalance);
+            }, 0);
+            setAvailableBalance(totalAvailable);
+            setBalanceError("");
+          } else {
+            setAvailableBalance(0);
+            setBalanceError("");
+          }
         } else {
           setAvailableBalance(0);
           setBalanceError("");

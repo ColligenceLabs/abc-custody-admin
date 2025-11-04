@@ -198,6 +198,7 @@ export default function GroupWalletManagement({
             type: g.type,
             description: g.description || '',
             currency: g.currency,
+            manager: g.requestedBy, // manager 필드 추가
             monthlyBudget: { amount: 0, currency: g.currency },
             quarterlyBudget: { amount: 0, currency: g.currency },
             yearlyBudget: { amount: yearlyBudgetAmount, currency: g.currency },
@@ -212,7 +213,7 @@ export default function GroupWalletManagement({
 
         // mockup 데이터와 병합
         const allRequests = [...dbRequests, ...mockGroupRequests.filter(mr =>
-          !dbRequests.some(dr => dr.id === mr.id)
+          !dbRequests.some((dr: any) => dr.id === mr.id)
         )];
 
         setGroupRequests(allRequests);

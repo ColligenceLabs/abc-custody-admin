@@ -71,7 +71,7 @@ export function WithdrawalTableRow({
         <StatusBadge status={request.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        {showApprovalProgress && (request.status === "withdrawal_request" || request.status === "approval_pending" || (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0)) && (
+        {showApprovalProgress && (request.status === "withdrawal_request" || request.status === "processing" || (request.approvals.length === request.requiredApprovals.length && request.rejections.length === 0)) && (
           <div className="w-full">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
               <span>

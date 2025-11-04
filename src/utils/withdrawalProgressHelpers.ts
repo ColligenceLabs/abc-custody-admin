@@ -7,16 +7,15 @@
 /**
  * 출금 상태에 따른 현재 단계를 반환합니다.
  * @param status - 출금 상태
- * @returns 현재 단계 (1-4, withdrawal_wait는 0)
+ * @returns 현재 단계 (0-4)
  */
 export const getCurrentStep = (status: string): number => {
   const stepMap: Record<string, number> = {
-    'withdrawal_wait': 0,      // 0단계: 24시간 대기 중 (진행률 표시 안 함)
-    'aml_review': 1,           // 1단계: 보안 검증 (AML)
-    'approval_pending': 1,     // 1단계: 보안 검증 (승인)
-    'withdrawal_pending': 2,   // 2단계: 출금 처리 대기
-    'processing': 3,           // 3단계: 처리 중
-    'transferring': 4,         // 4단계: 전송 중
+    'withdrawal_wait': 0,      // 0단계: 24시간 대기 중
+    'aml_review': 1,           // 1단계: AML 검증
+    'processing': 2,           // 2단계: 출금 처리 대기
+    'transferring': 3,         // 3단계: 출금 중
+    'success': 4,              // 4단계: 완료
   };
   return stepMap[status] || 0;
 };
@@ -29,11 +28,13 @@ export const getCurrentStep = (status: string): number => {
 export const getStepDescription = (status: string): string => {
   const descriptionMap: Record<string, string> = {
     'withdrawal_wait': '오출금 방지 24시간 대기 중',
-    'aml_review': '보안 검증 중 (AML 검토)',
-    'approval_pending': '보안 검증 중 (승인 대기)',
-    'withdrawal_pending': '출금 스케줄 대기 중',
-    'processing': '블록체인 전송 준비 중',
+    'aml_review': 'AML 검증 진행 중',
+    'processing': '관리자 승인 대기 중',
     'transferring': '블록체인 전송 중',
+    'success': '출금 완료',
+    'failed': '출금 실패',
+    'admin_rejected': '관리자 거부',
+    'withdrawal_stopped': '출금 정지'
   };
   return descriptionMap[status] || '';
 };
@@ -46,8 +47,6 @@ export const getStepDescription = (status: string): string => {
 export const isWithdrawalInProgress = (status: string): boolean => {
   return [
     'aml_review',
-    'approval_pending',
-    'withdrawal_pending',
     'processing',
     'transferring'
   ].includes(status);
@@ -69,7 +68,7 @@ export const isWithdrawalWaiting = (status: string): boolean => {
  */
 export const getProgressPercentage = (status: string): number => {
   const currentStep = getCurrentStep(status);
-  const totalSteps = 4; // withdrawal_wait 제외, 4단계
+  const totalSteps = 4; // 0: wait, 1: aml, 2: processing, 3: transferring, 4: success
   return currentStep > 0 ? (currentStep / totalSteps) * 100 : 0;
 };
 

@@ -34,7 +34,7 @@ interface OnboardingContextType {
 
 const OnboardingContext = createContext<OnboardingContextType | null>(null);
 
-export function OnboardingProvider({ children }: { children: React.Node }) {
+export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [onboardingData, setOnboardingData] = useState<CorporateOnboardingData | null>(null);
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);

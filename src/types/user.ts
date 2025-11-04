@@ -39,6 +39,7 @@ export interface User {
   organizationId?: string;      // 조직 ID (법인회원용)
   organizationName?: string;    // 조직명 (법인회원용)
   isOrganizationOwner?: boolean; // 조직 소유자 여부
+  onboardingCompleted?: boolean; // 온보딩 완료 여부
   // 주의: 백업 코드는 보안상 서버에 저장하지 않음 (사용자만 보관)
 }
 

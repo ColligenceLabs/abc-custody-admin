@@ -8,24 +8,27 @@ import type { WithdrawalStatus, IndividualWithdrawalStatus, CorporateWithdrawalS
 
 // 상태 레이블 매핑
 const STATUS_LABELS: Record<WithdrawalStatus, string> = {
-  // 공통 상태
-  withdrawal_wait: '출금대기',
-  aml_review: 'AML 검토',
-  approval_pending: '승인 대기',
-  aml_issue: 'AML 문제',
-  transferring: '출금중',
-  processing: '처리중',
-  withdrawal_pending: '승인 대기',
-  success: '완료',
-  failed: '실패',
-  admin_rejected: '관리자 거부',
-  withdrawal_stopped: '출금 중지',
-
-  // 기업회원 전용
+  // 기업회원 전용 상태
   withdrawal_request: '출금 신청',
-  withdrawal_reapply: '재신청',
-  rejected: '반려',
-  archived: '아카이브'
+  withdrawal_rejected: '결재 반려',
+  archived: '아카이브',
+
+  // 공통 상태 (withdrawal_wait부터)
+  withdrawal_wait: '출금 대기',
+  withdrawal_stopped: '출금 정지',
+
+  // AML 검증 단계
+  aml_review: 'AML 검증',
+  aml_issue: 'AML 이슈',
+
+  // 관리자 처리 단계
+  processing: '출금 처리 대기',
+  transferring: '출금 중',
+
+  // 최종 상태
+  success: '출금 완료',
+  failed: '출금 실패',
+  admin_rejected: '관리자 거부'
 };
 
 /**
@@ -47,12 +50,9 @@ export function getStatusBadgeColor(status: WithdrawalStatus): string {
     // 대기/진행 중 상태 (노란색/파란색/보라색 계열)
     withdrawal_wait: 'text-yellow-600 bg-yellow-50 border-yellow-200',
     aml_review: 'text-blue-600 bg-blue-50 border-blue-200',
-    approval_pending: 'text-purple-600 bg-purple-50 border-purple-200',
     transferring: 'text-indigo-600 bg-indigo-50 border-indigo-200',
-    processing: 'text-indigo-600 bg-indigo-50 border-indigo-200',
-    withdrawal_pending: 'text-purple-600 bg-purple-50 border-purple-200',
+    processing: 'text-purple-600 bg-purple-50 border-purple-200',
     withdrawal_request: 'text-blue-600 bg-blue-50 border-blue-200',
-    withdrawal_reapply: 'text-purple-600 bg-purple-50 border-purple-200',
 
     // 완료/성공 상태 (하늘색 계열 - 초록색 대체)
     success: 'text-sky-600 bg-sky-50 border-sky-200',
@@ -61,7 +61,7 @@ export function getStatusBadgeColor(status: WithdrawalStatus): string {
     aml_issue: 'text-red-600 bg-red-50 border-red-200',
     failed: 'text-red-600 bg-red-50 border-red-200',
     admin_rejected: 'text-red-600 bg-red-50 border-red-200',
-    rejected: 'text-red-600 bg-red-50 border-red-200',
+    withdrawal_rejected: 'text-red-600 bg-red-50 border-red-200',
 
     // 중립/정지 상태 (회색 계열)
     withdrawal_stopped: 'text-gray-600 bg-gray-50 border-gray-200',
@@ -78,11 +78,11 @@ export function getStatusBadgeColor(status: WithdrawalStatus): string {
  */
 export function isTerminalStatus(status: WithdrawalStatus): boolean {
   const terminalStatuses: WithdrawalStatus[] = [
-    'success',
-    'failed',
-    'admin_rejected',
+    'archived',
     'withdrawal_stopped',
-    'archived'
+    'admin_rejected',
+    'success',
+    'failed'
   ];
   return terminalStatuses.includes(status);
 }
@@ -96,8 +96,8 @@ export function isInProgressStatus(status: WithdrawalStatus): boolean {
   const inProgressStatuses: WithdrawalStatus[] = [
     'withdrawal_wait',
     'aml_review',
-    'approval_pending',
-    'processing'
+    'processing',
+    'transferring'
   ];
   return inProgressStatuses.includes(status);
 }
@@ -122,7 +122,7 @@ export function isErrorStatus(status: WithdrawalStatus): boolean {
     'aml_issue',
     'failed',
     'admin_rejected',
-    'rejected'
+    'withdrawal_rejected'
   ];
   return errorStatuses.includes(status);
 }
@@ -135,14 +135,14 @@ export function isErrorStatus(status: WithdrawalStatus): boolean {
 export function isIndividualStatus(status: WithdrawalStatus): boolean {
   const individualStatuses: IndividualWithdrawalStatus[] = [
     'withdrawal_wait',
+    'withdrawal_stopped',
     'aml_review',
-    'approval_pending',
     'aml_issue',
     'processing',
+    'transferring',
     'success',
     'failed',
-    'admin_rejected',
-    'withdrawal_stopped'
+    'admin_rejected'
   ];
   return individualStatuses.includes(status as IndividualWithdrawalStatus);
 }
@@ -155,8 +155,7 @@ export function isIndividualStatus(status: WithdrawalStatus): boolean {
 export function isCorporateOnlyStatus(status: WithdrawalStatus): boolean {
   const corporateOnlyStatuses: WithdrawalStatus[] = [
     'withdrawal_request',
-    'withdrawal_reapply',
-    'rejected',
+    'withdrawal_rejected',
     'archived'
   ];
   return corporateOnlyStatuses.includes(status);
@@ -170,18 +169,15 @@ export function isCorporateOnlyStatus(status: WithdrawalStatus): boolean {
 export function getStatusProgress(status: WithdrawalStatus): number {
   const progressMap: Record<WithdrawalStatus, number> = {
     withdrawal_request: 10,
-    withdrawal_reapply: 10,
     withdrawal_wait: 20,
     aml_review: 40,
-    approval_pending: 60,
-    withdrawal_pending: 60,
     aml_issue: 40,
-    transferring: 70,
-    processing: 80,
+    processing: 60,
+    transferring: 80,
     success: 100,
     failed: 100,
     admin_rejected: 100,
-    rejected: 100,
+    withdrawal_rejected: 100,
     withdrawal_stopped: 100,
     archived: 100
   };
@@ -200,35 +196,26 @@ export function getPossibleNextStatuses(
   memberType: 'individual' | 'corporate'
 ): WithdrawalStatus[] {
   const transitions: Record<WithdrawalStatus, WithdrawalStatus[]> = {
-    // 기업회원: 출금 신청 → 출금대기 또는 반려
-    withdrawal_request: ['withdrawal_wait', 'rejected'],
+    // 기업회원: 출금 신청 → 출금 대기 또는 반려
+    withdrawal_request: ['withdrawal_wait', 'withdrawal_rejected'],
 
-    // 출금대기 → AML 검토 또는 사용자 취소
+    // 출금 대기 → AML 검증 또는 사용자 정지
     withdrawal_wait: ['aml_review', 'withdrawal_stopped'],
 
-    // AML 검토 → 승인 대기 또는 AML 문제
-    aml_review: ['approval_pending', 'aml_issue'],
+    // AML 검증 → 출금 처리 대기 또는 AML 이슈
+    aml_review: ['processing', 'aml_issue'],
 
-    // AML 문제 → 관리자 거부
+    // AML 이슈 → 관리자 거부
     aml_issue: ['admin_rejected'],
 
-    // 승인 대기 → 처리중 또는 관리자 거부
-    approval_pending: ['processing', 'admin_rejected'],
+    // 출금 처리 대기 → 출금 중 또는 관리자 거부
+    processing: ['transferring', 'admin_rejected'],
 
-    // 출금 대기 (블록데몬 API 완료) → 출금중
-    withdrawal_pending: ['transferring', 'admin_rejected'],
+    // 출금 중 → 성공 또는 실패
+    transferring: ['success', 'failed'],
 
-    // 출금중 → 처리중
-    transferring: ['processing'],
-
-    // 처리중 → 완료 또는 실패
-    processing: ['success', 'failed'],
-
-    // 반려 → 재신청 또는 아카이브
-    rejected: ['withdrawal_reapply', 'archived'],
-
-    // 재신청 → 출금대기
-    withdrawal_reapply: ['withdrawal_wait'],
+    // 결재 반려 → 아카이브
+    withdrawal_rejected: ['archived'],
 
     // 종료 상태는 다음 상태 없음
     success: [],

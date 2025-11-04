@@ -29,10 +29,10 @@ export default function RejectedTabComponent({
   const getFilteredRequests = () => {
     return withdrawalRequests.filter((request) => {
       // 상태 필터 - rejected 또는 archived만 표시
-      const baseStatusMatch = request.status === "rejected" || request.status === "archived";
+      const baseStatusMatch = request.status === "withdrawal_rejected" || request.status === "archived";
       const statusMatch = 
         statusFilter === "all" || 
-        (statusFilter === "rejected" && request.status === "rejected") ||
+        (statusFilter === "rejected" && request.status === "withdrawal_rejected") ||
         (statusFilter === "archived" && request.status === "archived");
 
       // 검색어 필터
@@ -413,7 +413,7 @@ export default function RejectedTabComponent({
                           showProgressSummary={false}
                         />
 
-                        {(request.status === "rejected" || request.status === "archived") &&
+                        {(request.status === "withdrawal_rejected" || request.status === "archived") &&
                           request.rejections.length > 0 && (
                             <div className="bg-gray-50 p-4 rounded-lg border">
                               <div className="flex items-center mb-3">
