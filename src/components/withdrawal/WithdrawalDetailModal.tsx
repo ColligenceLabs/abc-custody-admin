@@ -102,23 +102,59 @@ export default function WithdrawalDetailModal({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 출금 수량 */}
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-500 mb-2">
                   출금 수량
                 </label>
-                <div className="flex items-center space-x-2">
-                  <CryptoIcon
-                    symbol={withdrawal.currency}
-                    size={24}
-                    className="flex-shrink-0"
-                  />
-                  <div className="flex items-baseline space-x-1">
-                    <p className="text-lg font-semibold text-gray-900">
-                      {formatAmount(withdrawal.amount)}
-                    </p>
-                    <p className="text-sm font-medium text-gray-600">
-                      {withdrawal.currency}
-                    </p>
+                <div className="bg-sky-50 border border-sky-200 rounded-lg p-4 space-y-3">
+                  {/* 신청 금액 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <CryptoIcon
+                        symbol={withdrawal.currency}
+                        size={20}
+                        className="flex-shrink-0"
+                      />
+                      <span className="text-sm text-gray-600">신청 금액</span>
+                    </div>
+                    <div className="flex items-baseline space-x-1">
+                      <p className="text-lg font-semibold text-gray-900">
+                        {formatAmount(withdrawal.amount)}
+                      </p>
+                      <p className="text-sm font-medium text-gray-600">
+                        {withdrawal.currency}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 수수료 (있는 경우만) */}
+                  {withdrawal.withdrawalFee && parseFloat(withdrawal.withdrawalFee) > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-sky-300">
+                      <span className="text-sm text-gray-600">
+                        출금 수수료 ({withdrawal.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
+                      </span>
+                      <div className="flex items-baseline space-x-1">
+                        <p className="text-sm font-medium text-gray-700">
+                          {formatAmount(withdrawal.withdrawalFee)}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {withdrawal.currency}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 실수령액 */}
+                  <div className="flex items-center justify-between pt-2 border-t border-sky-300">
+                    <span className="text-sm font-semibold text-sky-700">실수령액</span>
+                    <div className="flex items-baseline space-x-1">
+                      <p className="text-lg font-bold text-sky-700">
+                        {formatAmount(withdrawal.netAmount || withdrawal.amount)}
+                      </p>
+                      <p className="text-sm font-medium text-sky-600">
+                        {withdrawal.currency}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

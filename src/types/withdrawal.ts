@@ -77,6 +77,13 @@ export interface WithdrawalRequest {
   txHash?: string;
   blockConfirmations?: number;
 
+  // 수수료 관련
+  withdrawalFee?: number;
+  withdrawalFeeType?: 'fixed' | 'percentage';
+  netAmount?: number;
+  feeTxid?: string;
+  feeTxHash?: string;
+
   // 완료 시간
   completedAt?: string;
 
@@ -177,6 +184,13 @@ export interface IndividualWithdrawalRequest {
   // 블록체인 정보
   txHash?: string;
   blockConfirmations?: number;
+
+  // 수수료 관련
+  withdrawalFee?: number;
+  withdrawalFeeType?: 'fixed' | 'percentage';
+  netAmount?: number;
+  feeTxid?: string;
+  feeTxHash?: string;
 }
 
 // 개인회원 출금 신청 폼 데이터 (priority, attachments 제외)
