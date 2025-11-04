@@ -22,7 +22,6 @@ import {
   formatRemainingTime,
   canResendSMS,
   markSMSSent,
-  mockCurrentUserAuth,
 } from "@/utils/authenticationHelpers";
 import { formatAmount } from "@/utils/withdrawalHelpers";
 
@@ -32,6 +31,12 @@ interface ApprovalAuthModalProps {
   onClose: () => void;
   onAuthComplete: (sessionId: string) => void;
   onAuthFailed: (reason: string) => void;
+}
+
+interface CurrentUser {
+  phone: string;
+  name: string;
+  email: string;
 }
 
 export default function ApprovalAuthModal({
@@ -48,8 +53,40 @@ export default function ApprovalAuthModal({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [otpRemainingTime, setOtpRemainingTime] = useState(0);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [smsRemainingTime, setSmsRemainingTime] = useState(0);
   const [smsSent, setSmsSent] = useState(false);
+
+  // 현재 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setCurrentUser({
+            phone: userData.phone || '',
+            name: userData.name || '',
+            email: userData.email || '',
+          });
+        }
+      } catch (error) {
+        console.error('[현재 사용자] 조회 실패:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchCurrentUser();
+    }
+  }, [isOpen]);
 
   // 모달이 열릴 때 인증 세션 초기화
   useEffect(() => {
@@ -133,7 +170,12 @@ export default function ApprovalAuthModal({
     setErrorMessage("");
 
     try {
-      const result = await sendSMSCode(mockCurrentUserAuth.phoneNumber, authSession.sessionId);
+      if (!currentUser?.phone) {
+        setErrorMessage("사용자 전화번호를 찾을 수 없습니다.");
+        return;
+      }
+
+      const result = await sendSMSCode(currentUser.phone, authSession.sessionId);
 
       if (result.success) {
         setSmsSent(true);
@@ -166,7 +208,12 @@ export default function ApprovalAuthModal({
     setErrorMessage("");
 
     try {
-      const isValid = await verifySMSCode(smsCode, authSession.sessionId);
+      if (!currentUser?.phone) {
+        setErrorMessage("사용자 전화번호를 찾을 수 없습니다.");
+        return;
+      }
+
+      const isValid = await verifySMSCode(smsCode, currentUser.phone);
 
       if (isValid) {
         const updatedSession = updateAuthStep(authSession, "sms", "verified");
@@ -355,7 +402,7 @@ export default function ApprovalAuthModal({
                   등록된 휴대폰 번호로 인증번호를 발송했습니다.
                 </p>
                 <p className="text-sm font-medium text-gray-900">
-                  {mockCurrentUserAuth.phoneNumber}
+                  {currentUser?.phone || '전화번호 없음'}
                 </p>
               </div>
 

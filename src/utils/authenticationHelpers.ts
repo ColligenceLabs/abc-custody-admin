@@ -48,38 +48,105 @@ export const createAuthSession = (requestId: string): ApprovalAuthSession => {
   };
 };
 
-// OTP 검증
+// OTP 검증 (Google Authenticator)
 export const verifyOTP = async (otp: string, sessionId: string): Promise<boolean> => {
-  // Mock 검증 (실제로는 서버 API 호출)
-  await new Promise(resolve => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const token = localStorage.getItem('token');
 
-  // 개발용 테스트 OTP 코드들
-  const validOtpCodes = ["123456", "111111"]; // 법인(123456), 개인(111111)
-  return validOtpCodes.includes(otp);
+    if (!token) {
+      console.error('[OTP 검증] 토큰 없음');
+      return false;
+    }
+
+    const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        otpCode: otp,
+      }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    return data.success || false;
+  } catch (error) {
+    console.error('[OTP 검증] API 호출 실패:', error);
+    return false;
+  }
 };
 
 // SMS 인증번호 발송
 export const sendSMSCode = async (phoneNumber: string, sessionId: string): Promise<{ success: boolean; code?: string }> => {
-  // Mock SMS 발송 (실제로는 SMS 서비스 API 호출)
-  await new Promise(resolve => setTimeout(resolve, 1000)); // 네트워크 지연 시뮬레이션
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const token = localStorage.getItem('token');
 
-  const mockCode = "987654"; // 개발용 테스트 코드
-  console.log(`SMS 발송됨 (${phoneNumber}): ${mockCode}`);
+    const response = await fetch(`${API_URL}/api/auth/send-sms-pin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: JSON.stringify({
+        phone: phoneNumber,
+      }),
+    });
 
-  return {
-    success: true,
-    code: mockCode, // 개발 환경에서만 반환
-  };
+    if (!response.ok) {
+      console.error('[SMS 발송] API 호출 실패:', response.status);
+      return { success: false };
+    }
+
+    const data = await response.json();
+    console.log('[SMS 발송] 성공:', phoneNumber);
+
+    return {
+      success: data.success,
+    };
+  } catch (error) {
+    console.error('[SMS 발송] API 호출 실패:', error);
+    return { success: false };
+  }
 };
 
 // SMS 인증번호 검증
-export const verifySMSCode = async (code: string, sessionId: string): Promise<boolean> => {
-  // Mock 검증 (실제로는 서버 API 호출)
-  await new Promise(resolve => setTimeout(resolve, 500)); // 네트워크 지연 시뮬레이션
+export const verifySMSCode = async (code: string, phoneNumber: string): Promise<boolean> => {
+  try {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const token = localStorage.getItem('token');
+    const userEmail = localStorage.getItem('userEmail');
 
-  // 개발용 테스트 SMS 코드들
-  const validSmsCodes = ["987654", "111111"]; // 법인(987654), 개인(111111)
-  return validSmsCodes.includes(code);
+    const response = await fetch(`${API_URL}/api/auth/verify-sms-pin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: JSON.stringify({
+        phone: phoneNumber,
+        pin: code,
+        email: userEmail, // 로그인 잠금 체크용
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[SMS 검증] API 호출 실패:', response.status);
+      return false;
+    }
+
+    const data = await response.json();
+    return data.success || false;
+  } catch (error) {
+    console.error('[SMS 검증] API 호출 실패:', error);
+    return false;
+  }
 };
 
 // 인증 단계 업데이트

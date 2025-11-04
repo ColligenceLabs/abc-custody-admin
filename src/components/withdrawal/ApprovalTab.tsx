@@ -232,6 +232,7 @@ export default function ApprovalTab({
                         }
                         showApprovalActions={user ? hasPermission(user, 'withdrawals.approve') : false}
                         onApproval={onApproval}
+                        currentUserId={user?.id}
                       />
                     ))}
                   </tbody>
@@ -489,22 +490,57 @@ export default function ApprovalTab({
                           showProgressSummary={true}
                         />
 
-                        {user && hasPermission(user, 'withdrawals.approve') && (
-                          <div className="flex justify-end space-x-3">
-                            <button
-                              onClick={() => onApproval(request.id, "approve")}
-                              className="px-6 py-2 bg-sky-600 text-white text-sm rounded-lg hover:bg-sky-700 transition-colors"
-                            >
-                              승인
-                            </button>
-                            <button
-                              onClick={() => onApproval(request.id, "reject")}
-                              className="px-6 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-                            >
-                              반려
-                            </button>
-                          </div>
-                        )}
+                        {user && hasPermission(user, 'withdrawals.approve') && (() => {
+                          const hasAlreadyApproved = request.approvals.some(
+                            (approval) => approval.userId === user.id
+                          );
+                          const hasAlreadyRejected = request.rejections?.some(
+                            (rejection) => rejection.userId === user.id
+                          );
+
+                          return (
+                            <div className="flex justify-end space-x-3">
+                              <button
+                                onClick={() => onApproval(request.id, "approve")}
+                                disabled={hasAlreadyApproved}
+                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
+                                  hasAlreadyApproved
+                                    ? 'bg-sky-50 text-sky-600 border border-sky-200 cursor-not-allowed'
+                                    : 'bg-sky-600 text-white hover:bg-sky-700'
+                                }`}
+                              >
+                                {hasAlreadyApproved ? '승인 완료' : '승인'}
+                              </button>
+                              {hasAlreadyApproved && (
+                                <button
+                                  onClick={() => onApproval(request.id, "cancel-approve")}
+                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                                >
+                                  승인 취소
+                                </button>
+                              )}
+                              <button
+                                onClick={() => onApproval(request.id, "reject")}
+                                disabled={hasAlreadyRejected}
+                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
+                                  hasAlreadyRejected
+                                    ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed'
+                                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                                }`}
+                              >
+                                {hasAlreadyRejected ? '반려 완료' : '반려'}
+                              </button>
+                              {hasAlreadyRejected && (
+                                <button
+                                  onClick={() => onApproval(request.id, "cancel-reject")}
+                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                                >
+                                  반려 취소
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
