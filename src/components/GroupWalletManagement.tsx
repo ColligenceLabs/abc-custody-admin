@@ -30,7 +30,6 @@ import {
   GroupCreationRequest,
 } from "@/types/groups";
 import {
-  mockGroups,
   mockExpenses,
   mockGroupRequests,
 } from "@/data/groupMockData";
@@ -229,15 +228,17 @@ export default function GroupWalletManagement({
     fetchGroupRequests();
   }, [user?.organizationId]);
 
-  // 실제 그룹 목록 상태 (DB + localStorage)
-  const [groups, setGroups] = useState<WalletGroup[]>([...mockGroups]);
-  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  // 실제 그룹 목록 상태 (DB + mockup)
+  const [groups, setGroups] = useState<WalletGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
 
   // DB에서 그룹 목록 불러오기
   useEffect(() => {
     const fetchGroups = async () => {
       if (!user?.organizationId) {
-        console.log('[fetchGroups] No organizationId, using mock data');
+        console.log('[fetchGroups] No organizationId');
+        setGroups([]);
+        setIsLoadingGroups(false);
         return;
       }
 
@@ -364,18 +365,12 @@ export default function GroupWalletManagement({
             };
           });
 
-          // mockup 데이터와 병합 (ID 중복 제거)
-          const allGroups = [...dbGroups, ...mockGroups.filter(mg =>
-            !dbGroups.some(dg => dg.id === mg.id)
-          )];
-
-          setGroups(allGroups);
-          console.log('[fetchGroups] Groups loaded:', allGroups.length, 'groups');
+          setGroups(dbGroups);
+          console.log('[fetchGroups] Groups loaded:', dbGroups.length, 'groups');
         }
       } catch (error) {
         console.error('[fetchGroups] Failed to load groups:', error);
-        // 실패 시 mockup 데이터 사용
-        setGroups([...mockGroups]);
+        setGroups([]);
       } finally {
         setIsLoadingGroups(false);
       }
@@ -472,8 +467,7 @@ export default function GroupWalletManagement({
               id: "approval",
               name: "그룹 승인",
               icon: BanknotesIcon,
-              count:
-                mockGroups.filter((g) => g.status === "pending").length || 2,
+              count: groupRequests.filter((r) => r.status === "pending").length,
             },
             {
               id: "rejected",
@@ -711,12 +705,8 @@ export default function GroupWalletManagement({
                             };
                           });
 
-                          const allGroups = [...dbGroups, ...mockGroups.filter(mg =>
-                            !dbGroups.some(dg => dg.id === mg.id)
-                          )];
-
-                          setGroups(allGroups);
-                          console.log('[approveGroup] Groups refreshed:', allGroups.length);
+                          setGroups(dbGroups);
+                          console.log('[approveGroup] Groups refreshed:', dbGroups.length);
 
                           // 승인 완료 후 그룹 관리 탭으로 이동
                           setTimeout(() => {
@@ -792,7 +782,7 @@ export default function GroupWalletManagement({
 
 
       {/* 예산 현황 탭 */}
-      {activeTab === "budget" && <BudgetStatus />}
+      {activeTab === "budget" && <BudgetStatus groups={groups} />}
 
       {/* 반려/보류 관리 탭 */}
       {activeTab === "rejected" && (

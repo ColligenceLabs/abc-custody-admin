@@ -22,7 +22,6 @@ import {
 } from "@/types/groups";
 import { User, ROLE_NAMES } from "@/types/user";
 import { Modal } from "@/components/common/Modal";
-import { mockGroups } from "@/data/groupMockData";
 import { MOCK_USERS } from "@/data/userMockData";
 import BudgetSetupForm from "./BudgetSetupForm";
 import BudgetDistribution from "./BudgetDistribution";
@@ -190,7 +189,7 @@ export default function GroupManagement({
   initialGroups,
 }: GroupManagementProps) {
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
-  const [groups, setGroups] = useState<WalletGroup[]>(initialGroups || mockGroups);
+  const [groups, setGroups] = useState<WalletGroup[]>(initialGroups || []);
 
   // initialGroups가 변경되면 groups 업데이트
   useEffect(() => {

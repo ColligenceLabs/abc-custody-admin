@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckCircleIcon, ClockIcon, XCircleIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { WalletGroup, ExpenseRequest } from "@/types/groups";
-import { mockGroups, mockExpenses } from "@/data/groupMockData";
+import { mockExpenses } from "@/data/groupMockData";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -16,14 +16,14 @@ import {
 } from "@/utils/groupsUtils";
 
 interface BudgetStatusProps {
-  // props 정의 (필요한 경우 추가)
+  groups: WalletGroup[];
 }
 
 // 가상자산 아이콘 컴포넌트
 const getCryptoIcon = (currency: string) => {
   return (
-    <img 
-      src={getCryptoIconUrl(currency as any)} 
+    <img
+      src={getCryptoIconUrl(currency as any)}
       alt={currency}
       className="w-5 h-5"
       onError={(e) => {
@@ -39,7 +39,7 @@ const getCryptoIcon = (currency: string) => {
   );
 };
 
-export default function BudgetStatus({}: BudgetStatusProps) {
+export default function BudgetStatus({ groups }: BudgetStatusProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "quarterly" | "yearly">("monthly");
 
   return (
@@ -242,7 +242,7 @@ export default function BudgetStatus({}: BudgetStatusProps) {
           그룹별 예산 현황
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {mockGroups.map((group) => {
+          {groups.map((group) => {
             const monthlyUsage = getBudgetUsagePercentage(group);
             const quarterlyUsage = getQuarterlyBudgetUsagePercentage(group);
             const yearlyUsage = getYearlyBudgetUsagePercentage(group);
