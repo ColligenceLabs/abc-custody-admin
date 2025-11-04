@@ -51,6 +51,11 @@ export default function ApprovalTab({
       // 상태 필터 - withdrawal_request만 표시
       const statusMatch = request.status === "withdrawal_request";
 
+      // 현재 사용자가 신청자이거나 결재자인 건 표시
+      const isRequester = request.userId === user?.id;
+      const isApprover = request.requiredApprovals?.includes(user?.id || '') || false;
+      const isRelevantToUser = isRequester || isApprover;
+
       // 검색어 필터
       const searchMatch =
         searchTerm === "" ||
@@ -86,7 +91,7 @@ export default function ApprovalTab({
         }
       }
 
-      return statusMatch && searchMatch && dateMatch;
+      return statusMatch && isRelevantToUser && searchMatch && dateMatch;
     });
   };
 

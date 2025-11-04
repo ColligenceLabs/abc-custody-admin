@@ -49,7 +49,7 @@ import AirgapTab from "./withdrawal/AirgapTab";
 import ApprovalTab from "./withdrawal/ApprovalTab";
 import ApprovalAuthModal from "./withdrawal/ApprovalAuthModal";
 import { networkAssets } from "@/data/mockWithdrawalData";
-import { getCorporateWithdrawals, createWithdrawal, getWithdrawalById } from "@/lib/api/withdrawal";
+import { getCorporateWithdrawals, getWithdrawalById, approveWithdrawal, rejectWithdrawalCorporate } from "@/lib/api/withdrawal";
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
@@ -166,10 +166,14 @@ export default function CorporateWithdrawalManagement({
             const currentMonth = new Date().getMonth() + 1;
             const currentQuarter = Math.ceil(currentMonth / 3);
 
+            console.log(`[fetchGroups] 그룹: ${g.name}, 현재 월: ${currentMonth}, budgetPeriods 개수: ${budgetPeriods.length}`);
+
             // 현재 월 예산
             const currentMonthBudget = budgetPeriods.find((bp: any) =>
               bp.periodType === 'monthly' && bp.period === currentMonth
             );
+
+            console.log(`[fetchGroups] ${g.name} 현재 월(${currentMonth}) 예산:`, currentMonthBudget);
 
             // 현재 분기 예산
             const currentQuarterBudget = budgetPeriods.find((bp: any) =>
@@ -272,53 +276,40 @@ export default function CorporateWithdrawalManagement({
 
   const mockRequests = withdrawals;
 
+  // 폼 초기화 함수
+  const resetNewRequest = () => {
+    setNewRequest({
+      title: "",
+      fromAddress: "",
+      toAddress: "",
+      amount: 0,
+      network: "",
+      currency: "",
+      description: "",
+      priority: "medium",
+    });
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    resetNewRequest();
+  };
+
   const handleCreateRequest = async () => {
+    // CreateWithdrawalModal에서 이미 API 호출을 처리하므로
+    // 여기서는 모달 닫기와 목록 갱신만 처리
     try {
-      const withdrawalData = {
-        id: `REQ-${Date.now()}`,
-        title: newRequest.title,
-        fromAddress: newRequest.fromAddress,
-        toAddress: newRequest.toAddress,
-        amount: newRequest.amount,
-        currency: newRequest.currency as any,
-        userId: user?.id || '1',
-        memberType: 'corporate' as const,
-        groupId: '1',
-        initiator: user?.name || '사용자',
-        status: 'withdrawal_request' as const,
-        priority: newRequest.priority,
-        description: newRequest.description,
-        requiredApprovals: [],
-        approvals: [],
-        rejections: [],
-      };
-
-      await createWithdrawal(withdrawalData);
-
+      // 출금 목록 갱신
       const response = await getCorporateWithdrawals();
       setWithdrawals(response.data);
 
-      setShowCreateModal(false);
-      setNewRequest({
-        title: "",
-        fromAddress: "",
-        toAddress: "",
-        amount: 0,
-        network: "",
-        currency: "",
-        description: "",
-        priority: "medium",
-      });
-
-      toast({
-        description: '출금 신청이 성공적으로 접수되었습니다.',
-      });
+      // 모달 닫기 및 폼 초기화
+      handleCloseModal();
     } catch (err) {
-      console.error('출금 신청 실패:', err);
-      toast({
-        variant: 'destructive',
-        description: err instanceof Error ? err.message : '출금 신청에 실패했습니다.',
-      });
+      console.error('출금 목록 갱신 실패:', err);
+      // 목록 갱신 실패는 조용히 처리 (이미 신청은 성공했으므로)
+      handleCloseModal();
     }
   };
 
@@ -424,8 +415,8 @@ export default function CorporateWithdrawalManagement({
   };
 
   // 승인/반려 확인
-  const confirmApproval = () => {
-    if (!showApprovalModal.requestId || !showApprovalModal.action) return;
+  const confirmApproval = async () => {
+    if (!showApprovalModal.requestId || !showApprovalModal.action || !user) return;
 
     if (showApprovalModal.action === "reject" && !rejectionReason.trim()) {
       toast({
@@ -441,15 +432,35 @@ export default function CorporateWithdrawalManagement({
       setShowApprovalModal({ show: false, requestId: null, action: null });
       setShowAuthModal(true);
     } else {
-      // 반려 처리
-      console.log(`Request ${showApprovalModal.requestId} rejected`, {
-        rejectionReason,
-      });
-      toast({
-        description: "출금 신청이 반려되었습니다.",
-      });
-      setShowApprovalModal({ show: false, requestId: null, action: null });
-      setRejectionReason("");
+      // 반려 처리 - API 호출
+      try {
+        await rejectWithdrawalCorporate(
+          showApprovalModal.requestId,
+          user.id,
+          user.name,
+          rejectionReason
+        );
+
+        console.log(`Request ${showApprovalModal.requestId} rejected`, { rejectionReason });
+
+        toast({
+          description: "출금 신청이 반려되었습니다.",
+        });
+
+        // 출금 목록 갱신
+        const response = await getCorporateWithdrawals();
+        setWithdrawals(response.data);
+
+      } catch (error) {
+        console.error('결재 반려 실패:', error);
+        toast({
+          variant: 'destructive',
+          description: error instanceof Error ? error.message : '결재 반려에 실패했습니다.',
+        });
+      } finally {
+        setShowApprovalModal({ show: false, requestId: null, action: null });
+        setRejectionReason("");
+      }
     }
   };
 
@@ -460,22 +471,38 @@ export default function CorporateWithdrawalManagement({
   };
 
   // 인증 완료 처리
-  const handleAuthComplete = (sessionId: string) => {
-    if (!pendingApprovalRequest) return;
+  const handleAuthComplete = async (sessionId: string) => {
+    if (!pendingApprovalRequest || !user) return;
 
-    // 실제 구현에서는 API 호출로 승인 처리
-    console.log(`Request ${pendingApprovalRequest} approved with auth session ${sessionId}`);
-    toast({
-      description: "관리자 인증이 완료되어 출금 신청이 승인되었습니다. 출금 처리 대기 상태로 전환됩니다.",
-    });
+    try {
+      // 결재 승인 API 호출
+      await approveWithdrawal(
+        pendingApprovalRequest,
+        user.id,
+        user.name
+      );
 
-    // 상태 초기화
-    setShowAuthModal(false);
-    setPendingApprovalRequest(null);
-    setRejectionReason("");
+      console.log(`Request ${pendingApprovalRequest} approved with auth session ${sessionId}`);
 
-    // 실제로는 API를 통해 상태 업데이트: status: "submitted" → "pending"
-    // updateRequestStatus(pendingApprovalRequest, "pending");
+      toast({
+        description: "출금 신청이 승인되었습니다.",
+      });
+
+      // 출금 목록 갱신
+      const response = await getCorporateWithdrawals();
+      setWithdrawals(response.data);
+
+    } catch (error) {
+      console.error('결재 승인 실패:', error);
+      toast({
+        variant: 'destructive',
+        description: error instanceof Error ? error.message : '결재 승인에 실패했습니다.',
+      });
+    } finally {
+      // 상태 초기화
+      setShowAuthModal(false);
+      setPendingApprovalRequest(null);
+    }
   };
 
   // 인증 실패 처리
@@ -757,7 +784,7 @@ export default function CorporateWithdrawalManagement({
       {/* 출금 신청 모달 */}
       <CreateWithdrawalModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={handleCloseModal}
         onSubmit={handleCreateRequest}
         newRequest={newRequest}
         onRequestChange={setNewRequest}
