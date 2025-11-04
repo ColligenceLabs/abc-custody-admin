@@ -26,6 +26,7 @@ import { MOCK_USERS } from "@/data/userMockData";
 import BudgetSetupForm from "./BudgetSetupForm";
 import BudgetDistribution from "./BudgetDistribution";
 import { createGroup } from "@/services/groupApi";
+import { useToast } from "@/hooks/use-toast";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -188,6 +189,7 @@ export default function GroupManagement({
   currentUser,
   initialGroups,
 }: GroupManagementProps) {
+  const { toast } = useToast();
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
   const [groups, setGroups] = useState<WalletGroup[]>(initialGroups || []);
 
@@ -732,10 +734,15 @@ export default function GroupManagement({
           onCreateGroup();
         }
 
-        alert("그룹 생성 요청이 DB에 저장되었습니다. 승인 대기 중입니다.");
+        toast({
+          description: "그룹 생성 요청이 저장되었습니다. 승인 대기 중입니다.",
+        });
       } catch (error: any) {
         console.error('[handleCreateGroup] 그룹 생성 실패:', error);
-        alert(`그룹 생성 실패: ${error.response?.data?.message || error.message}`);
+        toast({
+          variant: 'destructive',
+          description: `그룹 생성 실패: ${error.response?.data?.message || error.message}`,
+        });
         return;
       }
     }
