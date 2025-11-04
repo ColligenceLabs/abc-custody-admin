@@ -285,6 +285,16 @@ export function RequestDetailModal({
 
   if (!request) return null;
 
+  // 디버깅: request 객체 확인
+  console.log('[RequestDetailModal] 전체 request 객체:', {
+    id: request.id,
+    withdrawalFee: request.withdrawalFee,
+    withdrawalFeeType: request.withdrawalFeeType,
+    netAmount: request.netAmount,
+    feeTxid: request.feeTxid,
+    feeTxHash: request.feeTxHash
+  });
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -614,71 +624,6 @@ export function RequestDetailModal({
                 </div>
               )}
 
-              {/* 수수료 트랜잭션 정보 (관리자 전용) */}
-              {request.feeTxid && (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-3">
-                  <h4 className="font-semibold text-sm text-indigo-900">수수료 트랜잭션 (관리자 전용)</h4>
-                  <div className="space-y-2 text-sm">
-                    {/* 수수료 BlockDaemon ID */}
-                    <div>
-                      <p className="text-xs text-indigo-700 mb-1">수수료 BlockDaemon ID</p>
-                      <div className="bg-white rounded border border-indigo-200 p-2">
-                        <p className="font-mono text-xs break-all text-indigo-900">
-                          {request.feeTxid}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 수수료 블록체인 해시 */}
-                    {request.feeTxHash && (
-                      <div>
-                        <p className="text-xs text-indigo-700 mb-1">수수료 블록체인 해시</p>
-                        <div className="bg-white rounded border border-indigo-200 p-2">
-                          <p className="font-mono text-xs break-all text-indigo-900">
-                            {request.feeTxHash}
-                          </p>
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCopyTxHash(request.feeTxHash!)}
-                            className="flex-1"
-                          >
-                            <Copy className="w-4 h-4 mr-2" />
-                            수수료 해시 복사
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(getBlockchainExplorerUrl(request.blockchain, request.feeTxHash!), "_blank")}
-                            className="flex-1"
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            익스플로러
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 수수료 정보 요약 */}
-                    <div className="pt-2 border-t border-indigo-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-indigo-700">수수료 금액</span>
-                        <span className="font-mono text-sm font-semibold text-indigo-900">
-                          {formatCryptoAmount(request.withdrawalFee, request.asset)} {request.asset}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-indigo-700">전송 대상</span>
-                        <span className="text-sm font-medium text-indigo-900">
-                          Fee Wallet (Vault ID: 5)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -919,6 +864,72 @@ export function RequestDetailModal({
                 )}
               </div>
             </>
+          )}
+
+          {/* 수수료 트랜잭션 정보 (관리자 전용) - 모든 상태에서 표시 */}
+          {request.feeTxid && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm text-indigo-900">수수료 트랜잭션 (관리자 전용)</h4>
+              <div className="space-y-2 text-sm">
+                {/* 수수료 BlockDaemon ID */}
+                <div>
+                  <p className="text-xs text-indigo-700 mb-1">수수료 BlockDaemon ID</p>
+                  <div className="bg-white rounded border border-indigo-200 p-2">
+                    <p className="font-mono text-xs break-all text-indigo-900">
+                      {request.feeTxid}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 수수료 블록체인 해시 */}
+                {request.feeTxHash && (
+                  <div>
+                    <p className="text-xs text-indigo-700 mb-1">수수료 블록체인 해시</p>
+                    <div className="bg-white rounded border border-indigo-200 p-2">
+                      <p className="font-mono text-xs break-all text-indigo-900">
+                        {request.feeTxHash}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyTxHash(request.feeTxHash!)}
+                        className="flex-1"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        수수료 해시 복사
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(getBlockchainExplorerUrl(request.blockchain, request.feeTxHash!), "_blank")}
+                        className="flex-1"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        익스플로러
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 수수료 정보 요약 */}
+                <div className="pt-2 border-t border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-indigo-700">수수료 금액</span>
+                    <span className="font-mono text-sm font-semibold text-indigo-900">
+                      {formatCryptoAmount(request.withdrawalFee, request.asset)} {request.asset}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-indigo-700">전송 대상</span>
+                    <span className="text-sm font-medium text-indigo-900">
+                      Fee Wallet (Vault ID: 5)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           </div>
         </div>
