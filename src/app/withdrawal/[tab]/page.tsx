@@ -1,10 +1,11 @@
 'use client'
 
-import { notFound } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import PageLayout from '@/components/PageLayout'
 import WithdrawalManagement from '@/components/WithdrawalManagement'
 import { useServicePlan } from '@/contexts/ServicePlanContext'
+import { useEffect } from 'react'
 
 interface WithdrawalTabPageProps {
   params: {
@@ -29,11 +30,24 @@ function isIndividualTab(tab: string): tab is IndividualTab {
 }
 
 export default function WithdrawalTabPage({ params }: WithdrawalTabPageProps) {
+  const router = useRouter()
   const { selectedPlan } = useServicePlan()
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const { tab } = params
 
-  // 로그인하지 않은 경우 middleware가 처리하도록 빈 페이지 반환
+  // 로그인하지 않은 경우 로그인 페이지로 리디렉션
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !user) {
+      router.push('/login')
+    }
+  }, [user, isAuthenticated, isLoading, router])
+
+  // 로딩 중에는 렌더링 대기
+  if (isLoading) {
+    return null
+  }
+
+  // 로그인하지 않은 경우
   if (!isAuthenticated || !user) {
     return null
   }
