@@ -5,14 +5,16 @@ import { TrashIcon, WalletIcon, BuildingOfficeIcon, UserIcon } from "@heroicons/
 import { WhitelistedAddress } from "@/types/address";
 import { getDailyLimitStatus, formatKRW, getProgressPercentage } from "@/utils/addressHelpers";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { User } from "@/types/user";
 
 interface AddressTableProps {
   addresses: WhitelistedAddress[];
   onDelete: (id: string) => void;
   getAssetColor: (asset: string) => string;
+  user?: User;
 }
 
-export default function AddressTable({ addresses, onDelete, getAssetColor }: AddressTableProps) {
+export default function AddressTable({ addresses, onDelete, getAssetColor, user }: AddressTableProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const [maxChars, setMaxChars] = useState(45);
 
@@ -256,12 +258,14 @@ export default function AddressTable({ addresses, onDelete, getAssetColor }: Add
                 )}
               </td>
               <td className="px-6 py-4">
-                <button
-                  onClick={() => onDelete(addr.id)}
-                  className="text-red-600 hover:text-red-900 transition-colors"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
+                {user?.memberType === 'corporate' && user?.role === 'admin' && (
+                  <button
+                    onClick={() => onDelete(addr.id)}
+                    className="text-red-600 hover:text-red-900 transition-colors"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                )}
               </td>
             </tr>
           ))}

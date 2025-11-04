@@ -417,6 +417,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
                 addresses={paginatedPersonalData.items}
                 onDelete={handleDeleteAddress}
                 getAssetColor={getAssetColor}
+                user={user || undefined}
               />
             </div>
 
@@ -470,6 +471,7 @@ export default function AddressManagement({ initialTab }: AddressManagementProps
                 addresses={paginatedVaspData.items}
                 onDelete={handleDeleteAddress}
                 getAssetColor={getAssetColor}
+                user={user || undefined}
               />
             </div>
 
