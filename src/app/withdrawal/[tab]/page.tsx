@@ -30,11 +30,16 @@ function isIndividualTab(tab: string): tab is IndividualTab {
 
 export default function WithdrawalTabPage({ params }: WithdrawalTabPageProps) {
   const { selectedPlan } = useServicePlan()
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const { tab } = params
 
+  // 로그인하지 않은 경우 middleware가 처리하도록 빈 페이지 반환
+  if (!isAuthenticated || !user) {
+    return null
+  }
+
   // 회원 유형에 따라 유효한 탭인지 확인
-  const isValidTab = user?.memberType === 'corporate'
+  const isValidTab = user.memberType === 'corporate'
     ? isCorporateTab(tab)
     : isIndividualTab(tab)
 
