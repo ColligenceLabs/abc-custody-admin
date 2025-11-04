@@ -50,11 +50,8 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
 
   // 실시간 카운트다운 업데이트
   useEffect(() => {
-    // 개인 회원이고 processingScheduledAt이 있으면 카운트다운 표시
-    if (
-      request.memberType === "individual" &&
-      request.processingScheduledAt
-    ) {
+    // processingScheduledAt이 있으면 카운트다운 표시 (개인/법인 모두)
+    if (request.processingScheduledAt) {
       // 초기 시간 설정
       setRemainingTime(calculateRemainingTime(request.processingScheduledAt));
 

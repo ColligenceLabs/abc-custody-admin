@@ -342,9 +342,8 @@ export function RequestDetailModal({
 
           {/* 상태별 특화 섹션 */}
 
-          {/* withdrawal_wait: 출금 대기 (개인 회원 전용 테스트 설정) */}
+          {/* withdrawal_wait: 출금 대기 (테스트용 대기 시간 설정) */}
           {request.status === "withdrawal_wait" &&
-           request.memberType === "individual" &&
            request.processingScheduledAt && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
