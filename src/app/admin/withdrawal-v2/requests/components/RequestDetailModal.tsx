@@ -320,7 +320,7 @@ export function RequestDetailModal({
                 <p className="font-mono">{request.id}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">회원사</p>
+                <p className="text-muted-foreground">회원명</p>
                 <p className="font-medium">{request.memberName}</p>
               </div>
               <div className="col-span-2">
