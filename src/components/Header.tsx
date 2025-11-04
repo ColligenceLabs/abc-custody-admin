@@ -14,6 +14,7 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { ROLE_NAMES } from "@/types/user";
 import LanguageToggle from "./LanguageToggle";
 
 export default function Header() {
@@ -159,32 +160,24 @@ export default function Header() {
                             </p>
                           </div>
                         </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          {user?.department && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {user.department}
+                        {user?.memberType === 'corporate' && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-600 border border-indigo-200">
+                              <BuildingOfficeIcon className="w-3 h-3 mr-1" />
+                              법인 회원
                             </span>
-                          )}
-                          {user?.memberType && (
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              user.memberType === 'individual'
-                                ? 'bg-sky-50 text-sky-600 border border-sky-200'
-                                : 'bg-indigo-50 text-indigo-600 border border-indigo-200'
-                            }`}>
-                              {user.memberType === 'individual' ? (
-                                <>
-                                  <UserIcon className="w-3 h-3 mr-1" />
-                                  개인 회원
-                                </>
-                              ) : (
-                                <>
-                                  <BuildingOfficeIcon className="w-3 h-3 mr-1" />
-                                  법인 회원
-                                </>
-                              )}
-                            </span>
-                          )}
-                        </div>
+                            {user?.department && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {user.department}
+                              </span>
+                            )}
+                            {user?.role && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-600 border border-primary-200">
+                                {ROLE_NAMES[user.role]}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* 메뉴 항목 */}
