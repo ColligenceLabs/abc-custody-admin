@@ -1,4 +1,13 @@
 // 기업 고객 온보딩 관련 타입 정의
+import { ComponentType } from 'react';
+import {
+  HandRaisedIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+  MapPinIcon,
+  DocumentCheckIcon,
+  CheckBadgeIcon
+} from '@heroicons/react/24/outline';
 
 export type OnboardingStep =
   | 'welcome'      // 환영 화면
@@ -65,6 +74,7 @@ export interface OnboardingStepConfig {
   isRequired: boolean;
   canSkip: boolean;
   order: number;
+  icon: ComponentType<{ className?: string }>;
 }
 
 // 기업 온보딩 단계 설정
@@ -76,22 +86,25 @@ export const CORPORATE_ONBOARDING_STEPS: OnboardingStepConfig[] = [
     isRequired: true,
     canSkip: false,
     order: 1,
+    icon: HandRaisedIcon,
   },
   {
     step: 'ga_setup',
-    title: 'Google Authenticator 설정',
+    title: 'GA 설정',
     description: '2단계 인증을 위한 Google Authenticator 등록',
     isRequired: true,
     canSkip: false,
     order: 2,
+    icon: KeyIcon,
   },
   {
     step: 'pass',
-    title: 'PASS 본인인증',
+    title: 'PASS 인증',
     description: '휴대폰 본인인증 및 개인정보 수집',
     isRequired: true,
     canSkip: false,
     order: 3,
+    icon: ShieldCheckIcon,
   },
   {
     step: 'address',
@@ -100,6 +113,7 @@ export const CORPORATE_ONBOARDING_STEPS: OnboardingStepConfig[] = [
     isRequired: true,
     canSkip: false,
     order: 4,
+    icon: MapPinIcon,
   },
   {
     step: 'kyc',
@@ -108,6 +122,7 @@ export const CORPORATE_ONBOARDING_STEPS: OnboardingStepConfig[] = [
     isRequired: true,
     canSkip: false,
     order: 5,
+    icon: DocumentCheckIcon,
   },
   {
     step: 'complete',
@@ -116,5 +131,6 @@ export const CORPORATE_ONBOARDING_STEPS: OnboardingStepConfig[] = [
     isRequired: true,
     canSkip: false,
     order: 6,
+    icon: CheckBadgeIcon,
   },
 ];

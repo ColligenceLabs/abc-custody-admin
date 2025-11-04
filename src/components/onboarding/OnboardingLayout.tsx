@@ -1,7 +1,6 @@
 "use client";
 
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import { ClockIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { CORPORATE_ONBOARDING_STEPS, OnboardingStep } from "@/types/onboarding";
 
 interface OnboardingLayoutProps {
@@ -34,94 +33,51 @@ export default function OnboardingLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 진행 상태 헤더 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">기업 고객 온보딩</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                서비스 이용을 위한 필수 설정을 진행해주세요
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">진행률</div>
-              <div className="text-2xl font-bold text-primary-600">
-                {completedSteps.length} / {CORPORATE_ONBOARDING_STEPS.length}
-              </div>
-            </div>
-          </div>
-
-          {/* 단계 진행 표시 */}
-          <div className="relative">
-            <div className="overflow-x-auto">
-              <div className="flex items-center space-x-4 min-w-max">
-                {CORPORATE_ONBOARDING_STEPS.map((config, index) => {
-                  const status = getStepStatus(config.step);
-
-                  return (
-                    <div key={config.step} className="flex items-center">
-                      <div className="flex flex-col items-center">
-                        {/* 단계 아이콘 */}
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                            status === 'completed'
-                              ? 'bg-sky-100 border-sky-600'
-                              : status === 'current'
-                              ? 'bg-primary-100 border-primary-600'
-                              : 'bg-gray-100 border-gray-300'
-                          }`}
-                        >
-                          {status === 'completed' ? (
-                            <CheckCircleIcon className="w-6 h-6 text-sky-600" />
-                          ) : status === 'current' ? (
-                            <ClockIcon className="w-6 h-6 text-primary-600" />
-                          ) : (
-                            <span className="text-sm font-medium text-gray-400">
-                              {index + 1}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 단계 이름 */}
-                        <div className="mt-2 text-center">
-                          <div
-                            className={`text-xs font-medium ${
-                              status === 'completed'
-                                ? 'text-sky-600'
-                                : status === 'current'
-                                ? 'text-primary-600'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            {config.title}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 연결선 */}
-                      {index < CORPORATE_ONBOARDING_STEPS.length - 1 && (
-                        <div
-                          className={`w-16 h-0.5 transition-colors ${
-                            isStepCompleted(config.step)
-                              ? 'bg-sky-600'
-                              : 'bg-gray-300'
-                          }`}
-                          style={{ marginBottom: '32px' }}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        {/* 제목 */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">기업 고객 온보딩</h1>
+          <p className="mt-2 text-gray-600">서비스 이용을 위한 필수 설정을 진행해주세요</p>
         </div>
-      </div>
 
-      {/* 메인 컨텐츠 */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 단계 진행 표시 - 로그인 스타일과 동일 */}
+        <div className="flex items-center justify-center mb-8">
+          {CORPORATE_ONBOARDING_STEPS.map((config, index) => {
+            const currentStepIndex = CORPORATE_ONBOARDING_STEPS.findIndex(s => s.step === currentStep);
+            const isActive = currentStep === config.step;
+            const isCompleted = currentStepIndex > index;
+            const Icon = config.icon;
+
+            return (
+              <div key={config.step} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                  isCompleted
+                    ? 'bg-primary-600 border-primary-600 text-white'
+                    : isActive
+                      ? 'border-primary-600 text-primary-600 bg-primary-50'
+                      : 'border-gray-300 text-gray-400'
+                }`}>
+                  {isCompleted ? (
+                    <CheckCircleIcon className="w-6 h-6" />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
+                </div>
+                <span className={`ml-2 text-sm font-medium ${
+                  isActive ? 'text-primary-600' : isCompleted ? 'text-primary-600' : 'text-gray-400'
+                }`}>
+                  {config.title}
+                </span>
+                {index < CORPORATE_ONBOARDING_STEPS.length - 1 && (
+                  <ArrowRightIcon className="w-4 h-4 text-gray-300 mx-4" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 메인 컨텐츠 */}
         {children}
       </div>
     </div>

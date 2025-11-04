@@ -636,8 +636,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 쿠키에도 저장 (middleware에서 사용)
         document.cookie = `auth_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${sessionTimeout / 1000}; SameSite=Lax`
 
-        // 로그인 성공 후 overview로 이동
-        router.push('/overview')
+        // 온보딩 완료 여부 확인 후 리다이렉트
+        const needsOnboarding =
+          userWithMemberType.memberType === 'corporate' &&
+          userWithMemberType.creationMethod === 'admin_invited' &&
+          !userWithMemberType.onboardingCompleted;
+
+        if (needsOnboarding) {
+          console.log('[verifySms] 기업 온보딩 미완료, PASS 인증으로 이동');
+          router.push('/onboarding/corporate/pass');
+        } else {
+          console.log('[verifySms] 로그인 완료, 대시보드로 이동');
+          router.push('/overview');
+        }
 
         return { success: true, message: '로그인에 성공했습니다.' }
       } else {
