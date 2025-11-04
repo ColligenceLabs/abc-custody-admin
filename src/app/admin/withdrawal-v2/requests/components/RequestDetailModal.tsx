@@ -328,19 +328,31 @@ export function RequestDetailModal({
                   </div>
 
                   {/* 수수료 (있는 경우만) */}
-                  {request.withdrawalFee && parseFloat(request.withdrawalFee.toString()) > 0 && (
-                    <div className="flex items-center justify-between pt-2 border-t border-blue-300">
-                      <span className="text-sm text-gray-600">
-                        출금 수수료 ({request.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-medium text-gray-700">
-                          {formatCryptoAmount(request.withdrawalFee, request.asset)}
+                  {(() => {
+                    const feeValue = typeof request.withdrawalFee === 'string'
+                      ? parseFloat(request.withdrawalFee)
+                      : request.withdrawalFee;
+
+                    console.log('[RequestDetailModal] 수수료 체크:', {
+                      withdrawalFee: request.withdrawalFee,
+                      feeValue,
+                      hasFee: feeValue && feeValue > 0
+                    });
+
+                    return feeValue && feeValue > 0 ? (
+                      <div className="flex items-center justify-between pt-2 border-t border-blue-300">
+                        <span className="text-sm text-gray-600">
+                          출금 수수료 ({request.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
                         </span>
-                        <span className="text-xs text-gray-600">{request.asset}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium text-gray-700">
+                            {formatCryptoAmount(request.withdrawalFee, request.asset)}
+                          </span>
+                          <span className="text-xs text-gray-600">{request.asset}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : null;
+                  })()}
 
                   {/* 실수령액 */}
                   <div className="flex items-center justify-between pt-2 border-t border-blue-300">
@@ -672,7 +684,10 @@ export function RequestDetailModal({
 
               <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
                 <h4 className="font-semibold">완료 정보</h4>
-                <p>지갑 소스: <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge></p>
+                <div className="flex items-center gap-2">
+                  <span>지갑 소스:</span>
+                  <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge>
+                </div>
                 {request.completedAt && (
                   <p>완료 시간: {request.completedAt.toLocaleString("ko-KR")}</p>
                 )}
@@ -831,7 +846,10 @@ export function RequestDetailModal({
                 <p>오류 메시지: <span className="font-medium">{request.error.message}</span></p>
                 <p>발생 시간: {request.error.occurredAt.toLocaleString("ko-KR")}</p>
                 {request.walletSource && (
-                  <p>지갑 소스: <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge></p>
+                  <div className="flex items-center gap-2">
+                  <span>지갑 소스:</span>
+                  <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge>
+                </div>
                 )}
               </div>
             </>
