@@ -199,6 +199,7 @@ export default function GroupWalletManagement({
             type: g.type,
             description: g.description || '',
             currency: g.currency,
+            manager: g.requestedBy, // manager 필드 추가
             monthlyBudget: { amount: 0, currency: g.currency },
             quarterlyBudget: { amount: 0, currency: g.currency },
             yearlyBudget: { amount: yearlyBudgetAmount, currency: g.currency },
@@ -213,7 +214,7 @@ export default function GroupWalletManagement({
 
         // mockup 데이터와 병합
         const allRequests = [...dbRequests, ...mockGroupRequests.filter(mr =>
-          !dbRequests.some(dr => dr.id === mr.id)
+          !dbRequests.some((dr: any) => dr.id === mr.id)
         )];
 
         setGroupRequests(allRequests);
@@ -369,7 +370,7 @@ export default function GroupWalletManagement({
             !dbGroups.some(dg => dg.id === mg.id)
           )];
 
-          setGroups(allGroups);
+          setGroups(allGroups as any);
           console.log('[fetchGroups] Groups loaded:', allGroups.length, 'groups');
         }
       } catch (error) {
@@ -715,7 +716,7 @@ export default function GroupWalletManagement({
                             !dbGroups.some(dg => dg.id === mg.id)
                           )];
 
-                          setGroups(allGroups);
+                          setGroups(allGroups as any);
                           console.log('[approveGroup] Groups refreshed:', allGroups.length);
 
                           // 승인 완료 후 그룹 관리 탭으로 이동

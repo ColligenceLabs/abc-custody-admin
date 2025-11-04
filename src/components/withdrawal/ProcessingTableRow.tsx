@@ -70,7 +70,7 @@ export function ProcessingTableRow({
 
   // Progress 계산 로직
   const getProgressInfo = (request: WithdrawalRequest | IndividualWithdrawalRequest) => {
-    if (request.status === "withdrawal_wait" || request.status === "withdrawal_pending") {
+    if (request.status === "withdrawal_wait") {
       // 개인회원의 경우 실시간 remainingTime 사용
       const eta = remainingTime || "24시간";
 

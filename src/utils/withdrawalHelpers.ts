@@ -20,34 +20,24 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
       icon: ClockIcon,
     },
     aml_review: {
-      name: "보안검증",
-      color: badgeColors.medium,
-      icon: CpuChipIcon,
-    },
-    approval_pending: {
-      name: "보안검증",
+      name: "AML 검증",
       color: badgeColors.medium,
       icon: CpuChipIcon,
     },
     aml_issue: {
-      name: "보안검증",
+      name: "AML 이슈",
+      color: badgeColors.danger,
+      icon: XCircleIcon,
+    },
+    processing: {
+      name: "출금 처리 대기",
       color: badgeColors.medium,
       icon: CpuChipIcon,
     },
     transferring: {
-      name: "보안검증",
-      color: badgeColors.medium,
-      icon: CpuChipIcon,
-    },
-    processing: {
-      name: "보안검증",
-      color: badgeColors.medium,
-      icon: CpuChipIcon,
-    },
-    withdrawal_pending: {
-      name: "보안검증",
-      color: badgeColors.medium,
-      icon: CpuChipIcon,
+      name: "출금 중",
+      color: badgeColors.high,
+      icon: ArrowUpOnSquareIcon,
     },
     success: {
       name: "출금 완료",
@@ -76,12 +66,7 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
       color: badgeColors.high,
       icon: DocumentTextIcon,
     },
-    withdrawal_reapply: {
-      name: "재신청",
-      color: badgeColors.high,
-      icon: DocumentTextIcon,
-    },
-    rejected: {
+    withdrawal_rejected: {
       name: "결재 반려",
       color: badgeColors.danger,
       icon: XCircleIcon,

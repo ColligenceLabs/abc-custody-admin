@@ -81,29 +81,29 @@ export function RejectedTableRow({
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        {(request.status === "rejected" ||
+        {(request.status === "withdrawal_rejected" ||
           request.status === "archived") && (
           <div className="w-full">
             <div className="flex justify-between text-xs text-gray-600 mb-1">
               <span>
-                {request.status === "rejected" || request.status === "archived"
+                {request.status === "withdrawal_rejected" || request.status === "archived"
                   ? `${request.approvals.length + request.rejections.length}/${request.requiredApprovals.length}`
                   : `${request.approvals.length}/${request.requiredApprovals.length}`}
               </span>
-              {(request.status === "rejected" || request.status === "archived") && (
+              {(request.status === "withdrawal_rejected" || request.status === "archived") && (
                 <span className="text-red-600 font-medium">반려</span>
               )}
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all ${
-                  request.status === "rejected" || request.status === "archived"
+                  request.status === "withdrawal_rejected" || request.status === "archived"
                     ? "bg-red-500"
                     : "bg-blue-500"
                 }`}
                 style={{
                   width:
-                    request.status === "rejected" || request.status === "archived"
+                    request.status === "withdrawal_rejected" || request.status === "archived"
                       ? `${((request.approvals.length + request.rejections.length) / request.requiredApprovals.length) * 100}%`
                       : `${(request.approvals.length / request.requiredApprovals.length) * 100}%`,
                 }}
@@ -121,7 +121,7 @@ export function RejectedTableRow({
             상세보기
           </button>
 
-          {request.status === "rejected" && onReapplication && onArchive && (
+          {request.status === "withdrawal_rejected" && onReapplication && onArchive && (
             <>
               <div className="h-4 w-px bg-gray-300"></div>
               <button

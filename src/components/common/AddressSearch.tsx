@@ -3,12 +3,7 @@
 import { useState, useEffect } from "react";
 import { MapPinIcon } from "@heroicons/react/24/outline";
 
-// 다음 주소 검색 API 타입 정의
-declare global {
-  interface Window {
-    daum: any;
-  }
-}
+// DaumPostcodeData는 src/types/daum.d.ts에 정의됨
 
 interface AddressData {
   zipCode: string;

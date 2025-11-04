@@ -54,10 +54,9 @@ export default function WithdrawalTimeline({
     if (withdrawal.status === "aml_review") {
       return "AML 검토 중...";
     } else if (
-      withdrawal.status === "approval_pending" ||
-      withdrawal.status === "withdrawal_pending"
+      withdrawal.status === "processing"
     ) {
-      return "승인 대기 중...";
+      return "출금 처리 대기 중...";
     } else if (
       ["processing", "transferring", "success", "admin_rejected"].includes(
         withdrawal.status
@@ -92,9 +91,7 @@ export default function WithdrawalTimeline({
         description: getSecurityDescription(),
         timestamp: undefined, // 개인회원은 별도 타임스탬프 없음
         status: [
-          "aml_review",
-          "approval_pending",
-          "withdrawal_pending",
+          "aml_review"
         ].includes(withdrawal.status)
           ? "current"
           : ["processing", "transferring", "success"].includes(
@@ -109,13 +106,13 @@ export default function WithdrawalTimeline({
       {
         id: "processing",
         title: "출금 처리",
-        description: ["withdrawal_pending", "processing"].includes(
+        description: ["processing"].includes(
           withdrawal.status
         )
-          ? "블록체인 전송 준비 중"
+          ? "관리자 승인 대기 중"
           : "처리 완료",
         timestamp: undefined, // 개인회원은 별도 타임스탬프 없음
-        status: ["withdrawal_pending", "processing"].includes(withdrawal.status)
+        status: ["processing"].includes(withdrawal.status)
           ? "current"
           : ["transferring", "success"].includes(withdrawal.status)
           ? "completed"

@@ -563,7 +563,7 @@ export default function CorporateWithdrawalManagement({
               name: "반려/보류 관리",
               icon: XCircleIcon,
               count: mockRequests.filter(
-                (r) => r.status === "rejected" || r.status === "archived"
+                (r) => r.status === "withdrawal_rejected" || r.status === "archived"
               ).length,
             },
             {
