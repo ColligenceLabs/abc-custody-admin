@@ -308,6 +308,12 @@ export default function GroupWalletManagement({
                 baseAmount = monthlyBudgets.reduce((sum: number, mb: any) => sum + mb.amount, 0);
               }
 
+              // 남은 기간 계산
+              const currentMonth = new Date().getMonth() + 1;
+              const currentQuarter = Math.ceil(currentMonth / 3);
+              const remainingMonths = Array.from({ length: 12 - currentMonth + 1 }, (_, i) => currentMonth + i);
+              const remainingQuarters = Array.from({ length: 4 - currentQuarter + 1 }, (_, i) => currentQuarter + i);
+
               budgetSetup = {
                 year: g.budgetYear,
                 currency: g.currency,
@@ -318,6 +324,8 @@ export default function GroupWalletManagement({
                 monthlyBudgets,
                 quarterlyBudgets,
                 yearlyBudget: yearlyBudgetAmount,
+                remainingMonths,
+                remainingQuarters,
               };
             }
 
@@ -648,6 +656,12 @@ export default function GroupWalletManagement({
                                 baseAmount = monthlyBudgets.reduce((sum: number, mb: any) => sum + mb.amount, 0);
                               }
 
+                              // 남은 기간 계산
+                              const currentMonthForSetup = new Date().getMonth() + 1;
+                              const currentQuarterForSetup = Math.ceil(currentMonthForSetup / 3);
+                              const remainingMonthsForSetup = Array.from({ length: 12 - currentMonthForSetup + 1 }, (_, i) => currentMonthForSetup + i);
+                              const remainingQuartersForSetup = Array.from({ length: 4 - currentQuarterForSetup + 1 }, (_, i) => currentQuarterForSetup + i);
+
                               budgetSetup = {
                                 year: g.budgetYear,
                                 currency: g.currency,
@@ -658,6 +672,8 @@ export default function GroupWalletManagement({
                                 monthlyBudgets,
                                 quarterlyBudgets,
                                 yearlyBudget: yearlyBudgetAmount,
+                                remainingMonths: remainingMonthsForSetup,
+                                remainingQuarters: remainingQuartersForSetup,
                               };
                             }
 
