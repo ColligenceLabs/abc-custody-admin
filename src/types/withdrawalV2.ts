@@ -405,6 +405,13 @@ export interface WithdrawalV2Request {
   completedAt?: Date;
   txHash?: string;
   blockdaemonTransactionId?: string; // BlockDaemon 트랜잭션 ID
+
+  // 수수료 관련
+  withdrawalFee?: number | string;
+  withdrawalFeeType?: 'fixed' | 'percentage';
+  netAmount?: number | string;
+  feeTxid?: string;
+  feeTxHash?: string;
 }
 
 // ============================================================================

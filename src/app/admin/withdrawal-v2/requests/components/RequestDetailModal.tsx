@@ -313,13 +313,46 @@ export function RequestDetailModal({
                 <p className="text-muted-foreground">회원사</p>
                 <p className="font-medium">{request.memberName}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">자산</p>
-                <p className="font-semibold">{request.asset}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">수량</p>
-                <p className="font-mono text-lg font-bold">{formatCryptoAmount(request.amount, request.asset)}</p>
+              <div className="col-span-2">
+                <p className="text-muted-foreground mb-2">출금 수량 상세</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                  {/* 신청 금액 */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">신청 금액</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-base font-semibold text-gray-900">
+                        {formatCryptoAmount(request.amount, request.asset)}
+                      </span>
+                      <span className="text-sm font-medium text-gray-600">{request.asset}</span>
+                    </div>
+                  </div>
+
+                  {/* 수수료 (있는 경우만) */}
+                  {request.withdrawalFee && parseFloat(request.withdrawalFee.toString()) > 0 && (
+                    <div className="flex items-center justify-between pt-2 border-t border-blue-300">
+                      <span className="text-sm text-gray-600">
+                        출금 수수료 ({request.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-medium text-gray-700">
+                          {formatCryptoAmount(request.withdrawalFee, request.asset)}
+                        </span>
+                        <span className="text-xs text-gray-600">{request.asset}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 실수령액 */}
+                  <div className="flex items-center justify-between pt-2 border-t border-blue-300">
+                    <span className="text-sm font-semibold text-blue-700">실수령액</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-lg font-bold text-blue-700">
+                        {formatCryptoAmount(request.netAmount || request.amount, request.asset)}
+                      </span>
+                      <span className="text-sm font-semibold text-blue-600">{request.asset}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div>
                 <p className="text-muted-foreground">블록체인</p>
