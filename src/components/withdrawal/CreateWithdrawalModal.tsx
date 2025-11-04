@@ -7,6 +7,7 @@ import { WalletGroup } from "@/types/groups";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrganizationUser } from "@/types/organizationUser";
+import { getNetworkByCurrency } from "@/utils/networkMapping";
 // 재컴파일 강제
 
 interface NewRequest {
@@ -314,14 +315,36 @@ export function CreateWithdrawalModal({
             <select
               value={newRequest.groupId || ''}
               onChange={(e) => {
-                onRequestChange({ ...newRequest, groupId: e.target.value });
+                const selectedGroupId = e.target.value;
+                const group = groups.find(g => g.id === selectedGroupId);
+
+                if (group && group.currency) {
+                  // 그룹 선택 시 해당 그룹의 currency에 맞는 네트워크와 자산 자동 선택
+                  const network = getNetworkByCurrency(group.currency);
+
+                  onRequestChange({
+                    ...newRequest,
+                    groupId: selectedGroupId,
+                    network: network,
+                    currency: group.currency,
+                  });
+
+                  console.log('[그룹 선택]', {
+                    groupName: group.name,
+                    currency: group.currency,
+                    autoSelectedNetwork: network,
+                  });
+                } else {
+                  // 그룹 외 출금 선택 시 기존 선택 유지
+                  onRequestChange({ ...newRequest, groupId: selectedGroupId });
+                }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               <option value="">그룹 외 출금</option>
               {groups.filter(g => g.status === 'active').map((group) => (
                 <option key={group.id} value={group.id}>
-                  {group.name} ({group.type})
+                  {group.name} ({group.currency || '자산 미설정'})
                 </option>
               ))}
             </select>
@@ -409,12 +432,16 @@ export function CreateWithdrawalModal({
                   })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                disabled={!!selectedGroup}
               >
                 <option value="">네트워크를 선택하세요</option>
                 <option value="Bitcoin">Bitcoin Network</option>
                 <option value="Ethereum">Ethereum Network</option>
                 <option value="Solana">Solana Network</option>
               </select>
+              {selectedGroup && (
+                <p className="mt-1 text-xs text-gray-500">그룹 자산에 따라 자동 선택됨</p>
+              )}
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -429,8 +456,10 @@ export function CreateWithdrawalModal({
                     toAddress: "",
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                disabled={!newRequest.network}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                  selectedGroup ? 'bg-gray-50 cursor-not-allowed' : ''
+                }`}
+                disabled={!newRequest.network || !!selectedGroup}
               >
                 <option value="">
                   {newRequest.network
@@ -446,6 +475,9 @@ export function CreateWithdrawalModal({
                     </option>
                   ))}
               </select>
+              {selectedGroup && (
+                <p className="mt-1 text-xs text-gray-500">그룹 자산에 따라 자동 선택됨</p>
+              )}
             </div>
           </div>
 

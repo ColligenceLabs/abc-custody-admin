@@ -53,8 +53,7 @@ import { getCorporateWithdrawals, createWithdrawal, getWithdrawalById } from "@/
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
-import { mockGroups } from "@/data/groupMockData";
-import { getRequiredApprovers } from "@/data/organizationUserMockData";
+import { WalletGroup } from "@/types/groups";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -66,6 +65,14 @@ export default function CorporateWithdrawalManagement({
     "approval" | "airgap" | "audit" | "rejected"
   >("approval");
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // 그룹 목록 상태 (DB + mockup)
+  const [groups, setGroups] = useState<WalletGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+
+  // Manager 목록 상태 (DB)
+  const [managers, setManagers] = useState<any[]>([]);
+  const [isLoadingManagers, setIsLoadingManagers] = useState(true);
 
   // initialTab이 변경되면 activeTab 업데이트
   useEffect(() => {
@@ -103,6 +110,125 @@ export default function CorporateWithdrawalManagement({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Manager 목록 가져오기
+  useEffect(() => {
+    const fetchManagers = async () => {
+      if (!user?.organizationId) {
+        console.log('[Withdrawal] No organizationId for managers');
+        setManagers([]);
+        setIsLoadingManagers(false);
+        return;
+      }
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const url = `${API_URL}/api/users?role=manager&organizationId=${user.organizationId}&status=active`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+          setManagers(data);
+          console.log('[Withdrawal] Managers loaded:', data.length);
+        }
+      } catch (error) {
+        console.error('[Withdrawal] Failed to load managers:', error);
+        setManagers([]);
+      } finally {
+        setIsLoadingManagers(false);
+      }
+    };
+
+    fetchManagers();
+  }, [user?.organizationId]);
+
+  // 그룹 목록 가져오기
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (!user?.organizationId) {
+        console.log('[Withdrawal] No organizationId');
+        setGroups([]);
+        setIsLoadingGroups(false);
+        return;
+      }
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const url = `${API_URL}/api/groups?organizationId=${user.organizationId}&status=active`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+          const dbGroups = data.map((g: any) => {
+            // budgetPeriods에서 월별/분기별/연간 예산 추출
+            const budgetPeriods = g.budgetPeriods || [];
+            const currentMonth = new Date().getMonth() + 1;
+            const currentQuarter = Math.ceil(currentMonth / 3);
+
+            // 현재 월 예산
+            const currentMonthBudget = budgetPeriods.find((bp: any) =>
+              bp.periodType === 'monthly' && bp.period === currentMonth
+            );
+
+            // 현재 분기 예산
+            const currentQuarterBudget = budgetPeriods.find((bp: any) =>
+              bp.periodType === 'quarterly' && bp.period === currentQuarter
+            );
+
+            // 연간 예산
+            const yearlyBudgetPeriod = budgetPeriods.find((bp: any) => bp.periodType === 'yearly');
+
+            return {
+              id: g.id,
+              name: g.name,
+              type: g.type,
+              description: g.description || '',
+              currency: g.currency,
+              balance: { amount: 0, currency: g.currency },
+              monthlyBudget: {
+                amount: currentMonthBudget ? parseFloat(currentMonthBudget.budgetAmount) : 0,
+                currency: g.currency
+              },
+              quarterlyBudget: {
+                amount: currentQuarterBudget ? parseFloat(currentQuarterBudget.budgetAmount) : 0,
+                currency: g.currency
+              },
+              yearlyBudget: {
+                amount: yearlyBudgetPeriod ? parseFloat(yearlyBudgetPeriod.budgetAmount) : parseFloat(g.yearlyBudgetAmount || 0),
+                currency: g.currency
+              },
+              budgetUsed: {
+                amount: currentMonthBudget ? parseFloat(currentMonthBudget.usedAmount) : 0,
+                currency: g.currency
+              },
+              quarterlyBudgetUsed: {
+                amount: currentQuarterBudget ? parseFloat(currentQuarterBudget.usedAmount) : 0,
+                currency: g.currency
+              },
+              yearlyBudgetUsed: {
+                amount: parseFloat(g.yearlyBudgetUsed || 0),
+                currency: g.currency
+              },
+              members: [],
+              createdAt: g.createdAt ? new Date(g.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              status: g.status,
+            };
+          });
+
+          setGroups(dbGroups);
+        }
+      } catch (error) {
+        console.error('[Withdrawal] Failed to load groups:', error);
+        setGroups([]);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
+
+    fetchGroups();
+  }, [user?.organizationId]);
+
   // API 데이터 가져오기
   useEffect(() => {
     const fetchWithdrawals = async () => {
@@ -122,23 +248,27 @@ export default function CorporateWithdrawalManagement({
     fetchWithdrawals();
   }, []);
 
-  // 사용자별 주소 가져오기
+  // 조직의 모든 출금 주소 가져오기
   useEffect(() => {
     const fetchAddresses = async () => {
-      if (!user?.id) return;
+      if (!user?.organizationId) return;
 
       try {
-        const userAddresses = await getAddresses({ userId: user.id });
-        console.log('API 응답 - 주소 목록:', userAddresses);
-        console.log('현재 사용자 ID:', user.id);
-        setAddresses(userAddresses);
+        // organizationId로 같은 조직의 모든 주소 조회
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        const response = await fetch(`${API_URL}/api/addresses?organizationId=${user.organizationId}`);
+        const data = await response.json();
+
+        console.log('[Withdrawal] 조직 주소 목록:', data);
+        console.log('[Withdrawal] organizationId:', user.organizationId);
+        setAddresses(data);
       } catch (err) {
-        console.error('주소 목록 조회 실패:', err);
+        console.error('[Withdrawal] 주소 목록 조회 실패:', err);
       }
     };
 
     fetchAddresses();
-  }, [user?.id]);
+  }, [user?.organizationId]);
 
   const mockRequests = withdrawals;
 
@@ -633,8 +763,8 @@ export default function CorporateWithdrawalManagement({
         onRequestChange={setNewRequest}
         networkAssets={networkAssets}
         whitelistedAddresses={addresses}
-        groups={mockGroups}
-        managers={getRequiredApprovers()}
+        groups={groups}
+        managers={managers}
       />
 
       {/* 승인/반려 확인 팝업 */}
