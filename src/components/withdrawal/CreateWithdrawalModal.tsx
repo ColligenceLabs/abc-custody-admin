@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { OrganizationUser } from "@/types/organizationUser";
 import { getNetworkByCurrency } from "@/utils/networkMapping";
+import { createWithdrawal, uploadWithdrawalAttachments } from "@/lib/api/withdrawal";
 // 재컴파일 강제
 
 interface NewRequest {
@@ -68,6 +69,10 @@ export function CreateWithdrawalModal({
   const [isApproverDropdownOpen, setIsApproverDropdownOpen] = useState(false);
   const approverDropdownRef = useRef<HTMLDivElement>(null);
 
+  // 제출 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+
   // 선택된 그룹 정보
   const selectedGroup = groups.find(g => g.id === newRequest.groupId);
 
@@ -93,6 +98,18 @@ export function CreateWithdrawalModal({
   // 자신을 제외한 매니저 목록
   const availableManagers = managers.filter(m => m.id !== user?.id);
 
+  // 모달이 열릴 때 상태 초기화
+  useEffect(() => {
+    if (isOpen) {
+      setAttachments([]);
+      setSelectedApprovers([]);
+      setBudgetError(null);
+      setUploadError(null);
+      setIsSubmitting(false);
+      setIsApproverDropdownOpen(false);
+    }
+  }, [isOpen]);
+
   // 드롭다운 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -106,6 +123,33 @@ export function CreateWithdrawalModal({
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isApproverDropdownOpen]);
+
+  // 금액 입력 시 예산 초과 검증
+  useEffect(() => {
+    if (!newRequest.groupId || !selectedGroup || !newRequest.amount) {
+      setBudgetError(null);
+      return;
+    }
+
+    // 예산 계산
+    const budget = selectedGroup.monthlyBudget;
+    const used = selectedGroup.budgetUsed;
+
+    if (budget.currency !== used.currency) {
+      setBudgetError(null);
+      return;
+    }
+
+    const available = budget.amount - used.amount;
+
+    if (newRequest.amount > available) {
+      setBudgetError(
+        `월별 잔여 예산(${available.toLocaleString()} ${budget.currency})을 초과할 수 없습니다.`
+      );
+    } else {
+      setBudgetError(null);
+    }
+  }, [newRequest.amount, newRequest.groupId, selectedGroup]);
 
   // 결재자 선택/해제
   const toggleApprover = (userId: string) => {
@@ -240,11 +284,25 @@ export function CreateWithdrawalModal({
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[신청 제출] handleSubmit 시작');
+
+    // 이미 제출 중이면 중복 방지
+    if (isSubmitting) {
+      console.log('[신청 제출] 이미 제출 중 - 중단');
+      return;
+    }
+
+    console.log('[신청 제출] 검증 시작', {
+      selectedApprovers: selectedApprovers.length,
+      toAddress: newRequest.toAddress,
+      budgetError
+    });
 
     // 결재자 필수 검증 (최소 1명)
     if (selectedApprovers.length === 0) {
+      console.log('[신청 제출] 결재자 미선택 - 중단');
       toast({
         variant: 'destructive',
         description: '결재자를 최소 1명 이상 선택해주세요.',
@@ -254,6 +312,7 @@ export function CreateWithdrawalModal({
 
     // 출금 주소 필수 검증
     if (!newRequest.toAddress) {
+      console.log('[신청 제출] 출금 주소 미선택 - 중단');
       toast({
         variant: 'destructive',
         description: '출금 주소를 선택해주세요.',
@@ -261,19 +320,96 @@ export function CreateWithdrawalModal({
       return;
     }
 
-    // 그룹을 선택한 경우에만 예산 초과 검증
-    if (newRequest.groupId && availableBudget && newRequest.amount > availableBudget.available) {
+    // 예산 초과 검증
+    if (budgetError) {
+      console.log('[신청 제출] 예산 초과 - 중단', budgetError);
       toast({
         variant: 'destructive',
-        description: `선택한 그룹의 남은 예산(${availableBudget.available.toLocaleString()} ${availableBudget.currency})을 초과할 수 없습니다.`,
+        description: budgetError,
       });
       return;
     }
 
-    onSubmit({
-      ...newRequest,
-      requiredApprovals: selectedApprovers
-    });
+    console.log('[신청 제출] 검증 통과 - API 호출 시작');
+
+    try {
+      setIsSubmitting(true);
+      console.log('[신청 제출] isSubmitting = true');
+
+      // 네트워크 매핑 (테스트넷 환경)
+      const networkMapping: Record<string, string> = {
+        'Ethereum Network': 'Holesky',
+        'Bitcoin Network': 'Bitcoin',
+        'Solana Network': 'Solana',
+        'Ethereum': 'Holesky',
+        'Bitcoin': 'Bitcoin',
+        'Solana': 'Solana'
+      };
+      const apiNetwork = networkMapping[newRequest.network] || newRequest.network;
+
+      // fromAddress 설정 (그룹 또는 Custody wallet)
+      let fromAddress = newRequest.fromAddress;
+      if (!fromAddress) {
+        fromAddress = selectedGroup
+          ? `${selectedGroup.name} 그룹 지갑`
+          : "Custody wallet";
+      }
+
+      // API 요청 데이터 생성
+      const withdrawalData = {
+        id: `CORP-${Date.now()}`,
+        title: newRequest.title,
+        fromAddress: fromAddress,
+        toAddress: newRequest.toAddress,
+        amount: newRequest.amount,
+        currency: newRequest.currency as any,
+        network: apiNetwork,
+        userId: user?.id || "0",
+        memberType: "corporate" as const,
+        groupId: newRequest.groupId || "",
+        initiator: user?.name || "사용자",
+        status: "withdrawal_request" as const,
+        priority: newRequest.priority,
+        description: newRequest.description,
+        requiredApprovals: selectedApprovers,
+        approvals: [],
+        rejections: [],
+      };
+
+      console.log('[CorporateWithdrawal] API 전송 데이터:', withdrawalData);
+
+      // 출금 신청 생성
+      const createdWithdrawal = await createWithdrawal(withdrawalData);
+
+      console.log('[CorporateWithdrawal] 출금 신청 생성 완료:', createdWithdrawal);
+
+      // 첨부파일 업로드 (있는 경우)
+      if (attachments.length > 0) {
+        console.log('[CorporateWithdrawal] 첨부파일 업로드 시작:', attachments.length);
+        await uploadWithdrawalAttachments(createdWithdrawal.id, attachments);
+        console.log('[CorporateWithdrawal] 첨부파일 업로드 완료');
+      }
+
+      // 성공 메시지
+      toast({
+        description: "출금 신청이 성공적으로 접수되었습니다.",
+      });
+
+      // 부모 컴포넌트의 onSubmit 호출 (목록 갱신용)
+      onSubmit({
+        ...newRequest,
+        requiredApprovals: selectedApprovers
+      });
+
+    } catch (err) {
+      console.error('[CorporateWithdrawal] 출금 신청 실패:', err);
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "출금 신청에 실패했습니다.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -305,7 +441,7 @@ export function CreateWithdrawalModal({
         </div>
 
         {/* 콘텐츠 - 스크롤 */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+        <form id="withdrawal-submit-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-4">
           {/* 그룹 선택 */}
           <div className="flex-1">
@@ -507,9 +643,14 @@ export function CreateWithdrawalModal({
                     amount: value === '' ? ('' as any) : Number(value),
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                  budgetError ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="0.00"
               />
+              {budgetError && (
+                <p className="mt-1 text-sm text-red-600">{budgetError}</p>
+              )}
             </div>
           </div>
 
@@ -870,17 +1011,29 @@ export function CreateWithdrawalModal({
             취소
           </button>
           <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              const form = e.currentTarget.closest('.flex.flex-col')?.querySelector('form') as HTMLFormElement;
-              if (form) {
-                form.requestSubmit();
-              }
+            type="submit"
+            form="withdrawal-submit-form"
+            onClick={() => {
+              console.log('[버튼 클릭] 신청 제출 버튼 클릭됨');
             }}
-            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            disabled={isSubmitting || !!budgetError}
+            className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+              isSubmitting || budgetError
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-primary-600 hover:bg-primary-700'
+            } text-white`}
           >
-            신청 제출
+            {isSubmitting ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                처리 중...
+              </span>
+            ) : (
+              '신청 제출'
+            )}
           </button>
         </div>
       </div>

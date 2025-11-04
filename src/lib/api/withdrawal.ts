@@ -239,6 +239,61 @@ export async function cancelWithdrawal(
 }
 
 /**
+ * 법인 출금 결재 승인
+ */
+export async function approveWithdrawal(
+  id: string,
+  userId: string,
+  userName: string
+): Promise<WithdrawalRequest> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/api/withdrawals/${id}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ userId, userName }),
+  });
+
+  if (!response.ok) {
+    const error: ErrorResponse = await response.json();
+    throw new Error(error.message || '결재 승인에 실패했습니다.');
+  }
+
+  return response.json();
+}
+
+/**
+ * 법인 출금 결재 반려
+ */
+export async function rejectWithdrawalCorporate(
+  id: string,
+  userId: string,
+  userName: string,
+  reason: string
+): Promise<WithdrawalRequest> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_URL}/api/withdrawals/${id}/reject/manager`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    },
+    body: JSON.stringify({ userId, userName, reason }),
+  });
+
+  if (!response.ok) {
+    const error: ErrorResponse = await response.json();
+    throw new Error(error.message || '결재 반려에 실패했습니다.');
+  }
+
+  return response.json();
+}
+
+/**
  * 출금 상태별 개수 조회 (대시보드용)
  */
 export async function getWithdrawalCountsByStatus(
