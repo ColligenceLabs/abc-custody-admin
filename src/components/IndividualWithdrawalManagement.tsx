@@ -167,8 +167,20 @@ export default function IndividualWithdrawalManagement({
         const grouped: Record<string, NetworkAsset[]> = {};
 
         tokens.forEach((token) => {
-          // 네트워크 이름을 대문자 시작 형식으로 변환 (ethereum → Ethereum)
-          const networkKey = token.network.charAt(0).toUpperCase() + token.network.slice(1);
+          // 네트워크 키를 소문자로 통일
+          // holesky/ethereum → holesky, bitcoin → bitcoin, solana → solana
+          const networkLower = token.network.toLowerCase();
+          let networkKey: string;
+
+          if (networkLower === 'holesky' || networkLower === 'ethereum') {
+            networkKey = 'holesky';
+          } else if (networkLower === 'bitcoin') {
+            networkKey = 'bitcoin';
+          } else if (networkLower === 'solana') {
+            networkKey = 'solana';
+          } else {
+            networkKey = networkLower;
+          }
 
           if (!grouped[networkKey]) {
             grouped[networkKey] = [];
@@ -176,7 +188,7 @@ export default function IndividualWithdrawalManagement({
 
           grouped[networkKey].push({
             value: token.symbol,
-            name: `${token.name}${token.contractAddress && token.contractAddress !== 'native' ? ` (${networkKey})` : ''}`,
+            name: `${token.name}${token.contractAddress && token.contractAddress !== 'native' && token.contractAddress !== 'ETH-native' ? ` (${token.network})` : ''}`,
             symbol: token.symbol,
             isActive: token.isActive,
           });

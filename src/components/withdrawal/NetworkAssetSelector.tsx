@@ -21,20 +21,24 @@ interface AssetSelectorProps {
   disabled: boolean;
 }
 
+// 환경 변수에서 블록체인 환경 가져오기
+const BLOCKCHAIN_ENV = process.env.NEXT_PUBLIC_BLOCKCHAIN_ENV || 'testnet';
+
+// 블록체인 환경에 따라 네트워크 옵션 동적 생성
 export const NETWORK_OPTIONS: NetworkOption[] = [
   {
-    id: "Bitcoin",
-    name: "Bitcoin",
+    id: "bitcoin",
+    name: BLOCKCHAIN_ENV === 'mainnet' ? "Bitcoin" : "Bitcoin Testnet",
     icon: "BTC",
   },
   {
-    id: "Ethereum",
-    name: "Ethereum",
+    id: "holesky",
+    name: BLOCKCHAIN_ENV === 'mainnet' ? "Ethereum" : "Holesky Testnet",
     icon: "ETH",
   },
   {
-    id: "Solana",
-    name: "Solana",
+    id: "solana",
+    name: BLOCKCHAIN_ENV === 'mainnet' ? "Solana" : "Solana Testnet",
     icon: "SOL",
   },
 ];

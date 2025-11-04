@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DepositTransaction } from "@/types/deposit";
 import { getStatusInfo, formatAmount, formatDateTime, getProgressPercentage } from "@/utils/depositHelpers";
 import { getTransactionExplorerUrl } from "@/utils/blockchainExplorer";
@@ -17,6 +17,9 @@ export default function DepositProgressCard({
   onViewDetails
 }: DepositProgressCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const txHashRef = useRef<HTMLElement | null>(null);
+  const [maxChars, setMaxChars] = useState(45);
+
   const statusInfo = getStatusInfo(deposit.status);
   const progressPercentage = getProgressPercentage(
     deposit.currentConfirmations,
@@ -73,10 +76,61 @@ export default function DepositProgressCard({
     }
   };
 
-  const truncateHash = (hash: string, length: number = 12) => {
-    if (hash.length <= length) return hash;
-    return `${hash.substring(0, length/2)}...${hash.substring(hash.length - length/2)}`;
+  // 동적 truncate를 위한 너비 계산
+  const calculateMaxChars = (element: HTMLElement | null) => {
+    if (!element) return 45;
+
+    const containerWidth = element.offsetWidth;
+    const fontSize = 0.75; // text-xs
+    const basePixelSize = 16;
+    const charWidth = fontSize * basePixelSize * 0.6;
+    const padding = 8;
+    const buttonWidth = 24; // 작은 버튼
+
+    const availableWidth = containerWidth - padding - buttonWidth;
+    const maxChars = Math.floor(availableWidth / charWidth);
+
+    return Math.max(20, Math.min(100, maxChars));
   };
+
+  const truncateDynamic = (text: string, maxChars: number) => {
+    if (!text || text.length <= maxChars) {
+      return text;
+    }
+
+    const dotsLength = 3;
+    const availableChars = maxChars - dotsLength;
+    const frontChars = Math.ceil(availableChars * 0.65);
+    const backChars = availableChars - frontChars;
+
+    return `${text.slice(0, frontChars)}...${text.slice(-backChars)}`;
+  };
+
+  // ResizeObserver로 크기 변경 감지
+  useEffect(() => {
+    const updateMaxChars = () => {
+      if (txHashRef.current) {
+        setMaxChars(calculateMaxChars(txHashRef.current));
+      }
+    };
+
+    updateMaxChars();
+
+    const observer = new ResizeObserver(() => {
+      updateMaxChars();
+    });
+
+    if (txHashRef.current) {
+      observer.observe(txHashRef.current);
+    }
+
+    window.addEventListener('resize', updateMaxChars);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateMaxChars);
+    };
+  }, [deposit.txHash]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -171,13 +225,17 @@ export default function DepositProgressCard({
         {/* Transaction Hash */}
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-500">TX:</span>
-          <div className="flex items-center space-x-1">
-            <code className="font-mono text-gray-700">
-              {truncateHash(deposit.txHash)}
+          <div className="flex items-center space-x-1 flex-1 ml-2">
+            <code
+              ref={(el) => { txHashRef.current = el; }}
+              className="font-mono text-gray-700 flex-1 text-right overflow-hidden"
+              title={deposit.txHash}
+            >
+              {truncateDynamic(deposit.txHash, maxChars)}
             </code>
             <button
               onClick={() => window.open(getTransactionExplorerUrl(deposit.txHash, deposit.network), '_blank')}
-              className="p-0.5 text-gray-400 hover:text-gray-600"
+              className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
               title="블록체인 익스플로러에서 보기"
             >
               <ArrowTopRightOnSquareIcon className="h-3 w-3" />
