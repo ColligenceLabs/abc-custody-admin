@@ -51,7 +51,7 @@ export default function ReturnsPage() {
   const filteredReturns = returns.filter((returnTx) => {
     // 환불 사유 필터
     if (filters.reason && filters.reason.length > 0) {
-      if (!filters.reason.includes(returnTx.reason)) {
+      if (!filters.reason.includes(returnTx.reason as any)) {
         return false;
       }
     }

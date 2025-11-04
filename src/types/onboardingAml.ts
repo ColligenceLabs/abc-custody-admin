@@ -51,6 +51,11 @@ export interface ReviewNote {
  * 5-2: 국내거소신고증
  * 5-3: 영주증
  */
+/**
+ * 신분증 종류
+ */
+export type IdType = 'RESIDENT_CARD' | 'DRIVER_LICENSE' | 'PASSPORT' | 'ALIEN_REGISTRATION';
+
 export type IdCardType = '1' | '2' | '3' | '4' | '5-1' | '5-2' | '5-3';
 
 /**
@@ -65,6 +70,7 @@ export type AddressProofType = 'REGISTRY' | 'UTILITY_BILL';
 export interface KYCInfo {
   idType: IdType;
   idNumber: string;       // 신분증 번호 (DB의 personalId와 연결)
+  residentNumber?: string; // 주민등록번호 (개인회원용)
   idImageUrl: string;
   addressProofType: AddressProofType;
   addressProofUrl: string;
@@ -174,6 +180,8 @@ export interface IndividualOnboarding {
   userNationality?: string;
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
+  registrationSource?: RegistrationSource; // 신청 경로
+  registrationNote?: string;        // 신청 관련 메모
 
   // 1단계: KYC (신원확인)
   kyc: KYCInfo;
@@ -296,6 +304,8 @@ export interface CorporateOnboarding {
   businessDescription?: string;      // 주요 사업내용
   createdAt: string;                // ISO 8601 형식
   updatedAt: string;                // ISO 8601 형식
+  registrationSource?: RegistrationSource; // 신청 경로
+  registrationNote?: string;        // 신청 관련 메모
 
   // 1단계: 법인 기본정보 확인
   corporateInfo: CorporateInfo;
@@ -512,6 +522,7 @@ export interface OnboardingListResponse<T> {
   applications: T[];
   total: number;
   page: number;
+  limit?: number;
   totalPages: number;
 }
 

@@ -59,8 +59,7 @@ const getStatusBadge = (status: string) => {
     aml_review: { label: "AML 검토 중", variant: "default" as const, className: "bg-yellow-600" },
     aml_issue: { label: "AML 문제", variant: "destructive" as const, className: "" },
     processing: { label: "출금처리대기", variant: "default" as const, className: "bg-purple-600" },
-    withdrawal_pending: { label: "출금처리중", variant: "default" as const, className: "bg-indigo-600" },
-    transferring: { label: "출금중", variant: "default" as const, className: "bg-blue-500" },
+    transferring: { label: "출금중", variant: "default" as const, className: "bg-indigo-600" },
     success: { label: "완료", variant: "default" as const, className: "bg-green-600" },
     admin_rejected: { label: "관리자거부", variant: "destructive" as const, className: "" },
     failed: { label: "실패", variant: "destructive" as const, className: "" },
@@ -81,7 +80,6 @@ const getStatusIcon = (status: string) => {
     aml_review: Clock,
     aml_issue: AlertTriangle,
     processing: RefreshCw,
-    withdrawal_pending: Clock,
     transferring: RefreshCw,
     success: CheckCheck,
     admin_rejected: Ban,
@@ -487,14 +485,14 @@ export function RequestDetailModal({
             </>
           )}
 
-          {/* withdrawal_pending: 전송 대기 */}
-          {request.status === "withdrawal_pending" && (
+          {/* transferring: 출금 중 */}
+          {request.status === "transferring" && (
             <>
               <Alert>
                 <Clock className="h-4 w-4 text-indigo-600" />
-                <AlertTitle>블록데몬 API 호출 완료</AlertTitle>
+                <AlertTitle>블록체인 전송 중</AlertTitle>
                 <AlertDescription>
-                  BlockDaemon API를 호출 하였습니다. 관리자의 승인을 기다리고 있습니다.
+                  BlockDaemon을 통해 블록체인 전송이 진행 중입니다.
                 </AlertDescription>
               </Alert>
 

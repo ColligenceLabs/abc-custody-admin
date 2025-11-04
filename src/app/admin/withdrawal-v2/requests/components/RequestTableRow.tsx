@@ -101,17 +101,11 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
         className:
           "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-200",
       },
-      withdrawal_pending: {
-        variant: "outline",
-        label: "출금처리중",
-        className:
-          "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-200",
-      },
       transferring: {
         variant: "outline",
         label: "출금중",
         className:
-          "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
+          "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-200",
       },
       success: { variant: "default", label: "완료", className: "bg-green-600" },
       admin_rejected: { variant: "destructive", label: "관리자거부" },

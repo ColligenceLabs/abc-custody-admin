@@ -36,16 +36,15 @@ export type WalletSource = "hot" | "cold";
  * 출금 요청 상태 (통합 상태 모델)
  */
 export type WithdrawalStatus =
-  | "withdrawal_wait"      // 출금대기 (24시간 홀드)
-  | "aml_review"          // AML 검토 중 (자동 검토)
-  | "aml_issue"          // AML 문제 감지 (수동 검토 필요)
-  | "processing"         // 처리 중 (AML 통과, Hot/Cold 선택 가능)
-  | "withdrawal_pending" // 출금 대기 (BlockDaemon 트랜잭션 생성됨, 블록체인 전송 대기)
-  | "transferring"       // 출금중 (TxHash 기록됨, 블록체인 전송 중)
-  | "success"            // 완료
-  | "failed"             // 실패
-  | "admin_rejected"     // 관리자 거부
-  | "withdrawal_stopped"; // 출금 중지 (사용자 취소)
+  | "withdrawal_wait"      // 출금 대기 (24시간)
+  | "withdrawal_stopped"   // 출금 정지 (사용자가 대기 중 정지)
+  | "aml_review"          // AML 검증 중
+  | "aml_issue"           // AML 이슈 발생
+  | "processing"          // 출금 처리 대기 (관리자 Hot/Cold 선택 대기)
+  | "transferring"        // 출금 중 (BlockDaemon 처리 중)
+  | "success"             // 출금 성공
+  | "failed"              // 출금 실패
+  | "admin_rejected";     // 관리자 거부
 
 /**
  * 출금 요청 우선순위

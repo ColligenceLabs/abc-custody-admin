@@ -6,22 +6,24 @@
 // ============================================================================
 
 /**
- * 출금 상태
+ * 출금 상태 (최종 정의 - 12개)
  */
 export type WithdrawalStatus =
-  | "pending" // 대기 중
-  | "aml_review" // AML 검토 중
-  | "approval_pending" // 승인 대기 중
-  | "processing" // 출금 처리 대기
-  | "withdrawal_pending" // 출금 대기 중
-  | "approved" // 승인됨 (서명 대기)
-  | "signing" // 서명 중 (Air-gap)
-  | "broadcasting" // 브로드캐스트 중
-  | "confirming" // 컨펌 대기 중
-  | "confirmed" // 완료
-  | "failed" // 실패
-  | "rejected" // 거부됨
-  | "withdrawal_stopped"; // 출금 중지 (사용자 취소)
+  // 기업회원 전용 (3개)
+  | "withdrawal_request"   // 출금 신청
+  | "withdrawal_rejected"  // 결재 반려
+  | "archived"             // 종료 처리
+
+  // 공통 프로세스 (9개)
+  | "withdrawal_wait"      // 출금 대기 (24시간)
+  | "withdrawal_stopped"   // 출금 정지
+  | "aml_review"           // AML 검증 중
+  | "aml_issue"            // AML 이슈 발생
+  | "processing"           // 출금 처리 대기 (관리자 Hot/Cold 선택)
+  | "transferring"         // 출금 중 (BlockDaemon 처리 중)
+  | "success"              // 출금 성공
+  | "failed"               // 출금 실패
+  | "admin_rejected";      // 관리자 거부
 
 /**
  * 출금 우선순위

@@ -15,7 +15,7 @@ export function getSocketClient(): Socket {
       console.log('[Socket] 연결 성공:', socket?.id);
 
       // 관리자로 인증하여 admin 룸에 조인
-      socket.emit('authenticate', {
+      socket?.emit('authenticate', {
         role: 'admin',
         token: null, // TODO: JWT 토큰 추가
       });

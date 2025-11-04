@@ -421,7 +421,7 @@ export default function WithdrawalDetailModal({
           )}
 
           {/* 거부 정보 (거부된 경우) */}
-          {withdrawal.status === "rejected" &&
+          {withdrawal.status === "admin_rejected" &&
             withdrawal.rejectionReason &&
             withdrawal.rejectionNote && (
               <div className="border rounded-lg p-4 space-y-3 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">

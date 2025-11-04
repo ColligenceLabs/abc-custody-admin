@@ -205,6 +205,14 @@ function DepositStatusBadge({ status }: { status: DepositStatus }) {
     },
     credited: {
       label: '반영 완료',
+      className: 'text-green-600 bg-green-50 border-green-200',
+    },
+    returned: {
+      label: '환불됨',
+      className: 'text-gray-600 bg-gray-50 border-gray-200',
+    },
+    flagged: {
+      label: '플래그',
       className: 'text-indigo-600 bg-indigo-50 border-indigo-200',
     },
   };

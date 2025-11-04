@@ -226,17 +226,17 @@ export default function WithdrawalQueuePage() {
             <p className="text-sm font-medium mb-2">상태</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { value: "pending" as const, label: "대기", color: "yellow" },
+                { value: "withdrawal_wait" as const, label: "출금대기", color: "yellow" },
                 {
                   value: "aml_review" as const,
                   label: "AML 검토",
                   color: "blue",
                 },
                 { value: "processing" as const, label: "출금처리대기", color: "indigo" },
-                { value: "withdrawal_pending" as const, label: "출금대기중", color: "purple" },
-                { value: "approved" as const, label: "승인", color: "green" },
-                { value: "signing" as const, label: "서명 중", color: "purple" },
-                { value: "confirmed" as const, label: "완료", color: "gray" },
+                { value: "transferring" as const, label: "출금중", color: "purple" },
+                { value: "success" as const, label: "출금완료", color: "green" },
+                { value: "failed" as const, label: "출금실패", color: "red" },
+                { value: "admin_rejected" as const, label: "관리자거부", color: "red" },
               ].map(({ value, label, color }) => (
                 <Badge
                   key={value}
@@ -437,11 +437,11 @@ export default function WithdrawalQueuePage() {
                       <TableCell>
                         <Badge
                           variant={
-                            withdrawal.status === "confirmed"
+                            withdrawal.status === "success"
                               ? "default"
-                              : withdrawal.status === "rejected"
+                              : withdrawal.status === "withdrawal_rejected" || withdrawal.status === "admin_rejected" || withdrawal.status === "failed"
                               ? "destructive"
-                              : withdrawal.status === "withdrawal_stopped"
+                              : withdrawal.status === "withdrawal_stopped" || withdrawal.status === "archived"
                               ? "secondary"
                               : "outline"
                           }

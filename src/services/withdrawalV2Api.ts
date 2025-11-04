@@ -800,7 +800,6 @@ class WithdrawalV2ApiService {
       'aml_review': 'aml_review',
       'aml_issue': 'aml_issue',
       'processing': 'processing',
-      'withdrawal_pending': 'withdrawal_pending',
       'transferring': 'transferring',
       'success': 'success',
       'failed': 'failed',
@@ -877,16 +876,15 @@ class WithdrawalV2ApiService {
  * 허용된 상태 전이 규칙
  */
 const ALLOWED_TRANSITIONS: Record<WithdrawalStatus, WithdrawalStatus[]> = {
-  withdrawal_wait: ["aml_review", "admin_rejected"],
+  withdrawal_wait: ["aml_review", "withdrawal_stopped"],
   aml_review: ["processing", "aml_issue"],
-  aml_issue: ["admin_rejected", "processing"],
-  processing: ["withdrawal_pending", "admin_rejected"],
-  withdrawal_pending: ["transferring", "failed"],
+  aml_issue: ["admin_rejected"],
+  processing: ["transferring", "admin_rejected"],
   transferring: ["success", "failed"],
   success: [],
   admin_rejected: [],
-  failed: ["withdrawal_wait"], // 재시도 가능
-  withdrawal_stopped: [], // 사용자가 출금을 중지한 종료 상태
+  failed: [],
+  withdrawal_stopped: [],
 };
 
 /**

@@ -30,7 +30,9 @@ export type DepositStatus =
   | 'detected'     // 입금 감지됨 (블록체인에서 트랜잭션 발견)
   | 'confirming'   // 블록체인 검증중 (컨펌 수 증가 중)
   | 'confirmed'    // 검증 완료 (필요 컨펌 수 도달)
-  | 'credited';    // 잔액 반영 완료 (사용자 계정에 입금)
+  | 'credited'     // 잔액 반영 완료 (사용자 계정에 입금)
+  | 'returned'     // 환불됨
+  | 'flagged';     // 플래그됨 (수동 검토 필요)
 
 /**
  * 입금 우선순위
@@ -112,6 +114,9 @@ export interface DepositTransaction {
     networkFee: string;
     returnedAmount: string;
   };
+
+  // 환불 상태
+  returnStatus?: 'none' | 'pending' | 'processing' | 'completed' | 'failed';
 
   // 플래그 정보 (flagged 상태일 때)
   flagInfo?: {
@@ -287,6 +292,7 @@ export interface ReturnTransaction {
   networkFee: string | null;
   returnAmount: string;
   asset: string;
+  currency?: string; // asset의 alias (하위 호환성)
   network: string;
   status: ReturnStatus;
   reason: string;
@@ -295,6 +301,7 @@ export interface ReturnTransaction {
   approvedBy?: string | null;
   requestedAt: string;
   approvedAt?: string | null;
+  processedAt?: string | null;
   executedAt?: string | null;
   completedAt?: string | null;
   createdAt?: string;

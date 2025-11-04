@@ -168,11 +168,11 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
               </TableCell>
 
               <TableCell className="text-right font-mono">
-                {parseFloat(returnTx.amount).toFixed(8)}
+                {parseFloat(returnTx.returnAmount).toFixed(8)}
               </TableCell>
 
               <TableCell className="text-right font-mono text-muted-foreground">
-                {parseFloat(returnTx.networkFee).toFixed(8)}
+                {returnTx.networkFee ? parseFloat(returnTx.networkFee).toFixed(8) : '-'}
               </TableCell>
 
               <TableCell className="text-right font-mono font-semibold">
@@ -187,11 +187,11 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
-                {formatDate(returnTx.processedAt)}
+                {returnTx.processedAt ? formatDate(returnTx.processedAt) : '-'}
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
-                {formatDate(returnTx.completedAt)}
+                {returnTx.completedAt ? formatDate(returnTx.completedAt) : '-'}
               </TableCell>
 
               <TableCell className="text-center">

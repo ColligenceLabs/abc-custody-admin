@@ -595,11 +595,11 @@ export async function approveWithdrawal(
 
   const withdrawal = withdrawals[index];
 
-  if (withdrawal.status !== "pending" && withdrawal.status !== "aml_review") {
+  if (withdrawal.status !== "processing" && withdrawal.status !== "aml_review") {
     throw new Error("Withdrawal cannot be approved in current status");
   }
 
-  withdrawal.status = "approved";
+  withdrawal.status = "transferring";
   withdrawal.approvedAt = new Date().toISOString();
   withdrawal.approvedBy = {
     adminId,
@@ -634,7 +634,7 @@ export async function rejectWithdrawal(
 
   const withdrawal = withdrawals[index];
 
-  withdrawal.status = "rejected";
+  withdrawal.status = "admin_rejected";
   withdrawal.rejectedAt = new Date().toISOString();
   withdrawal.rejectionReason = request.reason;
   withdrawal.rejectionNote = request.note;
@@ -658,18 +658,18 @@ function calculateStatistics(
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const pending = withdrawals.filter((w) => w.status === "pending");
+  const pending = withdrawals.filter((w) => w.status === "withdrawal_wait");
   const amlReview = withdrawals.filter((w) => w.status === "aml_review");
-  const approved = withdrawals.filter((w) => w.status === "approved");
+  const processing = withdrawals.filter((w) => w.status === "processing");
   const completedToday = withdrawals.filter(
     (w) =>
-      w.status === "confirmed" &&
+      w.status === "success" &&
       w.confirmedAt &&
       new Date(w.confirmedAt) >= todayStart
   );
   const rejectedToday = withdrawals.filter(
     (w) =>
-      w.status === "rejected" &&
+      w.status === "admin_rejected" &&
       w.rejectedAt &&
       new Date(w.rejectedAt) >= todayStart
   );
@@ -704,8 +704,8 @@ function calculateStatistics(
       totalAmount: sumAmount(amlReview),
     },
     approved: {
-      count: approved.length,
-      totalAmount: sumAmount(approved),
+      count: processing.length,
+      totalAmount: sumAmount(processing),
     },
     completedToday: {
       count: completedToday.length,
@@ -747,11 +747,11 @@ export function generateMockWithdrawals(count: number = 20): Withdrawal[] {
   ];
 
   const statuses: WithdrawalStatus[] = [
-    "pending",
+    "withdrawal_wait",
     "aml_review",
-    "approved",
-    "signing",
-    "confirmed",
+    "processing",
+    "transferring",
+    "success",
   ];
 
   const withdrawals: Withdrawal[] = [];
@@ -858,7 +858,7 @@ export function generateMockWithdrawals(count: number = 20): Withdrawal[] {
       amlReview,
       requestedAt,
       waitingTimeMinutes,
-      ...(status === "approved" && {
+      ...(status === "processing" && {
         approvedAt: new Date(
           new Date(requestedAt).getTime() + Math.random() * 60 * 60 * 1000
         ).toISOString(),
@@ -867,8 +867,8 @@ export function generateMockWithdrawals(count: number = 20): Withdrawal[] {
           adminName: "관리자",
         },
       }),
-      ...(status === "confirmed" && {
-        confirmedAt: new Date(
+      ...(status === "success" && {
+        completedAt: new Date(
           new Date(requestedAt).getTime() + Math.random() * 2 * 60 * 60 * 1000
         ).toISOString(),
         txHash: `0x${Math.random().toString(36).substr(2, 64)}`,
@@ -1021,9 +1021,9 @@ export async function getWithdrawalAMLQueue(
   // 모든 출금 데이터 로드
   let withdrawals = loadWithdrawals();
 
-  // AML 검토 필요한 출금만 필터링 (status: aml_review 또는 pending)
+  // AML 검토 필요한 출금만 필터링 (status: aml_review)
   withdrawals = withdrawals.filter(
-    (w) => w.status === "aml_review" || w.status === "pending"
+    (w) => w.status === "aml_review"
   );
 
   // 각 출금에 대해 AML 스크리닝 수행
@@ -1150,8 +1150,8 @@ export async function approveWithdrawalAML(
     throw new Error("Withdrawal not found for AML review");
   }
 
-  // 출금 상태 업데이트: aml_review → approved
-  withdrawal.status = "approved";
+  // 출금 상태 업데이트: aml_review → processing
+  withdrawal.status = "processing";
   withdrawal.approvedAt = new Date().toISOString();
   withdrawal.approvedBy = {
     adminId,
@@ -1191,8 +1191,8 @@ export async function rejectWithdrawalAML(
     throw new Error("Withdrawal not found for AML review");
   }
 
-  // 출금 상태 업데이트: aml_review → rejected
-  withdrawal.status = "rejected";
+  // 출금 상태 업데이트: aml_review → admin_rejected
+  withdrawal.status = "admin_rejected";
   withdrawal.rejectedAt = new Date().toISOString();
   withdrawal.rejectionReason = "aml_flagged";
   withdrawal.rejectionNote = `${request.details}\n\n검토 노트: ${request.reviewNotes}`;

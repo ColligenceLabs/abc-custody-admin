@@ -5,63 +5,62 @@
 // ============================================================================
 
 /**
- * 상태 텍스트 매핑
+ * 상태 텍스트 매핑 (12개 상태값)
  */
 function getStatusText(status: string): string {
   const statusMap: Record<string, string> = {
-    withdrawal_wait: "출금 대기 (24시간)",
-    aml_review: "AML 검토",
-    approval_pending: "처리중",
-    processing: "출금처리대기",
-    withdrawal_pending: "출금대기중",
-    transferring: "블록체인 전송 중",
-    pending: "대기 중",
-    approved: "승인됨",
-    signing: "서명 중",
-    broadcasting: "브로드캐스트 중",
-    confirming: "컨펌 대기 중",
-    confirmed: "완료",
-    success: "출금 완료",
-    failed: "실패",
-    rejected: "거부됨",
-    admin_rejected: "관리자 거부",
-    withdrawal_stopped: "출금 중지",
-    aml_issue: "AML 문제 감지",
+    // 기업회원 전용 (3개)
     withdrawal_request: "출금 신청",
-    withdrawal_reapply: "재신청",
+    withdrawal_rejected: "결재 반려",
     archived: "아카이브",
+
+    // 공통 상태 (9개)
+    withdrawal_wait: "출금 대기 (24시간)",
+    withdrawal_stopped: "출금 정지",
+    aml_review: "AML 검증",
+    aml_issue: "AML 이슈",
+    processing: "출금 처리 대기",
+    transferring: "출금 중",
+    success: "출금 완료",
+    failed: "출금 실패",
+    admin_rejected: "관리자 거부",
   };
   return statusMap[status] || status;
 }
 
 /**
- * 상태 배지 색상
+ * 상태 배지 색상 (12개 상태값)
  */
 function getStatusBadgeVariant(
   status: string
 ): "default" | "secondary" | "destructive" | "outline" {
   switch (status) {
-    case "confirmed":
+    // 성공 상태
     case "success":
       return "default";
+
+    // 대기/진행 상태
+    case "withdrawal_wait":
     case "aml_review":
-    case "approval_pending":
+    case "withdrawal_request":
       return "secondary";
-    case "approved":
-    case "signing":
+
     case "processing":
-    case "withdrawal_pending":
-    case "pending":
     case "transferring":
-    case "broadcasting":
-    case "confirming":
       return "outline";
+
+    // 실패/거부 상태
     case "failed":
-    case "rejected":
     case "admin_rejected":
+    case "withdrawal_rejected":
+    case "aml_issue":
       return "destructive";
+
+    // 중립/정지 상태
     case "withdrawal_stopped":
+    case "archived":
       return "secondary";
+
     default:
       return "outline";
   }

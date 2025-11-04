@@ -54,6 +54,8 @@ export function DepositFilters({
       confirming: '검증중',
       confirmed: '검증 완료',
       credited: '반영 완료',
+      returned: '환불됨',
+      flagged: '플래그',
     };
     return labels[status];
   };
@@ -62,6 +64,8 @@ export function DepositFilters({
     if (!isSelected) return 'outline' as const;
     const variants: Record<DepositStatus, 'outline' | 'default' | 'secondary' | 'destructive'> = {
       detected: 'outline' as const,
+      returned: 'secondary' as const,
+      flagged: 'destructive' as const,
       confirming: 'default' as const,
       confirmed: 'secondary' as const,
       credited: 'secondary' as const,
