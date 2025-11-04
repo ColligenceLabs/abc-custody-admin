@@ -787,6 +787,11 @@ class WithdrawalV2ApiService {
         userName: backendData.stoppedBy.userName,
       } : undefined,
       error: backendData.error,
+      withdrawalFee: backendData.withdrawalFee,
+      withdrawalFeeType: backendData.withdrawalFeeType,
+      netAmount: backendData.netAmount,
+      feeTxid: backendData.feeTxid,
+      feeTxHash: backendData.feeTxHash,
     };
   }
 

@@ -285,6 +285,16 @@ export function RequestDetailModal({
 
   if (!request) return null;
 
+  // 디버깅: request 객체 확인
+  console.log('[RequestDetailModal] 전체 request 객체:', {
+    id: request.id,
+    withdrawalFee: request.withdrawalFee,
+    withdrawalFeeType: request.withdrawalFeeType,
+    netAmount: request.netAmount,
+    feeTxid: request.feeTxid,
+    feeTxHash: request.feeTxHash
+  });
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -310,16 +320,61 @@ export function RequestDetailModal({
                 <p className="font-mono">{request.id}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">회원사</p>
+                <p className="text-muted-foreground">회원명</p>
                 <p className="font-medium">{request.memberName}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">자산</p>
-                <p className="font-semibold">{request.asset}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">수량</p>
-                <p className="font-mono text-lg font-bold">{formatCryptoAmount(request.amount, request.asset)}</p>
+              <div className="col-span-2">
+                <p className="text-muted-foreground mb-2">출금 수량 상세</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                  {/* 신청 금액 */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">신청 금액</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-base font-semibold text-gray-900">
+                        {formatCryptoAmount(request.amount, request.asset)}
+                      </span>
+                      <span className="text-sm font-medium text-gray-600">{request.asset}</span>
+                    </div>
+                  </div>
+
+                  {/* 수수료 (있는 경우만) */}
+                  {(() => {
+                    const feeValue = typeof request.withdrawalFee === 'string'
+                      ? parseFloat(request.withdrawalFee)
+                      : request.withdrawalFee;
+
+                    console.log('[RequestDetailModal] 수수료 체크:', {
+                      withdrawalFee: request.withdrawalFee,
+                      feeValue,
+                      hasFee: feeValue && feeValue > 0
+                    });
+
+                    return feeValue && feeValue > 0 ? (
+                      <div className="flex items-center justify-between pt-2 border-t border-blue-300">
+                        <span className="text-sm text-gray-600">
+                          출금 수수료 ({request.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium text-gray-700">
+                            {formatCryptoAmount(request.withdrawalFee, request.asset)}
+                          </span>
+                          <span className="text-xs text-gray-600">{request.asset}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* 실수령액 */}
+                  <div className="flex items-center justify-between pt-2 border-t border-blue-300">
+                    <span className="text-sm font-semibold text-blue-700">실수령액</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-lg font-bold text-blue-700">
+                        {formatCryptoAmount(request.netAmount || request.amount, request.asset)}
+                      </span>
+                      <span className="text-sm font-semibold text-blue-600">{request.asset}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div>
                 <p className="text-muted-foreground">블록체인</p>
@@ -567,6 +622,7 @@ export function RequestDetailModal({
                   <p>트랜잭션 ID: <span className="font-mono">{request.blockdaemonTransactionId}</span></p>
                 </div>
               )}
+
             </>
           )}
 
@@ -638,7 +694,10 @@ export function RequestDetailModal({
 
               <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
                 <h4 className="font-semibold">완료 정보</h4>
-                <p>지갑 소스: <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge></p>
+                <div className="flex items-center gap-2">
+                  <span>지갑 소스:</span>
+                  <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge>
+                </div>
                 {request.completedAt && (
                   <p>완료 시간: {request.completedAt.toLocaleString("ko-KR")}</p>
                 )}
@@ -797,10 +856,79 @@ export function RequestDetailModal({
                 <p>오류 메시지: <span className="font-medium">{request.error.message}</span></p>
                 <p>발생 시간: {request.error.occurredAt.toLocaleString("ko-KR")}</p>
                 {request.walletSource && (
-                  <p>지갑 소스: <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge></p>
+                  <div className="flex items-center gap-2">
+                  <span>지갑 소스:</span>
+                  <Badge variant="outline">{request.walletSource === "hot" ? "Hot 지갑" : "Cold 지갑"}</Badge>
+                </div>
                 )}
               </div>
             </>
+          )}
+
+          {/* 수수료 트랜잭션 정보 (관리자 전용) - 모든 상태에서 표시 */}
+          {request.feeTxid && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm text-indigo-900">수수료 트랜잭션 (관리자 전용)</h4>
+              <div className="space-y-2 text-sm">
+                {/* 수수료 BlockDaemon ID */}
+                <div>
+                  <p className="text-xs text-indigo-700 mb-1">수수료 BlockDaemon ID</p>
+                  <div className="bg-white rounded border border-indigo-200 p-2">
+                    <p className="font-mono text-xs break-all text-indigo-900">
+                      {request.feeTxid}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 수수료 블록체인 해시 */}
+                {request.feeTxHash && (
+                  <div>
+                    <p className="text-xs text-indigo-700 mb-1">수수료 블록체인 해시</p>
+                    <div className="bg-white rounded border border-indigo-200 p-2">
+                      <p className="font-mono text-xs break-all text-indigo-900">
+                        {request.feeTxHash}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyTxHash(request.feeTxHash!)}
+                        className="flex-1"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        수수료 해시 복사
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(getBlockchainExplorerUrl(request.blockchain, request.feeTxHash!), "_blank")}
+                        className="flex-1"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        익스플로러
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 수수료 정보 요약 */}
+                <div className="pt-2 border-t border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-indigo-700">수수료 금액</span>
+                    <span className="font-mono text-sm font-semibold text-indigo-900">
+                      {formatCryptoAmount(request.withdrawalFee, request.asset)} {request.asset}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-indigo-700">전송 대상</span>
+                    <span className="text-sm font-medium text-indigo-900">
+                      Fee Wallet (Vault ID: 5)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           </div>
         </div>
