@@ -144,18 +144,22 @@ const CRYPTO_DECIMALS: Record<string, number> = {
   WON: 0,
 };
 
-export const formatCurrency = (amount: number, currency: string) => {
+export const formatCurrency = (amount: number | string, currency: string) => {
   const decimals = CRYPTO_DECIMALS[currency.toUpperCase()] ?? 8;
-  const formatted = amount.toLocaleString('ko-KR', {
+  // Number로 변환하여 trailing zeros 제거
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const formatted = numAmount.toLocaleString('ko-KR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   });
   return `${formatted} ${currency}`;
 };
 
-export const formatAmount = (amount: number, currency: string) => {
+export const formatAmount = (amount: number | string, currency: string) => {
   const decimals = CRYPTO_DECIMALS[currency.toUpperCase()] ?? 8;
-  return amount.toLocaleString('ko-KR', {
+  // Number로 변환하여 trailing zeros 제거
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return numAmount.toLocaleString('ko-KR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   });

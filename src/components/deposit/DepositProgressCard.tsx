@@ -20,6 +20,16 @@ export default function DepositProgressCard({
   const txHashRef = useRef<HTMLElement | null>(null);
   const [maxChars, setMaxChars] = useState(45);
 
+  // 주소/해시 truncate 함수
+  const truncateHash = (hash: string, maxLength: number = 16) => {
+    if (!hash || hash.length <= maxLength) return hash;
+
+    const frontChars = Math.ceil(maxLength * 0.6);
+    const backChars = maxLength - frontChars - 3; // 3 for '...'
+
+    return `${hash.slice(0, frontChars)}...${hash.slice(-backChars)}`;
+  };
+
   const statusInfo = getStatusInfo(deposit.status);
   const progressPercentage = getProgressPercentage(
     deposit.currentConfirmations,
