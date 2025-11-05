@@ -192,6 +192,45 @@ export default function GroupWalletManagement({
             approvedAt: a.createdAt,
           }));
 
+          // budgetSetup 구성
+          let budgetSetup = undefined;
+          if (g.budgetYear && (yearlyBudgetAmount > 0 || monthlyBudgets.length > 0)) {
+            // baseType 추론: yearly > quarterly > monthly
+            let baseType: 'yearly' | 'quarterly' | 'monthly' = 'monthly';
+            let baseAmount = 0;
+
+            if (yearlyBudgetAmount > 0) {
+              baseType = 'yearly';
+              baseAmount = yearlyBudgetAmount;
+            } else if (quarterlyBudgets.length > 0) {
+              baseType = 'quarterly';
+              baseAmount = quarterlyBudgets.reduce((sum: number, qb: any) => sum + qb.amount, 0);
+            } else if (monthlyBudgets.length > 0) {
+              baseType = 'monthly';
+              baseAmount = monthlyBudgets.reduce((sum: number, mb: any) => sum + mb.amount, 0);
+            }
+
+            // 남은 기간 계산
+            const currentMonth = new Date().getMonth() + 1;
+            const currentQuarter = Math.ceil(currentMonth / 3);
+            const remainingMonths = Array.from({ length: 12 - currentMonth + 1 }, (_, i) => currentMonth + i);
+            const remainingQuarters = Array.from({ length: 4 - currentQuarter + 1 }, (_, i) => currentQuarter + i);
+
+            budgetSetup = {
+              year: g.budgetYear,
+              currency: g.currency,
+              baseType,
+              baseAmount,
+              startDate: `${g.budgetYear}-01-01`,
+              endDate: `${g.budgetYear}-12-31`,
+              monthlyBudgets,
+              quarterlyBudgets,
+              yearlyBudget: yearlyBudgetAmount,
+              remainingMonths,
+              remainingQuarters,
+            };
+          }
+
           return {
             id: g.id,
             name: g.name,
@@ -202,6 +241,7 @@ export default function GroupWalletManagement({
             monthlyBudget: { amount: 0, currency: g.currency },
             quarterlyBudget: { amount: 0, currency: g.currency },
             yearlyBudget: { amount: yearlyBudgetAmount, currency: g.currency },
+            budgetSetup,
             status: g.status,
             requestedBy: g.requestedBy,
             requestedAt: g.requestedAt,
@@ -218,6 +258,7 @@ export default function GroupWalletManagement({
 
         setGroupRequests(allRequests);
         console.log('[fetchGroupRequests] Total requests:', allRequests.length);
+        console.log('[fetchGroupRequests] Sample request with budgetSetup:', allRequests[0]);
       } catch (error) {
         console.error('[fetchGroupRequests] Failed:', error);
         setGroupRequests([...mockGroupRequests]);
@@ -516,30 +557,29 @@ export default function GroupWalletManagement({
         </nav>
       </div>
 
-      {/* 그룹 관리 탭 */}
-      {activeTab === "groups" && (
-        <GroupManagement
-          showCreateModal={showCreateModal}
-          onCloseCreateModal={() => setShowCreateModal(false)}
-          onOpenCreateModal={() => setShowCreateModal(true)}
-          currentUser={user}
-          initialGroups={groups}
-          onCreateGroup={() => {
-            // 그룹 생성 후 처리 로직
-          }}
-          onCreateGroupRequest={(request) => {
-            console.log("Group creation request submitted:", request);
+      {/* 그룹 생성 모달 및 그룹 목록 (activeTab 전달하여 조건부 렌더링) */}
+      <GroupManagement
+        showCreateModal={showCreateModal}
+        onCloseCreateModal={() => setShowCreateModal(false)}
+        onOpenCreateModal={() => setShowCreateModal(true)}
+        currentUser={user}
+        initialGroups={groups}
+        activeTab={activeTab}
+        onCreateGroup={() => {
+          // 그룹 생성 후 처리 로직
+        }}
+        onCreateGroupRequest={(request) => {
+          console.log("Group creation request submitted:", request);
 
-            // 새 요청을 상태에 추가 (최신 요청이 맨 위에 오도록)
-            setGroupRequests(prev => [request, ...prev]);
+          // 새 요청을 상태에 추가 (최신 요청이 맨 위에 오도록)
+          setGroupRequests(prev => [request, ...prev]);
 
-            // 잠시 후 승인 탭으로 이동
-            setTimeout(() => {
-              handleTabChange("approval");
-            }, 1000);
-          }}
-        />
-      )}
+          // 잠시 후 승인 탭으로 이동
+          setTimeout(() => {
+            handleTabChange("approval");
+          }, 1000);
+        }}
+      />
 
       {/* 그룹 승인 탭 */}
       {activeTab === "approval" && (
@@ -562,54 +602,53 @@ export default function GroupWalletManagement({
                 approvedAt: new Date().toISOString(),
               };
 
-              let isFullyApproved = false;
+              // 먼저 승인 추가
+              const updatedApprovals = [...(request.approvals || []), newApproval];
 
-              // 상태 업데이트
-              setGroupRequests(prev => prev.map(r => {
-                if (r.id === requestId) {
-                  const updatedApprovals = [...(r.approvals || []), newApproval];
+              // 모든 필수 결재자가 승인했는지 확인
+              const allApproved = request.requiredApprovals?.every(approverId =>
+                updatedApprovals.some(approval => approval.userId === approverId)
+              );
 
-                  // 모든 필수 결재자가 승인했는지 확인
-                  const allApproved = r.requiredApprovals?.every(approverId =>
-                    updatedApprovals.some(approval => approval.userId === approverId)
-                  );
+              console.log("Approval check:", { allApproved, updatedApprovalsCount: updatedApprovals.length, requiredCount: request.requiredApprovals.length });
 
-                  isFullyApproved = allApproved;
+              // 모든 승인이 완료되면 DB에 저장
+              if (allApproved) {
+                // DB에 그룹 승인 API 호출
+                const approveGroupInDB = async () => {
+                  try {
+                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+                    const approveUrl = `${API_URL}/api/groups/${request.id}/approve`;
 
-                  // 모든 승인이 완료되면 DB에 저장하고 그룹 목록 새로고침
-                  if (allApproved) {
-                    // DB에 그룹 승인 API 호출
-                    const approveGroupInDB = async () => {
-                      try {
-                        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-                        const approveUrl = `${API_URL}/api/groups/${r.id}/approve`;
+                    console.log('[approveGroup] Calling:', approveUrl);
 
-                        console.log('[approveGroup] Calling:', approveUrl);
+                    const approveResponse = await fetch(approveUrl, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        approverId: user?.id || 'current-user-id',
+                      }),
+                    });
 
-                        const approveResponse = await fetch(approveUrl, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            approverId: user?.id || 'current-user-id',
-                          }),
-                        });
+                    if (!approveResponse.ok) {
+                      const errorData = await approveResponse.json().catch(() => ({}));
+                      console.error('[approveGroup] Error response:', errorData);
+                      throw new Error(`Approval failed: ${approveResponse.status} - ${JSON.stringify(errorData)}`);
+                    }
 
-                        if (!approveResponse.ok) {
-                          throw new Error(`Approval failed: ${approveResponse.status}`);
-                        }
+                    const approvedGroup = await approveResponse.json();
+                    console.log('[approveGroup] Success:', approvedGroup);
 
-                        const approvedGroup = await approveResponse.json();
-                        console.log('[approveGroup] Success:', approvedGroup);
+                    // API 호출 성공 후에만 상태 업데이트
+                    // 그룹 목록 다시 불러오기
+                    const groupsUrl = `${API_URL}/api/groups?organizationId=${user?.organizationId}`;
+                    const groupsResponse = await fetch(groupsUrl);
+                    const groupsData = await groupsResponse.json();
 
-                        // 그룹 목록 다시 불러오기
-                        const groupsUrl = `${API_URL}/api/groups?organizationId=${user?.organizationId}`;
-                        const groupsResponse = await fetch(groupsUrl);
-                        const groupsData = await groupsResponse.json();
-
-                        if (Array.isArray(groupsData)) {
-                          const dbGroups = groupsData.map((g: any) => {
+                    if (Array.isArray(groupsData)) {
+                      const dbGroups = groupsData.map((g: any) => {
                             // budgetPeriods에서 월별/분기별/연간 예산 추출
                             const budgetPeriods = g.budgetPeriods || [];
                             const monthlyBudgets = budgetPeriods
@@ -722,33 +761,39 @@ export default function GroupWalletManagement({
                             };
                           });
 
-                          setGroups(dbGroups);
-                          console.log('[approveGroup] Groups refreshed:', dbGroups.length);
+                      setGroups(dbGroups);
+                      console.log('[approveGroup] Groups refreshed:', dbGroups.length);
 
-                          // 승인 완료 후 그룹 관리 탭으로 이동
-                          setTimeout(() => {
-                            handleTabChange("groups");
-                          }, 2000);
-                        }
-                      } catch (error) {
-                        console.error('[approveGroup] Failed:', error);
-                        alert('그룹 승인 처리 중 오류가 발생했습니다.');
-                      }
-                    };
+                      // 승인 요청 목록에서 제거 (상태 업데이트)
+                      setGroupRequests(prev => prev.filter(gr => gr.id !== request.id));
 
-                    approveGroupInDB();
+                      // 승인 완료 후 그룹 관리 탭으로 이동
+                      setTimeout(() => {
+                        handleTabChange("groups");
+                      }, 2000);
+                    }
+                  } catch (error) {
+                    console.error('[approveGroup] Failed:', error);
+                    alert('그룹 승인 처리 중 오류가 발생했습니다.');
                   }
+                };
 
-                  return {
-                    ...r,
-                    approvals: updatedApprovals,
-                    status: allApproved ? "approved" : "pending"
-                  };
-                }
-                return r;
-              }));
+                approveGroupInDB();
+              } else {
+                // 부분 승인 - 승인자만 추가
+                setGroupRequests(prev => prev.map(r => {
+                  if (r.id === requestId) {
+                    return {
+                      ...r,
+                      approvals: updatedApprovals,
+                      status: "pending"
+                    };
+                  }
+                  return r;
+                }));
+              }
 
-              console.log("Approval processed successfully. Fully approved:", isFullyApproved);
+              console.log("Approval processed successfully. Fully approved:", allApproved);
             }}
           onRejectRequest={(requestId, reason) => {
             console.log(

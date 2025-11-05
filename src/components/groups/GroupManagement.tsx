@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   WalletIcon,
   PlusIcon,
@@ -27,6 +27,7 @@ import BudgetSetupForm from "./BudgetSetupForm";
 import BudgetDistribution from "./BudgetDistribution";
 import { createGroup } from "@/services/groupApi";
 import { useToast } from "@/hooks/use-toast";
+import { getOrganizationBalances } from "@/lib/api/balances";
 import {
   getCryptoIconUrl,
   getCurrencyDecimals,
@@ -48,6 +49,7 @@ interface GroupManagementProps {
   onCreateGroupRequest?: (request: any) => void;
   currentUser?: any; // 현재 로그인한 사용자
   initialGroups?: WalletGroup[]; // 외부에서 전달받은 그룹 목록
+  activeTab?: string; // 현재 활성화된 탭 (그룹 목록 표시 여부 제어)
 }
 
 // 가상자산 아이콘 컴포넌트
@@ -188,6 +190,7 @@ export default function GroupManagement({
   onCreateGroupRequest,
   currentUser,
   initialGroups,
+  activeTab,
 }: GroupManagementProps) {
   const { toast } = useToast();
   const [internalShowCreateModal, setInternalShowCreateModal] = useState(false);
@@ -231,6 +234,65 @@ export default function GroupManagement({
   // DB에서 불러온 Manager 목록
   const [managers, setManagers] = useState<User[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
+
+  // 조직 잔액 정보
+  const [organizationBalances, setOrganizationBalances] = useState<{
+    [asset: string]: {
+      totalBalance: number;
+      availableBalance: number;
+      lockedBalance: number;
+      allocatedToGroups: number;
+    };
+  }>({});
+  const [loadingBalances, setLoadingBalances] = useState(false);
+
+  // 조직 잔액 불러오기 함수
+  const fetchOrganizationBalances = useCallback(async () => {
+    if (!currentUser?.organizationId) {
+      console.log('[fetchOrganizationBalances] No organizationId');
+      return;
+    }
+
+    console.log('[fetchOrganizationBalances] Fetching balances for organizationId:', currentUser.organizationId);
+    setLoadingBalances(true);
+    try {
+      const data = await getOrganizationBalances(currentUser.organizationId);
+
+      // 자산별로 잔액 정리 (network 무관하게 합산)
+      const balancesByAsset: { [asset: string]: { totalBalance: number; availableBalance: number; lockedBalance: number; allocatedToGroups: number } } = {};
+
+      data.balances.forEach(balance => {
+        if (!balancesByAsset[balance.asset]) {
+          balancesByAsset[balance.asset] = {
+            totalBalance: 0,
+            availableBalance: 0,
+            lockedBalance: 0,
+            allocatedToGroups: 0
+          };
+        }
+        balancesByAsset[balance.asset].totalBalance += balance.totalBalance;
+        balancesByAsset[balance.asset].availableBalance += balance.availableBalance;
+        balancesByAsset[balance.asset].lockedBalance += balance.lockedBalance;
+        balancesByAsset[balance.asset].allocatedToGroups += balance.allocatedToGroups;
+      });
+
+      console.log('[fetchOrganizationBalances] Balances by asset:', balancesByAsset);
+      setOrganizationBalances(balancesByAsset);
+    } catch (error) {
+      console.error("조직 잔액 불러오기 실패:", error);
+      setOrganizationBalances({});
+    } finally {
+      setLoadingBalances(false);
+    }
+  }, [currentUser?.organizationId]);
+
+  // 조직 잔액 불러오기
+  useEffect(() => {
+    if (currentUser?.organizationId) {
+      fetchOrganizationBalances();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.organizationId]);
 
   // DB에서 같은 조직의 Manager 불러오기
   useEffect(() => {
@@ -360,6 +422,21 @@ export default function GroupManagement({
   ) => {
     try {
       setErrorMessage(null); // 에러 메시지 초기화
+
+      // 가용 잔액 검증 (availableBalance - allocatedToGroups)
+      const orgBalance = organizationBalances[newGroup.currency];
+      const availableForAllocation = orgBalance
+        ? orgBalance.availableBalance - orgBalance.allocatedToGroups
+        : 0;
+
+      if (baseAmount > availableForAllocation) {
+        setErrorMessage(
+          `예산 금액(${baseAmount.toLocaleString('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} ${newGroup.currency})이 ` +
+          `새 그룹에 할당 가능한 잔액(${availableForAllocation.toLocaleString('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} ${newGroup.currency})을 초과합니다.`
+        );
+        return;
+      }
+
       const budgetSetup = distributeBudget(
         baseAmount,
         newGroup.currency,
@@ -673,6 +750,19 @@ export default function GroupManagement({
       }
 
       try {
+        // 연간 예산 금액 계산
+        const calculateYearlyBudget = (): number => {
+          if (!newGroup.budgetSetup) return 0;
+
+          // baseType이 yearly면 yearlyBudget 사용
+          if (newGroup.budgetSetup.baseType === 'yearly' && newGroup.budgetSetup.yearlyBudget) {
+            return newGroup.budgetSetup.yearlyBudget;
+          }
+
+          // quarterly나 monthly면 모든 월별 예산의 합계
+          return newGroup.budgetSetup.monthlyBudgets.reduce((sum, mb) => sum + mb.amount, 0);
+        };
+
         // 백엔드 API 요청 데이터 준비
         const apiRequest = {
           name: newGroup.name,
@@ -680,7 +770,7 @@ export default function GroupManagement({
           description: newGroup.description,
           currency: newGroup.currency,
           budgetYear: newGroup.budgetSetup?.year || new Date().getFullYear(),
-          yearlyBudgetAmount: newGroup.budgetSetup?.yearlyBudget || 0,
+          yearlyBudgetAmount: calculateYearlyBudget(),
           monthlyBudgets: newGroup.budgetSetup?.monthlyBudgets.map(mb => ({
             month: mb.month,
             amount: mb.amount
@@ -737,6 +827,9 @@ export default function GroupManagement({
         toast({
           description: "그룹 생성 요청이 저장되었습니다. 승인 대기 중입니다.",
         });
+
+        // 조직 잔액 새로고침 (allocatedToGroups 업데이트 반영)
+        await fetchOrganizationBalances();
       } catch (error: any) {
         console.error('[handleCreateGroup] 그룹 생성 실패:', error);
         toast({
@@ -786,8 +879,9 @@ export default function GroupManagement({
 
   return (
     <>
-      {/* 그룹 카드 목록 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* 그룹 카드 목록 - activeTab이 "groups"일 때만 표시 */}
+      {(!activeTab || activeTab === "groups") && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {groups
           .filter(
             (group) =>
@@ -1278,6 +1372,7 @@ export default function GroupManagement({
             );
           })}
       </div>
+      )}
 
       {/* 그룹 생성 모달 */}
       <Modal isOpen={showCreateModal}>
@@ -1384,6 +1479,70 @@ export default function GroupManagement({
                   <option value="USDC">USD Coin (USDC)</option>
                   <option value="SOL">Solana (SOL)</option>
                 </select>
+                {loadingBalances ? (
+                  <p className="text-xs text-gray-500 mt-1">
+                    잔액 정보를 불러오는 중...
+                  </p>
+                ) : organizationBalances[newGroup.currency] ? (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-xs text-blue-800">
+                      <div className="font-medium mb-1">법인 잔액 정보</div>
+                      <div className="flex items-center justify-between">
+                        <span>총 잔액:</span>
+                        <span className="font-semibold">
+                          {organizationBalances[newGroup.currency].totalBalance.toLocaleString('ko-KR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 8
+                          })} {newGroup.currency}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>사용 가능:</span>
+                        <span className="font-semibold">
+                          {organizationBalances[newGroup.currency].availableBalance.toLocaleString('ko-KR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 8
+                          })} {newGroup.currency}
+                        </span>
+                      </div>
+                      {organizationBalances[newGroup.currency].lockedBalance > 0 && (
+                        <div className="flex items-center justify-between text-gray-600">
+                          <span>잠금:</span>
+                          <span>
+                            {organizationBalances[newGroup.currency].lockedBalance.toLocaleString('ko-KR', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 8
+                            })} {newGroup.currency}
+                          </span>
+                        </div>
+                      )}
+                      {organizationBalances[newGroup.currency].allocatedToGroups > 0 && (
+                        <div className="flex items-center justify-between text-gray-600">
+                          <span>그룹 할당:</span>
+                          <span>
+                            {organizationBalances[newGroup.currency].allocatedToGroups.toLocaleString('ko-KR', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 8
+                            })} {newGroup.currency}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2 mt-2 border-t border-blue-300">
+                        <span className="font-medium">새 그룹 할당 가능:</span>
+                        <span className="font-bold text-blue-600">
+                          {(organizationBalances[newGroup.currency].availableBalance - organizationBalances[newGroup.currency].allocatedToGroups).toLocaleString('ko-KR', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 8
+                          })} {newGroup.currency}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    이 자산에 대한 잔액 정보가 없습니다.
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   커스터디 지갑에 보관된 가상자산으로 예산을 관리합니다. 이
                   그룹의 모든 예산은 선택한 자산으로 설정됩니다.
@@ -1431,6 +1590,11 @@ export default function GroupManagement({
                       currency={newGroup.currency}
                       year={selectedYear}
                       onCreateBudgetSetup={handleCreateBudgetSetup}
+                      availableForAllocation={
+                        organizationBalances[newGroup.currency]
+                          ? organizationBalances[newGroup.currency].availableBalance - organizationBalances[newGroup.currency].allocatedToGroups
+                          : undefined
+                      }
                     />
                   ) : (
                     <div>

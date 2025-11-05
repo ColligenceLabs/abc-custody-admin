@@ -12,13 +12,15 @@ interface BudgetSetupFormProps {
     selectedMonth?: number
   ) => void;
   className?: string;
+  availableForAllocation?: number;
 }
 
 export default function BudgetSetupForm({
   currency,
   year,
   onCreateBudgetSetup,
-  className = ""
+  className = "",
+  availableForAllocation
 }: BudgetSetupFormProps) {
   const [baseType, setBaseType] = useState<'yearly' | 'quarterly' | 'monthly'>('yearly');
   const [baseAmountStr, setBaseAmountStr] = useState<string>('');
@@ -108,6 +110,7 @@ export default function BudgetSetupForm({
     if (baseAmount <= 0) return true;
     if (baseType === 'quarterly' && availableQuarters.length === 0) return true;
     if (baseType === 'monthly' && availableMonths.length === 0) return true;
+    if (availableForAllocation !== undefined && baseAmount > availableForAllocation) return true;
     return false;
   };
 
@@ -208,7 +211,11 @@ export default function BudgetSetupForm({
             type="text"
             value={baseAmountStr}
             onChange={(e) => handleAmountChange(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+              availableForAllocation !== undefined && baseAmount > availableForAllocation
+                ? 'border-red-300 bg-red-50'
+                : 'border-gray-300'
+            }`}
             placeholder={`예산 금액을 입력하세요 (최대 ${decimals}자리 소수점)`}
             inputMode="decimal"
           />
@@ -216,6 +223,12 @@ export default function BudgetSetupForm({
             {currency}
           </div>
         </div>
+        {availableForAllocation !== undefined && baseAmount > availableForAllocation && (
+          <p className="text-xs text-red-600 mt-1">
+            입력한 금액({baseAmount.toLocaleString('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {currency})이
+            할당 가능한 잔액({availableForAllocation.toLocaleString('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 8 })} {currency})을 초과합니다.
+          </p>
+        )}
       </div>
 
       {/* 설명 */}

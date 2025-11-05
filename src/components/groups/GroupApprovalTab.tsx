@@ -527,26 +527,41 @@ export default function GroupApprovalTab(props: GroupApprovalTabProps) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
-                        {request.budgetSetup?.baseType === "yearly" &&
-                          request.yearlyBudget.amount > 0 && (
-                            <>
-                              <span className="text-gray-500">연간:</span>{" "}
-                              {formatCryptoAmountWithIcon(request.yearlyBudget)}
-                            </>
-                          )}
-                        {request.budgetSetup?.baseType === "quarterly" &&
-                          request.quarterlyBudget.amount > 0 && (
-                            <>
-                              <span className="text-gray-500">분기:</span>{" "}
-                              {formatCryptoAmountWithIcon(
-                                request.quarterlyBudget
-                              )}
-                            </>
-                          )}
-                        {request.budgetSetup?.baseType === "monthly" && (
+                        {/* budgetSetup이 있으면 baseType에 따라 표시, 없으면 yearlyBudget 우선 표시 */}
+                        {request.budgetSetup ? (
                           <>
-                            <span className="text-gray-500">월간:</span>{" "}
-                            {formatCryptoAmountWithIcon(request.monthlyBudget)}
+                            {request.budgetSetup.baseType === "yearly" &&
+                              request.yearlyBudget.amount > 0 && (
+                                <>
+                                  <span className="text-gray-500">연간:</span>{" "}
+                                  {formatCryptoAmountWithIcon(request.yearlyBudget)}
+                                </>
+                              )}
+                            {request.budgetSetup.baseType === "quarterly" &&
+                              request.quarterlyBudget.amount > 0 && (
+                                <>
+                                  <span className="text-gray-500">분기:</span>{" "}
+                                  {formatCryptoAmountWithIcon(
+                                    request.quarterlyBudget
+                                  )}
+                                </>
+                              )}
+                            {request.budgetSetup.baseType === "monthly" && (
+                              <>
+                                <span className="text-gray-500">월간:</span>{" "}
+                                {formatCryptoAmountWithIcon(request.monthlyBudget)}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {/* budgetSetup이 없으면 연간 예산 표시 */}
+                            {request.yearlyBudget?.amount > 0 && (
+                              <>
+                                <span className="text-gray-500">연간:</span>{" "}
+                                {formatCryptoAmountWithIcon(request.yearlyBudget)}
+                              </>
+                            )}
                           </>
                         )}
                       </div>
