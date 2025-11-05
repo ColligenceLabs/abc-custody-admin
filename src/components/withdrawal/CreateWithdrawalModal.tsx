@@ -198,9 +198,12 @@ export function CreateWithdrawalModal({
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'application/x-hwp',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
     ];
 
-    const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.hwp'];
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.hwp', '.png', '.jpg', '.jpeg'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
 
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -746,30 +749,8 @@ export function CreateWithdrawalModal({
             </div>
           </div>
 
-          {/* 우선순위 */}
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              우선순위 *
-            </label>
-            <select
-              value={newRequest.priority}
-              onChange={(e) =>
-                onRequestChange({
-                  ...newRequest,
-                  priority: e.target.value as any,
-                })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="low">낮음 - 일반 출금</option>
-              <option value="medium">보통 - 정기 업무</option>
-              <option value="high">높음 - 중요 거래</option>
-              <option value="critical">긴급 - 즉시 처리</option>
-            </select>
-          </div>
-
           {/* 상세 설명 */}
-          <div className="flex-1">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               상세 설명 *
             </label>
@@ -944,7 +925,7 @@ export function CreateWithdrawalModal({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.png,.jpg,.jpeg"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -953,7 +934,7 @@ export function CreateWithdrawalModal({
                 파일을 드래그하거나 클릭하여 업로드
               </p>
               <p className="text-xs text-gray-500">
-                지원 형식: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, HWP
+                지원 형식: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, HWP, PNG, JPG, JPEG
               </p>
               <p className="text-xs text-gray-500">
                 최대 크기: 10MB / 최대 개수: 5개
