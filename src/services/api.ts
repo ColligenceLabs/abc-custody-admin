@@ -60,8 +60,15 @@ apiClient.interceptors.response.use(
 
       // 401 Unauthorized - 인증 실패
       if (error.response.status === 401) {
-        // 로그인 페이지로 리다이렉트 (추후 구현)
-        // window.location.href = '/login';
+        // 토큰 만료 시 로컬 스토리지 정리 후 로그인 페이지로 리다이렉트
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin-auth');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          // 쿠키도 제거
+          document.cookie = 'admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          window.location.href = '/admin/auth/login';
+        }
       }
 
       // 403 Forbidden - 권한 없음

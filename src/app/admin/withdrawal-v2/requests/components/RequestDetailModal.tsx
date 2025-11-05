@@ -356,7 +356,7 @@ export function RequestDetailModal({
                         </span>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm font-medium text-gray-700">
-                            {formatCryptoAmount(request.withdrawalFee, request.asset)}
+                            {formatCryptoAmount(request.withdrawalFee || 0, request.asset)}
                           </span>
                           <span className="text-xs text-gray-600">{request.asset}</span>
                         </div>
@@ -917,7 +917,7 @@ export function RequestDetailModal({
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-indigo-700">수수료 금액</span>
                     <span className="font-mono text-sm font-semibold text-indigo-900">
-                      {formatCryptoAmount(request.withdrawalFee, request.asset)} {request.asset}
+                      {formatCryptoAmount(request.withdrawalFee || 0, request.asset)} {request.asset}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-1">

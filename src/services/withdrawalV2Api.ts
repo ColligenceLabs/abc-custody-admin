@@ -887,6 +887,9 @@ class WithdrawalV2ApiService {
  * 허용된 상태 전이 규칙
  */
 const ALLOWED_TRANSITIONS: Record<WithdrawalStatus, WithdrawalStatus[]> = {
+  withdrawal_request: ["withdrawal_rejected", "withdrawal_wait", "archived"],
+  withdrawal_rejected: ["archived"],
+  archived: [],
   withdrawal_wait: ["aml_review", "withdrawal_stopped"],
   aml_review: ["processing", "aml_issue"],
   aml_issue: ["admin_rejected"],

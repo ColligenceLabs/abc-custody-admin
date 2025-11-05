@@ -8,10 +8,23 @@ const apiClient = axios.create({
   },
 });
 
-// 요청 인터셉터 (향후 인증 토큰 추가)
+// 요청 인터셉터 (인증 토큰 추가)
 apiClient.interceptors.request.use(
   (config) => {
-    // TODO: JWT 토큰 추가
+    // 로컬 스토리지에서 토큰 가져오기
+    if (typeof window !== 'undefined') {
+      try {
+        const storedAuth = localStorage.getItem('admin-auth');
+        if (storedAuth) {
+          const auth = JSON.parse(storedAuth);
+          if (auth.accessToken && config.headers) {
+            config.headers.Authorization = `Bearer ${auth.accessToken}`;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get auth token:', error);
+      }
+    }
     return config;
   },
   (error) => {
@@ -24,7 +37,15 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // TODO: 로그인 페이지로 리다이렉트
+      // 토큰 만료 시 로컬 스토리지 정리 후 로그인 페이지로 리다이렉트
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin-auth');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // 쿠키도 제거
+        document.cookie = 'admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+        window.location.href = '/admin/auth/login';
+      }
     }
     return Promise.reject(error);
   }
