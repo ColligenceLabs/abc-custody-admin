@@ -128,7 +128,7 @@ export default function WithdrawalDetailModal({
                   </div>
 
                   {/* 수수료 (있는 경우만) */}
-                  {withdrawal.withdrawalFee && parseFloat(withdrawal.withdrawalFee) > 0 && (
+                  {withdrawal.withdrawalFee && Number(withdrawal.withdrawalFee) > 0 && (
                     <div className="flex items-center justify-between pt-2 border-t border-sky-300">
                       <span className="text-sm text-gray-600">
                         출금 수수료 ({withdrawal.withdrawalFeeType === 'fixed' ? '고정' : '퍼센트'})

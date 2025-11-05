@@ -93,7 +93,6 @@ export default function UserManagement({ plan }: UserManagementProps) {
     phone: "",
     role: "viewer" as UserRole,
     department: "",
-    position: "",
   });
 
   // API 데이터 상태
@@ -340,7 +339,6 @@ export default function UserManagement({ plan }: UserManagementProps) {
         phone: "",
         role: "viewer",
         department: "",
-        position: "",
       });
       setEmailValidation({ valid: true });
 
@@ -365,7 +363,6 @@ export default function UserManagement({ plan }: UserManagementProps) {
       ...user,
       phone: user.phone || '',
       department: user.department || '',
-      position: user.position || ''
     });
     setShowEditModal(true);
   };
@@ -381,7 +378,6 @@ export default function UserManagement({ plan }: UserManagementProps) {
         phone: editingUser.phone,
         role: editingUser.role,
         department: editingUser.department,
-        position: editingUser.position,
         permissions: editingUser.permissions,
         status: editingUser.status,
         changedBy: currentUser.id,
@@ -552,7 +548,21 @@ export default function UserManagement({ plan }: UserManagementProps) {
     }
   };
 
-  const userStats = getUserStatsByRole(currentOrganizationId);
+  // 실제 사용자 데이터로 통계 계산
+  const userStats = users.reduce((stats, user) => {
+    if (user.status === 'active') {
+      stats[user.role] = (stats[user.role] || 0) + 1;
+    }
+    return stats;
+  }, {} as Record<UserRole, number>);
+
+  // 모든 역할을 0으로 초기화 (데이터가 없는 역할도 표시)
+  const completeUserStats: Record<UserRole, number> = {
+    admin: userStats.admin || 0,
+    manager: userStats.manager || 0,
+    operator: userStats.operator || 0,
+    viewer: userStats.viewer || 0,
+  };
 
   // 로딩 상태
   if (loading) {
@@ -607,7 +617,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {Object.entries(userStats).map(([role, count]) => (
+        {Object.entries(completeUserStats).map(([role, count]) => (
           <div key={role} className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-center">
               <div className={`p-2 rounded-lg ${getRoleColor(role as UserRole)}`}>
@@ -761,8 +771,8 @@ export default function UserManagement({ plan }: UserManagementProps) {
                                 </button>
                               )}
 
-                              {/* 이메일 재발송 */}
-                              {currentUser && hasPermission(currentUser, 'users.resend_email') && (
+                              {/* 이메일 재발송 - pending 상태일 때만 표시 */}
+                              {currentUser && hasPermission(currentUser, 'users.resend_email') && user.status === 'pending' && (
                                 <button
                                   onClick={() => handleResendEmail(user)}
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
@@ -788,8 +798,9 @@ export default function UserManagement({ plan }: UserManagementProps) {
                               {currentUser && hasPermission(currentUser, 'users.deactivate') && (
                                 <button
                                   onClick={() => handleDeactivateUser(user)}
-                                  disabled={user.status === 'inactive'}
+                                  disabled={user.status === 'inactive' || user.id === currentUser.id}
                                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-gray-100 flex items-center border-t border-gray-100"
+                                  title={user.id === currentUser.id ? '본인을 비활성화할 수 없습니다' : ''}
                                 >
                                   <TrashIcon className="w-4 h-4 mr-3" />
                                   사용자 비활성화
@@ -883,7 +894,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
           </div>
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* 기본 정보 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 이름 *
@@ -1016,28 +1027,29 @@ export default function UserManagement({ plan }: UserManagementProps) {
               ))}
             </div>
           </div>
+          </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleAddUser}
-                disabled={
-                  isSubmitting ||
-                  !newUser.name ||
-                  !newUser.email ||
-                  !newUser.phone ||
-                  !emailValidation.valid
-                }
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50"
-              >
-                {isSubmitting ? "생성 중..." : "사용자 생성"}
-              </button>
-            </div>
+          {/* 푸터 - 스크롤 영역 밖 */}
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              onClick={handleAddUser}
+              disabled={
+                isSubmitting ||
+                !newUser.name ||
+                !newUser.email ||
+                !newUser.phone ||
+                !emailValidation.valid
+              }
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50"
+            >
+              {isSubmitting ? "생성 중..." : "사용자 생성"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -1057,7 +1069,9 @@ export default function UserManagement({ plan }: UserManagementProps) {
               <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
+
           {editingUser && (
+            <>
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* 기본 정보 섹션 */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -1111,30 +1125,30 @@ export default function UserManagement({ plan }: UserManagementProps) {
                       placeholder="재무팀"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      직책
-                    </label>
-                    <input
-                      type="text"
-                      value={editingUser.position || ''}
-                      onChange={(e) => setEditingUser(prev => prev ? { ...prev, position: e.target.value } : null)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
-                      placeholder="대리"
-                    />
-                  </div>
                 </div>
               </div>
 
               {/* 역할 선택 섹션 */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">역할 선택</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">역할 선택</h3>
+                  {editingUser.id === currentUser?.id && (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      본인의 역할은 변경할 수 없습니다
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {(Object.keys(ROLE_NAMES) as UserRole[]).map((role) => (
+                  {(Object.keys(ROLE_NAMES) as UserRole[]).map((role) => {
+                    const isOwnAccount = editingUser.id === currentUser?.id;
+                    const isDisabled = isOwnAccount;
+
+                    return (
                     <label
                       key={role}
                       className={`
-                        relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all
+                        relative flex items-center p-3 border-2 rounded-lg transition-all
+                        ${isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}
                         ${editingUser.role === role
                           ? `${getRoleColor(role)} border-current`
                           : 'border-gray-200 hover:border-gray-300'
@@ -1147,6 +1161,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
                         value={role}
                         checked={editingUser.role === role}
                         onChange={(e) => setEditingUser(prev => prev ? { ...prev, role: e.target.value as UserRole } : null)}
+                        disabled={isDisabled}
                         className="sr-only"
                       />
                       <div className="flex-1">
@@ -1184,26 +1199,29 @@ export default function UserManagement({ plan }: UserManagementProps) {
                         <CheckIcon className="w-5 h-5 text-current flex-shrink-0" />
                       )}
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleUpdateUser}
-                  disabled={isSubmitting || !editingUser.name || !editingUser.email}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50"
-                >
-                  {isSubmitting ? "저장 중..." : "사용자 수정"}
-                </button>
-              </div>
             </div>
+
+            {/* 푸터 - 스크롤 영역 밖 */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleUpdateUser}
+                disabled={isSubmitting || !editingUser.name || !editingUser.email}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50"
+              >
+                {isSubmitting ? "저장 중..." : "사용자 수정"}
+              </button>
+            </div>
+            </>
           )}
         </div>
       </Modal>

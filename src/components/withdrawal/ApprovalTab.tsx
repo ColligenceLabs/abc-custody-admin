@@ -14,9 +14,11 @@ import { BlockchainInfo } from "./BlockchainInfo";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissionUtils";
 
+type ApprovalAction = "approve" | "reject" | "cancel-approve" | "cancel-reject";
+
 interface ApprovalTabProps {
   withdrawalRequests: WithdrawalRequest[];
-  onApproval: (requestId: string, action: "approve" | "reject") => void;
+  onApproval: (requestId: string, action: ApprovalAction) => void;
 }
 
 export default function ApprovalTab({
@@ -52,7 +54,7 @@ export default function ApprovalTab({
       const statusMatch = request.status === "withdrawal_request";
 
       // 현재 사용자가 신청자이거나 결재자인 건 표시
-      const isRequester = request.userId === user?.id;
+      const isRequester = request.initiator === user?.id;
       const isApprover = request.requiredApprovals?.includes(user?.id || '') || false;
       const isRelevantToUser = isRequester || isApprover;
 

@@ -317,7 +317,7 @@ export default function CorporateWithdrawalManagement({
   const [showApprovalModal, setShowApprovalModal] = useState<{
     show: boolean;
     requestId: string | null;
-    action: "approve" | "reject" | null;
+    action: "approve" | "reject" | "cancel-approve" | "cancel-reject" | null;
   }>({ show: false, requestId: null, action: null });
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -336,8 +336,8 @@ export default function CorporateWithdrawalManagement({
   }>({ show: false, requestId: null });
 
   // 승인/반려 처리 (팝업 열기)
-  const handleApproval = (requestId: string, action: "approve" | "reject") => {
-    setShowApprovalModal({ show: true, requestId, action });
+  const handleApproval = (requestId: string, action: "approve" | "reject" | "cancel-approve" | "cancel-reject") => {
+    setShowApprovalModal({ show: true, requestId, action: action as "approve" | "reject" | "cancel-approve" | "cancel-reject" | null });
     setRejectionReason("");
   };
 

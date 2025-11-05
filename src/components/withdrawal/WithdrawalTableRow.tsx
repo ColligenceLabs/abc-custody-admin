@@ -10,7 +10,7 @@ interface WithdrawalTableRowProps {
   onToggleDetails: (requestId: string) => void;
   showApprovalProgress?: boolean;
   showApprovalActions?: boolean;
-  onApproval?: (requestId: string, action: "approve" | "reject") => void;
+  onApproval?: (requestId: string, action: "approve" | "reject" | "cancel-approve" | "cancel-reject") => void;
   currentUserId?: string;
 }
 
@@ -103,12 +103,12 @@ export function WithdrawalTableRow({
             상세보기
           </button>
           {showApprovalActions && onApproval && (() => {
-            const hasAlreadyApproved = currentUserId && request.approvals.some(
+            const hasAlreadyApproved = !!(currentUserId && request.approvals.some(
               (approval) => approval.userId === currentUserId
-            );
-            const hasAlreadyRejected = currentUserId && request.rejections?.some(
+            ));
+            const hasAlreadyRejected = !!(currentUserId && request.rejections?.some(
               (rejection) => rejection.userId === currentUserId
-            );
+            ));
 
             return (
               <>
