@@ -801,6 +801,12 @@ class WithdrawalV2ApiService {
   private mapBackendStatusToFrontend(backendStatus: string): WithdrawalStatus {
     // 신 버전 상태값만 사용 (구 버전 완전 제거)
     const statusMapping: Record<string, WithdrawalStatus> = {
+      // 기업회원 전용
+      'withdrawal_request': 'withdrawal_request',
+      'withdrawal_rejected': 'withdrawal_rejected',
+      'archived': 'archived',
+
+      // 공통 상태
       'withdrawal_wait': 'withdrawal_wait',
       'aml_review': 'aml_review',
       'aml_issue': 'aml_issue',

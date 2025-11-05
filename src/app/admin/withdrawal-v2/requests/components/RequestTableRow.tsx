@@ -79,6 +79,22 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
         className?: string;
       }
     > = {
+      withdrawal_request: {
+        variant: "secondary",
+        label: "출금 신청 (결재 대기)",
+        className:
+          "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200",
+      },
+      withdrawal_rejected: {
+        variant: "destructive",
+        label: "결재 반려",
+      },
+      archived: {
+        variant: "secondary",
+        label: "아카이브",
+        className:
+          "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200",
+      },
       withdrawal_wait: {
         variant: "secondary",
         label: remainingTime ? `출금 대기 (${remainingTime})` : "출금 대기",
@@ -120,40 +136,6 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
       label: status,
       className: "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200",
     };
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const variants: Record<
-      string,
-      {
-        variant: "default" | "secondary" | "destructive" | "outline";
-        label: string;
-        className?: string;
-      }
-    > = {
-      urgent: {
-        variant: "destructive",
-        label: "긴급",
-        className: "bg-red-600 text-white",
-      },
-      normal: {
-        variant: "default",
-        label: "보통",
-        className: "bg-blue-600 text-white",
-      },
-      low: {
-        variant: "secondary",
-        label: "낮음",
-        className: "bg-gray-400 text-white dark:bg-gray-600",
-      },
-    };
-
-    const config = variants[priority] || variants.normal;
     return (
       <Badge variant={config.variant} className={config.className}>
         {config.label}
@@ -215,7 +197,6 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
       </TableCell>
       <TableCell className="font-mono">{formatAmount(request.amount)}</TableCell>
       <TableCell>{getBlockchainBadge(request.blockchain)}</TableCell>
-      <TableCell>{getPriorityBadge(request.priority)}</TableCell>
       <TableCell>{getStatusBadge(request.status)}</TableCell>
       <TableCell className="text-xs text-muted-foreground">
         {request.createdAt.toLocaleString("ko-KR")}

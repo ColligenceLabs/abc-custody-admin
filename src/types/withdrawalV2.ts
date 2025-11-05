@@ -36,6 +36,12 @@ export type WalletSource = "hot" | "cold";
  * 출금 요청 상태 (통합 상태 모델)
  */
 export type WithdrawalStatus =
+  // 기업회원 전용 상태
+  | "withdrawal_request"   // 출금 신청 (결재 대기)
+  | "withdrawal_rejected"  // 결재 반려
+  | "archived"            // 아카이브
+
+  // 공통 상태
   | "withdrawal_wait"      // 출금 대기 (24시간)
   | "withdrawal_stopped"   // 출금 정지 (사용자가 대기 중 정지)
   | "aml_review"          // AML 검증 중

@@ -132,7 +132,6 @@ export function RequestTable({
               <TableHead>자산</TableHead>
               <TableHead>수량</TableHead>
               <TableHead>블록체인</TableHead>
-              <TableHead>우선순위</TableHead>
               <TableHead>상태</TableHead>
               <TableHead>요청 시각</TableHead>
               <TableHead className="text-right">작업</TableHead>

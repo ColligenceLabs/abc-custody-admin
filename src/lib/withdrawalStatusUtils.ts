@@ -10,7 +10,7 @@
 function getStatusText(status: string): string {
   const statusMap: Record<string, string> = {
     // 기업회원 전용 (3개)
-    withdrawal_request: "출금 신청",
+    withdrawal_request: "출금 신청 (결재 대기)",
     withdrawal_rejected: "결재 반려",
     archived: "아카이브",
 
