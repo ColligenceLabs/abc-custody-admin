@@ -123,6 +123,7 @@ export function NotificationCenter({ initialSubtab }: NotificationCenterProps) {
       amount: 1000000,
       currency: "BTC" as const,
       groupId: "group-1",
+      userId: "user-test",
       initiator: "테스트사용자",
       initiatedAt: new Date().toISOString(),
       status: "withdrawal_request" as const,

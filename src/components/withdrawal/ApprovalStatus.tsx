@@ -6,6 +6,7 @@ interface ApprovalStatusProps {
   showDetailedStatus?: boolean;
   showProgressSummary?: boolean;
   compact?: boolean;
+  managers?: Array<{ id: string; name: string; email: string }>;
 }
 
 interface ApprovalState {
@@ -16,12 +17,19 @@ interface ApprovalState {
   textColor: string;
 }
 
-export function ApprovalStatus({ 
-  request, 
+export function ApprovalStatus({
+  request,
   showDetailedStatus = true,
   showProgressSummary = true,
-  compact = false
+  compact = false,
+  managers = []
 }: ApprovalStatusProps) {
+
+  // ID를 이름으로 변환하는 함수
+  const getApproverName = (approverId: string): string => {
+    const manager = managers.find(m => m.id === approverId);
+    return manager ? manager.name : approverId;
+  };
   
   const getApprovalState = (approver: string, index: number): ApprovalState => {
     const approval = request.approvals.find(a => a.userName === approver);
@@ -152,7 +160,7 @@ export function ApprovalStatus({
                     {getStatusIcon(state.status, state.iconColor)}
                     <div className="flex items-center">
                       <span className="text-sm text-gray-500 mr-2">{index + 1}.</span>
-                      <span className="text-sm text-gray-900 font-medium">{approver}</span>
+                      <span className="text-sm text-gray-900 font-medium">{getApproverName(approver)}</span>
                     </div>
                   </div>
                 </div>

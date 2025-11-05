@@ -1,6 +1,5 @@
 import { WithdrawalRequest } from "@/types/withdrawal";
 import { StatusBadge } from "./StatusBadge";
-import { PriorityBadge } from "./PriorityBadge";
 import { ApprovalStatus } from "./ApprovalStatus";
 import { formatAmount, formatDateTime } from "@/utils/withdrawalHelpers";
 import CryptoIcon from "@/components/ui/CryptoIcon";
@@ -65,9 +64,6 @@ export function WithdrawalTableRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {request.initiator}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <PriorityBadge priority={request.priority} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <StatusBadge status={request.status} />

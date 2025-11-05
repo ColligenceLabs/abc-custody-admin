@@ -767,6 +767,7 @@ export default function CorporateWithdrawalManagement({
         <ApprovalTab
           withdrawalRequests={mockRequests}
           onApproval={handleApproval}
+          managers={managers}
         />
       )}
 

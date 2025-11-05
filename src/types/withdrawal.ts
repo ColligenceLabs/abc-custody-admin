@@ -37,6 +37,7 @@ export interface WithdrawalRequest {
   amount: number;
   currency: Currency;
   groupId: string;
+  userId?: string;
   initiator: string;
   initiatedAt: string;
   status: WithdrawalStatus;

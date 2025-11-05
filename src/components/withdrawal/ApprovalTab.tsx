@@ -3,7 +3,6 @@ import { CheckCircleIcon, ClockIcon, DocumentIcon, ArrowDownTrayIcon } from "@he
 import { WithdrawalRequest } from "@/types/withdrawal";
 import {
   getStatusInfo,
-  getPriorityInfo,
   formatAmount,
   formatDateTime,
 } from "@/utils/withdrawalHelpers";
@@ -19,11 +18,13 @@ type ApprovalAction = "approve" | "reject" | "cancel-approve" | "cancel-reject";
 interface ApprovalTabProps {
   withdrawalRequests: WithdrawalRequest[];
   onApproval: (requestId: string, action: ApprovalAction) => void;
+  managers?: Array<{ id: string; name: string; email: string }>;
 }
 
 export default function ApprovalTab({
   withdrawalRequests,
   onApproval,
+  managers = [],
 }: ApprovalTabProps) {
   const { user } = useAuth();
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -207,9 +208,6 @@ export default function ApprovalTab({
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         기안자
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        우선순위
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         상태
@@ -466,16 +464,6 @@ export default function ApprovalTab({
                               {request.initiator}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">우선순위</span>
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded ${
-                                getPriorityInfo(request.priority).color
-                              }`}
-                            >
-                              {getPriorityInfo(request.priority).name}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -490,6 +478,7 @@ export default function ApprovalTab({
                           request={request}
                           showDetailedStatus={true}
                           showProgressSummary={true}
+                          managers={managers}
                         />
 
                         {user && hasPermission(user, 'withdrawals.approve') && (() => {
