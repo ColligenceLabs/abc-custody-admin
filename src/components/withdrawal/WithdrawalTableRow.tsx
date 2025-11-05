@@ -1,16 +1,16 @@
 import { WithdrawalRequest } from "@/types/withdrawal";
 import { StatusBadge } from "./StatusBadge";
-import { PriorityBadge } from "./PriorityBadge";
 import { ApprovalStatus } from "./ApprovalStatus";
 import { formatAmount, formatDateTime } from "@/utils/withdrawalHelpers";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { CheckCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface WithdrawalTableRowProps {
   request: WithdrawalRequest;
   onToggleDetails: (requestId: string) => void;
   showApprovalProgress?: boolean;
   showApprovalActions?: boolean;
-  onApproval?: (requestId: string, action: "approve" | "reject") => void;
+  onApproval?: (requestId: string, action: "approve" | "reject" | "cancel-approve" | "cancel-reject") => void;
   currentUserId?: string;
 }
 
@@ -67,9 +67,6 @@ export function WithdrawalTableRow({
         {request.initiator}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <PriorityBadge priority={request.priority} />
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
         <StatusBadge status={request.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -103,58 +100,67 @@ export function WithdrawalTableRow({
             상세보기
           </button>
           {showApprovalActions && onApproval && (() => {
-            const hasAlreadyApproved = Boolean(currentUserId && request.approvals.some(
+            const hasAlreadyApproved = !!(currentUserId && request.approvals.some(
               (approval) => approval.userId === currentUserId
             ));
-            const hasAlreadyRejected = Boolean(currentUserId && request.rejections?.some(
+            const hasAlreadyRejected = !!(currentUserId && request.rejections?.some(
               (rejection) => rejection.userId === currentUserId
             ));
+
+            // 순차 결재: 현재 사용자의 순서 확인
+            const currentUserIndex = request.requiredApprovals.findIndex(
+              approverId => approverId === currentUserId
+            );
+
+            // 이전 결재자들이 모두 승인했는지 확인
+            const previousApprovers = request.requiredApprovals.slice(0, currentUserIndex);
+            const allPreviousApproved = previousApprovers.every(prevApprover =>
+              request.approvals.some(a => a.userId === prevApprover)
+            );
+
+            // 자기 순서가 아니면 버튼 비활성화
+            const isMyTurn = currentUserIndex === 0 || allPreviousApproved;
+            const canApprove = isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected;
 
             return (
               <>
                 <div className="h-4 w-px bg-gray-300"></div>
-                <button
-                  onClick={() => onApproval(request.id, "approve")}
-                  disabled={hasAlreadyApproved}
-                  className={`px-3 py-1 text-xs rounded transition-colors ${
-                    hasAlreadyApproved
-                      ? 'bg-sky-50 text-sky-600 border border-sky-200 cursor-not-allowed'
-                      : 'bg-sky-600 text-white hover:bg-sky-700'
-                  }`}
-                >
-                  {hasAlreadyApproved ? '승인 완료' : '승인'}
-                </button>
-                {/* 승인 취소 기능은 향후 구현 예정
+                {canApprove && (
+                  <button
+                    onClick={() => onApproval(request.id, "approve")}
+                    className="px-3 py-1 text-xs rounded transition-colors bg-sky-600 text-white hover:bg-sky-700"
+                  >
+                    승인
+                  </button>
+                )}
                 {hasAlreadyApproved && (
+                  <div className="inline-flex items-center text-xs font-medium text-sky-600">
+                    <CheckCircleIcon className="w-3.5 h-3.5 mr-1" />
+                    결재 완료
+                  </div>
+                )}
+                {canApprove && (
                   <button
-                    onClick={() => onApproval(request.id, "cancel-approve")}
-                    className="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
+                    onClick={() => onApproval(request.id, "reject")}
+                    className="px-3 py-1 text-xs rounded transition-colors bg-gray-600 text-white hover:bg-gray-700"
                   >
-                    취소
+                    반려
                   </button>
                 )}
-                */}
-                <button
-                  onClick={() => onApproval(request.id, "reject")}
-                  disabled={hasAlreadyRejected}
-                  className={`px-3 py-1 text-xs rounded transition-colors ${
-                    hasAlreadyRejected
-                      ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed'
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  {hasAlreadyRejected ? '반려 완료' : '반려'}
-                </button>
-                {/* 반려 취소 기능은 향후 구현 예정
                 {hasAlreadyRejected && (
-                  <button
-                    onClick={() => onApproval(request.id, "cancel-reject")}
-                    className="px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
-                  >
-                    취소
-                  </button>
+                  <div className="inline-flex items-center text-xs font-medium text-red-600">
+                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    반려 완료
+                  </div>
                 )}
-                */}
+                {!isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected && (
+                  <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
+                    <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                    순서 대기 중
+                  </div>
+                )}
               </>
             );
           })()}

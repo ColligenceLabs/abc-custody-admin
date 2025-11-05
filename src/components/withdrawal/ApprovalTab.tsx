@@ -3,7 +3,6 @@ import { CheckCircleIcon, ClockIcon, DocumentIcon, ArrowDownTrayIcon } from "@he
 import { WithdrawalRequest } from "@/types/withdrawal";
 import {
   getStatusInfo,
-  getPriorityInfo,
   formatAmount,
   formatDateTime,
 } from "@/utils/withdrawalHelpers";
@@ -14,14 +13,18 @@ import { BlockchainInfo } from "./BlockchainInfo";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissionUtils";
 
+type ApprovalAction = "approve" | "reject" | "cancel-approve" | "cancel-reject";
+
 interface ApprovalTabProps {
   withdrawalRequests: WithdrawalRequest[];
-  onApproval: (requestId: string, action: "approve" | "reject") => void;
+  onApproval: (requestId: string, action: ApprovalAction) => void;
+  managers?: Array<{ id: string; name: string; email: string }>;
 }
 
 export default function ApprovalTab({
   withdrawalRequests,
   onApproval,
+  managers = [],
 }: ApprovalTabProps) {
   const { user } = useAuth();
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -205,9 +208,6 @@ export default function ApprovalTab({
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         기안자
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        우선순위
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         상태
@@ -464,16 +464,6 @@ export default function ApprovalTab({
                               {request.initiator}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">우선순위</span>
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded ${
-                                getPriorityInfo(request.priority).color
-                              }`}
-                            >
-                              {getPriorityInfo(request.priority).name}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -488,6 +478,7 @@ export default function ApprovalTab({
                           request={request}
                           showDetailedStatus={true}
                           showProgressSummary={true}
+                          managers={managers}
                         />
 
                         {user && hasPermission(user, 'withdrawals.approve') && (() => {
@@ -498,50 +489,75 @@ export default function ApprovalTab({
                             (rejection) => rejection.userId === user.id
                           );
 
+                          // 순차 결재: 현재 사용자의 순서 확인
+                          const currentUserIndex = request.requiredApprovals.findIndex(
+                            approverId => approverId === user.id
+                          );
+
+                          console.log('[ApprovalTab] 순차 결재 확인:', {
+                            requestId: request.id,
+                            userId: user.id,
+                            currentUserIndex,
+                            requiredApprovals: request.requiredApprovals,
+                            approvals: request.approvals.map(a => a.userId)
+                          });
+
+                          // 이전 결재자들이 모두 승인했는지 확인
+                          const previousApprovers = request.requiredApprovals.slice(0, currentUserIndex);
+                          const allPreviousApproved = previousApprovers.every(prevApprover =>
+                            request.approvals.some(a => a.userId === prevApprover)
+                          );
+
+                          console.log('[ApprovalTab] 이전 결재자 확인:', {
+                            previousApprovers,
+                            allPreviousApproved
+                          });
+
+                          // 자기 순서가 아니면 버튼 비활성화
+                          const isMyTurn = currentUserIndex === 0 || allPreviousApproved;
+                          const canApprove = isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected;
+
+                          console.log('[ApprovalTab] 결재 가능 여부:', { isMyTurn, canApprove });
+
                           return (
-                            <div className="flex justify-end space-x-3">
-                              <button
-                                onClick={() => onApproval(request.id, "approve")}
-                                disabled={hasAlreadyApproved}
-                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
-                                  hasAlreadyApproved
-                                    ? 'bg-sky-50 text-sky-600 border border-sky-200 cursor-not-allowed'
-                                    : 'bg-sky-600 text-white hover:bg-sky-700'
-                                }`}
-                              >
-                                {hasAlreadyApproved ? '승인 완료' : '승인'}
-                              </button>
-                              {/* 승인 취소 기능은 향후 구현 예정
-                              {hasAlreadyApproved && (
-                                <button
-                                  onClick={() => onApproval(request.id, "cancel-approve")}
-                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
-                                >
-                                  승인 취소
-                                </button>
+                            <div className="flex flex-col items-end space-y-3">
+                              {!isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected && (
+                                <div className="text-sm text-gray-500">
+                                  이전 결재자의 승인을 기다리는 중입니다
+                                </div>
                               )}
-                              */}
-                              <button
-                                onClick={() => onApproval(request.id, "reject")}
-                                disabled={hasAlreadyRejected}
-                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
-                                  hasAlreadyRejected
-                                    ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed'
-                                    : 'bg-gray-600 text-white hover:bg-gray-700'
-                                }`}
-                              >
-                                {hasAlreadyRejected ? '반려 완료' : '반려'}
-                              </button>
-                              {/* 반려 취소 기능은 향후 구현 예정
-                              {hasAlreadyRejected && (
-                                <button
-                                  onClick={() => onApproval(request.id, "cancel-reject")}
-                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
-                                >
-                                  반려 취소
-                                </button>
-                              )}
-                              */}
+                              <div className="flex space-x-3">
+                                {canApprove && (
+                                  <button
+                                    onClick={() => onApproval(request.id, "approve")}
+                                    className="px-6 py-2 text-sm rounded-lg transition-colors bg-sky-600 text-white hover:bg-sky-700"
+                                  >
+                                    승인
+                                  </button>
+                                )}
+                                {hasAlreadyApproved && (
+                                  <div className="inline-flex items-center text-sm font-medium text-sky-600">
+                                    <CheckCircleIcon className="w-4 h-4 mr-1" />
+                                    결재 완료
+                                  </div>
+                                )}
+                                {canApprove && (
+                                  <button
+                                    onClick={() => onApproval(request.id, "reject")}
+                                    className="px-6 py-2 text-sm rounded-lg transition-colors bg-gray-600 text-white hover:bg-gray-700"
+                                  >
+                                    반려
+                                  </button>
+                                )}
+                                {hasAlreadyRejected && (
+                                  <div className="inline-flex items-center text-sm font-medium text-red-600">
+                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    반려 완료
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           );
                         })()}

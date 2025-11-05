@@ -20,24 +20,29 @@ export const getStatusInfo = (status: WithdrawalStatus) => {
       icon: ClockIcon,
     },
     aml_review: {
-      name: "AML 검증",
+      name: "보안 검증",
       color: badgeColors.medium,
       icon: CpuChipIcon,
     },
     aml_issue: {
-      name: "AML 이슈",
-      color: badgeColors.danger,
-      icon: XCircleIcon,
+      name: "보안 검증",
+      color: badgeColors.medium,
+      icon: CpuChipIcon,
+    },
+    withdrawal_pending: {
+      name: "보안 검증",
+      color: badgeColors.medium,
+      icon: CpuChipIcon,
     },
     processing: {
-      name: "출금 처리 대기",
+      name: "보안 검증",
       color: badgeColors.medium,
       icon: CpuChipIcon,
     },
     transferring: {
-      name: "출금 중",
-      color: badgeColors.high,
-      icon: ArrowUpOnSquareIcon,
+      name: "보안 검증",
+      color: badgeColors.medium,
+      icon: CpuChipIcon,
     },
     success: {
       name: "출금 완료",

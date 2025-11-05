@@ -40,8 +40,8 @@ export default function LoginPage() {
     }
     return ''
   })
-  const [otpCode, setOtpCode] = useState('')
-  const [smsCode, setSmsCode] = useState('')
+  const [otpCode, setOtpCode] = useState('111111')
+  const [smsCode, setSmsCode] = useState('111111')
   const [loading, setLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)

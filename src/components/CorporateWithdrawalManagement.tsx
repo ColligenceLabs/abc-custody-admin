@@ -54,6 +54,7 @@ import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
 import { WalletGroup } from "@/types/groups";
+import { useWithdrawalSocket } from "@/hooks/useWithdrawalSocket";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -240,12 +241,15 @@ export default function CorporateWithdrawalManagement({
     const fetchWithdrawals = async () => {
       try {
         setLoading(true);
+        console.log('[CorporateWithdrawal] 출금 목록 조회 시작');
         const response = await getCorporateWithdrawals();
+        console.log('[CorporateWithdrawal] 출금 목록 조회 성공:', response.data.length, '건');
+        console.log('[CorporateWithdrawal] 데이터:', response.data);
         setWithdrawals(response.data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
-        console.error('출금 목록 조회 실패:', err);
+        console.error('[CorporateWithdrawal] 출금 목록 조회 실패:', err);
       } finally {
         setLoading(false);
       }
@@ -276,6 +280,40 @@ export default function CorporateWithdrawalManagement({
     fetchAddresses();
   }, [user?.organizationId]);
 
+  // WebSocket 실시간 업데이트
+  const handleWithdrawalUpdate = (updatedWithdrawal: any) => {
+    console.log('[CorporateWithdrawal] WebSocket 출금 업데이트 수신:', updatedWithdrawal);
+
+    setWithdrawals((prevWithdrawals) => {
+      console.log('[CorporateWithdrawal] 현재 출금 목록:', prevWithdrawals.length, '건');
+      const index = prevWithdrawals.findIndex(w => w.id === updatedWithdrawal.id);
+
+      if (index !== -1) {
+        // 기존 출금 업데이트
+        const newWithdrawals = [...prevWithdrawals];
+        newWithdrawals[index] = updatedWithdrawal;
+        console.log('[CorporateWithdrawal] 기존 출금 업데이트:', updatedWithdrawal.id, '상태:', updatedWithdrawal.status);
+        return newWithdrawals;
+      } else {
+        // 새 출금 추가
+        console.log('[CorporateWithdrawal] 새 출금 추가:', updatedWithdrawal.id);
+        return [updatedWithdrawal, ...prevWithdrawals];
+      }
+    });
+  };
+
+  // WebSocket 연결
+  const socketInfo = useWithdrawalSocket({
+    userId: user?.id || null,
+    onWithdrawalUpdate: handleWithdrawalUpdate,
+  });
+
+  console.log('[CorporateWithdrawal] WebSocket 연결 상태:', {
+    userId: user?.id,
+    isConnected: socketInfo.isConnected,
+    error: socketInfo.error
+  });
+
   const mockRequests = withdrawals;
 
   // 폼 초기화 함수
@@ -304,14 +342,17 @@ export default function CorporateWithdrawalManagement({
     // CreateWithdrawalModal에서 이미 API 호출을 처리하므로
     // 여기서는 모달 닫기와 목록 갱신만 처리
     try {
+      console.log('[handleCreateRequest] 출금 목록 갱신 시작');
       // 출금 목록 갱신
       const response = await getCorporateWithdrawals();
+      console.log('[handleCreateRequest] 갱신된 목록:', response.data.length, '건');
+      console.log('[handleCreateRequest] 갱신 데이터:', response.data);
       setWithdrawals(response.data);
 
       // 모달 닫기 및 폼 초기화
       handleCloseModal();
     } catch (err) {
-      console.error('출금 목록 갱신 실패:', err);
+      console.error('[handleCreateRequest] 출금 목록 갱신 실패:', err);
       // 목록 갱신 실패는 조용히 처리 (이미 신청은 성공했으므로)
       handleCloseModal();
     }
@@ -321,7 +362,7 @@ export default function CorporateWithdrawalManagement({
   const [showApprovalModal, setShowApprovalModal] = useState<{
     show: boolean;
     requestId: string | null;
-    action: "approve" | "reject" | null;
+    action: "approve" | "reject" | "cancel-approve" | "cancel-reject" | null;
   }>({ show: false, requestId: null, action: null });
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -340,8 +381,8 @@ export default function CorporateWithdrawalManagement({
   }>({ show: false, requestId: null });
 
   // 승인/반려 처리 (팝업 열기)
-  const handleApproval = (requestId: string, action: "approve" | "reject") => {
-    setShowApprovalModal({ show: true, requestId, action });
+  const handleApproval = (requestId: string, action: "approve" | "reject" | "cancel-approve" | "cancel-reject") => {
+    setShowApprovalModal({ show: true, requestId, action: action as "approve" | "reject" | "cancel-approve" | "cancel-reject" | null });
     setRejectionReason("");
   };
 
@@ -735,24 +776,16 @@ export default function CorporateWithdrawalManagement({
               id: "approval",
               name: "결재 승인 대기",
               icon: CheckCircleIcon,
-              count: mockRequests.filter((r) => r.status === "withdrawal_request")
-                .length,
             },
             {
               id: "airgap",
               name: "출금 처리",
               icon: LockClosedIcon,
-              count: mockRequests.filter((r) =>
-                ["withdrawal_pending", "processing"].includes(r.status)
-              ).length,
             },
             {
               id: "rejected",
               name: "반려/보류 관리",
               icon: XCircleIcon,
-              count: mockRequests.filter(
-                (r) => r.status === "withdrawal_rejected" || r.status === "archived"
-              ).length,
             },
             {
               id: "audit",
@@ -771,17 +804,6 @@ export default function CorporateWithdrawalManagement({
             >
               <tab.icon className="h-5 w-5 mr-2" />
               {tab.name}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span
-                  className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                    activeTab === tab.id
-                      ? "bg-primary-100 text-primary-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
             </button>
           ))}
         </nav>
@@ -792,12 +814,13 @@ export default function CorporateWithdrawalManagement({
         <ApprovalTab
           withdrawalRequests={mockRequests}
           onApproval={handleApproval}
+          managers={managers}
         />
       )}
 
       {/* 출금 처리 탭 */}
       {activeTab === "airgap" && (
-        <AirgapTab withdrawalRequests={mockRequests} />
+        <AirgapTab withdrawalRequests={mockRequests} managers={managers} />
       )}
 
       {/* 반려/보류 관리 탭 */}
@@ -871,21 +894,21 @@ export default function CorporateWithdrawalManagement({
                     <h4 className="font-medium text-gray-900 mb-2">
                       {request.title}
                     </h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-gray-500">신청 ID:</span>
                         <span className="ml-1 font-medium">#{request.id}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">기안자:</span>
-                        <span className="ml-1 font-medium">
-                          {request.initiator}
-                        </span>
-                      </div>
-                      <div className="col-span-2">
                         <span className="text-gray-500">출금 금액:</span>
                         <span className="ml-1 font-medium">
                           {formatCurrency(request.amount, request.currency)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">기안자:</span>
+                        <span className="ml-1 font-medium">
+                          {request.initiator}
                         </span>
                       </div>
                     </div>

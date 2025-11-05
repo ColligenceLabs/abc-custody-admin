@@ -6,6 +6,7 @@ interface ApprovalStatusProps {
   showDetailedStatus?: boolean;
   showProgressSummary?: boolean;
   compact?: boolean;
+  managers?: Array<{ id: string; name: string; email: string }>;
 }
 
 interface ApprovalState {
@@ -16,26 +17,34 @@ interface ApprovalState {
   textColor: string;
 }
 
-export function ApprovalStatus({ 
-  request, 
+export function ApprovalStatus({
+  request,
   showDetailedStatus = true,
   showProgressSummary = true,
-  compact = false
+  compact = false,
+  managers = []
 }: ApprovalStatusProps) {
+
+  // ID를 이름으로 변환하는 함수
+  const getApproverName = (approverId: string): string => {
+    const manager = managers.find(m => m.id === approverId);
+    return manager ? manager.name : approverId;
+  };
   
   const getApprovalState = (approver: string, index: number): ApprovalState => {
-    const approval = request.approvals.find(a => a.userName === approver);
-    const rejection = request.rejections.find(r => r.userName === approver);
-    
+    // approver는 userId이므로 userId로 비교
+    const approval = request.approvals.find(a => a.userId === approver);
+    const rejection = request.rejections.find(r => r.userId === approver);
+
     // 순차적 결재 로직: 이전 결재자들이 모두 승인했는지 확인
     const previousApprovers = request.requiredApprovals.slice(0, index);
-    const allPreviousApproved = previousApprovers.every(prevApprover => 
-      request.approvals.some(a => a.userName === prevApprover)
+    const allPreviousApproved = previousApprovers.every(prevApprover =>
+      request.approvals.some(a => a.userId === prevApprover)
     );
-    
+
     // 이전 결재자가 반려했는지 확인
     const anyPreviousRejected = previousApprovers.some(prevApprover =>
-      request.rejections.some(r => r.userName === prevApprover)
+      request.rejections.some(r => r.userId === prevApprover)
     );
     
     // 상태 결정
@@ -152,7 +161,7 @@ export function ApprovalStatus({
                     {getStatusIcon(state.status, state.iconColor)}
                     <div className="flex items-center">
                       <span className="text-sm text-gray-500 mr-2">{index + 1}.</span>
-                      <span className="text-sm text-gray-900 font-medium">{approver}</span>
+                      <span className="text-sm text-gray-900 font-medium">{getApproverName(approver)}</span>
                     </div>
                   </div>
                 </div>
