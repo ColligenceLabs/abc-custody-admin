@@ -98,17 +98,17 @@ export function CreateWithdrawalModal({
   // 자신을 제외한 매니저 목록
   const availableManagers = managers.filter(m => m.id !== user?.id);
 
-  // 모달이 열릴 때 상태 초기화
+  // 모달이 열릴 때 상태 초기화 (재신청 시 requiredApprovals 유지)
   useEffect(() => {
     if (isOpen) {
       setAttachments([]);
-      setSelectedApprovers([]);
+      setSelectedApprovers(newRequest.requiredApprovals || []);
       setBudgetError(null);
       setUploadError(null);
       setIsSubmitting(false);
       setIsApproverDropdownOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, newRequest.requiredApprovals]);
 
   // 드롭다운 외부 클릭 감지
   useEffect(() => {
@@ -356,7 +356,7 @@ export function CreateWithdrawalModal({
       }
 
       // API 요청 데이터 생성
-      const withdrawalData = {
+      const withdrawalData: any = {
         id: `CORP-${Date.now()}`,
         title: newRequest.title,
         fromAddress: fromAddress,
@@ -366,7 +366,6 @@ export function CreateWithdrawalModal({
         network: apiNetwork,
         userId: user?.id || "0",
         memberType: "corporate" as const,
-        groupId: newRequest.groupId || "",
         initiator: user?.name || "사용자",
         status: "withdrawal_request" as const,
         priority: newRequest.priority,
@@ -375,6 +374,11 @@ export function CreateWithdrawalModal({
         approvals: [],
         rejections: [],
       };
+
+      // groupId는 값이 있을 때만 추가
+      if (newRequest.groupId) {
+        withdrawalData.groupId = newRequest.groupId;
+      }
 
       console.log('[CorporateWithdrawal] API 전송 데이터:', withdrawalData);
 
@@ -624,10 +628,10 @@ export function CreateWithdrawalModal({
                 출금 금액 *
               </label>
               <input
-                type="number"
-                step="0.00000001"
+                type="text"
+                inputMode="decimal"
                 required
-                value={newRequest.amount}
+                value={newRequest.amount === 0 ? '' : newRequest.amount}
                 onFocus={(e) => {
                   if (newRequest.amount === 0) {
                     onRequestChange({
@@ -638,10 +642,13 @@ export function CreateWithdrawalModal({
                 }}
                 onChange={(e) => {
                   const value = e.target.value;
-                  onRequestChange({
-                    ...newRequest,
-                    amount: value === '' ? ('' as any) : Number(value),
-                  });
+                  // 숫자와 소수점만 허용
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    onRequestChange({
+                      ...newRequest,
+                      amount: value === '' ? ('' as any) : parseFloat(value) || 0,
+                    });
+                  }
                 }}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                   budgetError ? 'border-red-300' : 'border-gray-300'

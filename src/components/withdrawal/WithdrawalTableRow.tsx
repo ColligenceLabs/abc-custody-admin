@@ -103,12 +103,12 @@ export function WithdrawalTableRow({
             상세보기
           </button>
           {showApprovalActions && onApproval && (() => {
-            const hasAlreadyApproved = currentUserId && request.approvals.some(
+            const hasAlreadyApproved = Boolean(currentUserId && request.approvals.some(
               (approval) => approval.userId === currentUserId
-            );
-            const hasAlreadyRejected = currentUserId && request.rejections?.some(
+            ));
+            const hasAlreadyRejected = Boolean(currentUserId && request.rejections?.some(
               (rejection) => rejection.userId === currentUserId
-            );
+            ));
 
             return (
               <>
@@ -124,6 +124,7 @@ export function WithdrawalTableRow({
                 >
                   {hasAlreadyApproved ? '승인 완료' : '승인'}
                 </button>
+                {/* 승인 취소 기능은 향후 구현 예정
                 {hasAlreadyApproved && (
                   <button
                     onClick={() => onApproval(request.id, "cancel-approve")}
@@ -132,6 +133,7 @@ export function WithdrawalTableRow({
                     취소
                   </button>
                 )}
+                */}
                 <button
                   onClick={() => onApproval(request.id, "reject")}
                   disabled={hasAlreadyRejected}
@@ -143,6 +145,7 @@ export function WithdrawalTableRow({
                 >
                   {hasAlreadyRejected ? '반려 완료' : '반려'}
                 </button>
+                {/* 반려 취소 기능은 향후 구현 예정
                 {hasAlreadyRejected && (
                   <button
                     onClick={() => onApproval(request.id, "cancel-reject")}
@@ -151,6 +154,7 @@ export function WithdrawalTableRow({
                     취소
                   </button>
                 )}
+                */}
               </>
             );
           })()}

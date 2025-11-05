@@ -52,7 +52,7 @@ export default function ApprovalTab({
       const statusMatch = request.status === "withdrawal_request";
 
       // 현재 사용자가 신청자이거나 결재자인 건 표시
-      const isRequester = request.userId === user?.id;
+      const isRequester = request.initiator === user?.id;
       const isApprover = request.requiredApprovals?.includes(user?.id || '') || false;
       const isRelevantToUser = isRequester || isApprover;
 
@@ -511,6 +511,7 @@ export default function ApprovalTab({
                               >
                                 {hasAlreadyApproved ? '승인 완료' : '승인'}
                               </button>
+                              {/* 승인 취소 기능은 향후 구현 예정
                               {hasAlreadyApproved && (
                                 <button
                                   onClick={() => onApproval(request.id, "cancel-approve")}
@@ -519,6 +520,7 @@ export default function ApprovalTab({
                                   승인 취소
                                 </button>
                               )}
+                              */}
                               <button
                                 onClick={() => onApproval(request.id, "reject")}
                                 disabled={hasAlreadyRejected}
@@ -530,6 +532,7 @@ export default function ApprovalTab({
                               >
                                 {hasAlreadyRejected ? '반려 완료' : '반려'}
                               </button>
+                              {/* 반려 취소 기능은 향후 구현 예정
                               {hasAlreadyRejected && (
                                 <button
                                   onClick={() => onApproval(request.id, "cancel-reject")}
@@ -538,6 +541,7 @@ export default function ApprovalTab({
                                   반려 취소
                                 </button>
                               )}
+                              */}
                             </div>
                           );
                         })()}

@@ -49,7 +49,7 @@ import AirgapTab from "./withdrawal/AirgapTab";
 import ApprovalTab from "./withdrawal/ApprovalTab";
 import ApprovalAuthModal from "./withdrawal/ApprovalAuthModal";
 import { networkAssets } from "@/data/mockWithdrawalData";
-import { getCorporateWithdrawals, getWithdrawalById, approveWithdrawal, rejectWithdrawalCorporate } from "@/lib/api/withdrawal";
+import { getCorporateWithdrawals, getWithdrawalById, approveWithdrawal, rejectWithdrawalCorporate, updateWithdrawal } from "@/lib/api/withdrawal";
 import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +102,8 @@ export default function CorporateWithdrawalManagement({
     currency: "",
     description: "",
     priority: "medium" as "low" | "medium" | "high" | "critical",
+    groupId: undefined as string | undefined,
+    requiredApprovals: [] as string[],
   });
 
   // API 상태 관리
@@ -287,6 +289,8 @@ export default function CorporateWithdrawalManagement({
       currency: "",
       description: "",
       priority: "medium",
+      groupId: undefined,
+      requiredApprovals: [],
     });
   };
 
@@ -382,15 +386,22 @@ export default function CorporateWithdrawalManagement({
     };
 
     // 새로운 신청서 생성 모달로 전환
+    // amount를 파싱하여 trailing zero 제거
+    const cleanAmount = typeof originalRequest.amount === 'string'
+      ? parseFloat(originalRequest.amount)
+      : originalRequest.amount;
+
     setNewRequest({
       title: originalRequest.title,
       fromAddress: originalRequest.fromAddress,
       toAddress: originalRequest.toAddress,
-      amount: originalRequest.amount,
+      amount: cleanAmount,
       network: "Bitcoin", // 기본값으로 설정
       currency: originalRequest.currency,
       priority: "medium" as "low" | "medium" | "high" | "critical",
       description: `재신청: ${originalRequest.description}`,
+      groupId: originalRequest.groupId,
+      requiredApprovals: originalRequest.requiredApprovals || [],
     });
 
     setShowReapplicationModal({ show: false, requestId: null });
@@ -402,16 +413,33 @@ export default function CorporateWithdrawalManagement({
   };
 
   // 아카이브 확인
-  const confirmArchive = () => {
+  const confirmArchive = async () => {
     if (!showArchiveModal.requestId) return;
 
-    // 실제 구현에서는 API 호출로 상태 업데이트
-    console.log(`Archive request ${showArchiveModal.requestId}`);
-    toast({
-      description: "반려된 신청이 처리 완료되었습니다.",
-    });
+    try {
+      console.log(`Archive request ${showArchiveModal.requestId}`);
 
-    setShowArchiveModal({ show: false, requestId: null });
+      // API 호출: 상태를 archived로 변경
+      await updateWithdrawal(showArchiveModal.requestId, {
+        status: 'archived'
+      });
+
+      toast({
+        description: "반려된 신청이 처리 완료되었습니다.",
+      });
+
+      setShowArchiveModal({ show: false, requestId: null });
+
+      // 데이터 새로고침
+      const response = await getCorporateWithdrawals();
+      setWithdrawals(response.data);
+    } catch (error) {
+      console.error('[처리 완료 실패]', error);
+      toast({
+        variant: 'destructive',
+        description: error instanceof Error ? error.message : "처리 완료에 실패했습니다.",
+      });
+    }
   };
 
   // 승인/반려 확인
@@ -580,7 +608,10 @@ export default function CorporateWithdrawalManagement({
         </div>
         {user && hasPermission(user, 'withdrawals.create') && (
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              resetNewRequest();
+              setShowCreateModal(true);
+            }}
             className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
@@ -787,7 +818,11 @@ export default function CorporateWithdrawalManagement({
         onClose={handleCloseModal}
         onSubmit={handleCreateRequest}
         newRequest={newRequest}
-        onRequestChange={setNewRequest}
+        onRequestChange={(request) => setNewRequest({
+          ...request,
+          groupId: request.groupId || undefined,
+          requiredApprovals: request.requiredApprovals || [],
+        })}
         networkAssets={networkAssets}
         whitelistedAddresses={addresses}
         groups={groups}
@@ -850,8 +885,7 @@ export default function CorporateWithdrawalManagement({
                       <div className="col-span-2">
                         <span className="text-gray-500">출금 금액:</span>
                         <span className="ml-1 font-medium">
-                          {formatAmount(request.amount, request.currency)}{" "}
-                          {request.currency}
+                          {formatCurrency(request.amount, request.currency)}
                         </span>
                       </div>
                     </div>

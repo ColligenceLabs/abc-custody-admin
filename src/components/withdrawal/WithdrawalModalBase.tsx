@@ -369,9 +369,9 @@ export function WithdrawalModalBase<T extends BaseFormData>({
                 </div>
                 <input
                   type="number"
-                  step="0.1"
+                  step="any"
                   required
-                  value={formData.amount}
+                  value={formData.amount || ''}
                   onFocus={(e) => {
                     if (formData.amount === 0) {
                       onFormDataChange({
