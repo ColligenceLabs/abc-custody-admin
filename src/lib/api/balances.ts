@@ -85,3 +85,28 @@ export async function verifyWithdrawalAmount(
 
   return response.json();
 }
+
+/**
+ * 조직 전체 잔고 조회
+ */
+export async function getOrganizationBalances(organizationId: string): Promise<{
+  organizationId: string;
+  totalAssets: number;
+  balances: Array<{
+    asset: string;
+    network: string;
+    totalBalance: number;
+    availableBalance: number;
+    lockedBalance: number;
+    allocatedToGroups: number;
+  }>;
+}> {
+  const response = await fetch(`${API_URL}/api/balances/organization?organizationId=${organizationId}`);
+
+  if (!response.ok) {
+    const error: ErrorResponse = await response.json();
+    throw new Error(error.message || '조직 잔고 조회에 실패했습니다.');
+  }
+
+  return response.json();
+}

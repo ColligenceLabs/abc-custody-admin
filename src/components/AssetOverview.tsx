@@ -20,12 +20,11 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { PriorityBadge } from './withdrawal/PriorityBadge'
 import { StatusBadge } from './withdrawal/StatusBadge'
-import { mockWithdrawalRequests } from '@/data/mockWithdrawalData'
 import { formatDateTime } from '@/utils/withdrawalHelpers'
 import { formatCryptoAmount, formatKRW } from '@/lib/format'
 import CryptoIcon from '@/components/ui/CryptoIcon'
-import { IndividualWithdrawalRequest } from '@/types/withdrawal'
-import { getIndividualWithdrawals } from '@/lib/api/withdrawal'
+import { IndividualWithdrawalRequest, WithdrawalRequest } from '@/types/withdrawal'
+import { getIndividualWithdrawals, getCorporateWithdrawals } from '@/lib/api/withdrawal'
 import { ProcessingTableRow } from './withdrawal/ProcessingTableRow'
 import { Balance, AssetData } from '@/types/balance'
 import { getUserBalances } from '@/lib/api/balances'
@@ -45,6 +44,10 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
   const [timePeriod, setTimePeriod] = useState<'hour' | 'day' | 'month'>('month')
   const [ongoingWithdrawals, setOngoingWithdrawals] = useState<IndividualWithdrawalRequest[]>([])
   const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false)
+  const [pendingApprovals, setPendingApprovals] = useState<WithdrawalRequest[]>([])
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(false)
+  const [rejectedWithdrawals, setRejectedWithdrawals] = useState<WithdrawalRequest[]>([])
+  const [isLoadingRejected, setIsLoadingRejected] = useState(false)
   const [assets, setAssets] = useState<AssetData[]>([])
   const [isLoadingAssets, setIsLoadingAssets] = useState(true)
 
@@ -67,8 +70,71 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     SOL: 'Solana'
   }
 
-  // Filter actual withdrawal requests with withdrawal_request status (pending approval)
-  const mockWithdrawalApprovals = mockWithdrawalRequests.filter(request => request.status === 'withdrawal_request')
+  // 법인 출금 승인 대기 데이터 가져오기
+  useEffect(() => {
+    const fetchPendingApprovals = async () => {
+      if (!user?.id || plan !== 'enterprise') {
+        return
+      }
+
+      try {
+        setIsLoadingApprovals(true)
+
+        const { data } = await getCorporateWithdrawals({
+          _limit: 100,
+          _sort: 'initiatedAt',
+          _order: 'desc'
+        })
+
+        // withdrawal_request 상태만 필터링 (승인 대기 중)
+        const pending = data.filter(
+          (w: WithdrawalRequest) => w.status === 'withdrawal_request'
+        )
+
+        setPendingApprovals(pending)
+      } catch (error) {
+        console.error('[AssetOverview] 승인 대기 출금 조회 실패:', error)
+        setPendingApprovals([])
+      } finally {
+        setIsLoadingApprovals(false)
+      }
+    }
+
+    fetchPendingApprovals()
+  }, [user, plan])
+
+  // 법인 반려/보류 출금 데이터 가져오기
+  useEffect(() => {
+    const fetchRejectedWithdrawals = async () => {
+      if (!user?.id || plan !== 'enterprise') {
+        return
+      }
+
+      try {
+        setIsLoadingRejected(true)
+
+        const { data } = await getCorporateWithdrawals({
+          _limit: 100,
+          _sort: 'initiatedAt',
+          _order: 'desc'
+        })
+
+        // withdrawal_rejected, withdrawal_stopped 상태만 필터링
+        const rejected = data.filter(
+          (w: WithdrawalRequest) => w.status === 'withdrawal_rejected' || w.status === 'withdrawal_stopped'
+        )
+
+        setRejectedWithdrawals(rejected)
+      } catch (error) {
+        console.error('[AssetOverview] 반려/보류 출금 조회 실패:', error)
+        setRejectedWithdrawals([])
+      } finally {
+        setIsLoadingRejected(false)
+      }
+    }
+
+    fetchRejectedWithdrawals()
+  }, [user, plan])
 
   // 사용자 자산 잔고 데이터 가져오기 (실시간 가격 포함)
   useEffect(() => {
@@ -397,8 +463,8 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
     }
   }
 
-  const highUrgencyApprovals = mockWithdrawalApprovals.filter(request => request.priority === 'high' || request.priority === 'critical')
-  const totalPendingValue = mockWithdrawalApprovals.reduce((sum, request) => {
+  const highUrgencyApprovals = pendingApprovals.filter(request => request.priority === 'high' || request.priority === 'critical')
+  const totalPendingValue = pendingApprovals.reduce((sum, request) => {
     // Sum all amounts regardless of currency for display purposes
     return sum + request.amount;
   }, 0)
@@ -588,14 +654,16 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
       )}
 
       {/* Withdrawal Approvals Section - Only show if there are pending approvals and plan is enterprise */}
-      {plan === 'enterprise' && mockWithdrawalApprovals.length > 0 && (
+      {plan === 'enterprise' && pendingApprovals.length > 0 && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <ClockIcon className="h-5 w-5 text-gray-500 mr-2" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">출금 승인 대기</h3>
-                <p className="text-sm text-gray-600">{mockWithdrawalApprovals.length}건의 출금 신청이 승인을 기다리고 있습니다</p>
+                <p className="text-sm text-gray-600">
+                  {isLoadingApprovals ? '로딩 중...' : `${pendingApprovals.length}건의 출금 신청이 승인을 기다리고 있습니다`}
+                </p>
               </div>
             </div>
             <button 
@@ -620,7 +688,7 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
                 </tr>
               </thead>
               <tbody>
-                {mockWithdrawalApprovals.slice(0, 3).map((request) => (
+                {pendingApprovals.slice(0, 3).map((request) => (
                   <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{request.id}
@@ -683,10 +751,106 @@ export default function AssetOverview({ plan }: AssetOverviewProps) {
             </table>
           </div>
           
-          {mockWithdrawalApprovals.length > 3 && (
+          {pendingApprovals.length > 3 && (
             <div className="mt-4 pt-4 border-t border-gray-200 text-center">
               <span className="text-sm text-gray-600">
-                외 {mockWithdrawalApprovals.length - 3}건이 더 있습니다
+                외 {pendingApprovals.length - 3}건이 더 있습니다
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Rejected/Stopped Withdrawals Section - Only show if there are rejected withdrawals and plan is enterprise */}
+      {plan === 'enterprise' && rejectedWithdrawals.length > 0 && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">반려/보류 관리</h3>
+                <p className="text-sm text-gray-600">
+                  {isLoadingRejected ? '로딩 중...' : `${rejectedWithdrawals.length}건의 반려 또는 보류된 출금이 있습니다`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/withdrawal/rejected')}
+              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              출금 관리로 이동
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">신청 ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">출금 내용</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">자산</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기안자</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">사유</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rejectedWithdrawals.slice(0, 3).map((request) => (
+                  <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{request.id}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">
+                          {request.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {request.description}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatDateTime(request.initiatedAt)}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <CryptoIcon
+                          symbol={request.currency}
+                          size={32}
+                          className="mr-3 flex-shrink-0"
+                        />
+                        <div className="text-sm">
+                          <p className="font-semibold text-gray-900">
+                            {formatCryptoAmount(request.amount, request.currency)}
+                          </p>
+                          <p className="text-gray-500">
+                            {request.currency}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{request.initiator}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={request.status} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-600 max-w-xs truncate">
+                        {request.rejections && request.rejections.length > 0
+                          ? request.rejections[0].reason
+                          : '-'}
+                      </p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {rejectedWithdrawals.length > 3 && (
+            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+              <span className="text-sm text-gray-600">
+                외 {rejectedWithdrawals.length - 3}건이 더 있습니다
               </span>
             </div>
           )}

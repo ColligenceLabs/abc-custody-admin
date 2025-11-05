@@ -639,7 +639,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 온보딩 완료 여부 확인 후 리다이렉트
         const needsOnboarding =
           userWithMemberType.memberType === 'corporate' &&
-          userWithMemberType.creationMethod === 'admin_invited' &&
+          (userWithMemberType as any).creationMethod === 'admin_invited' &&
           !userWithMemberType.onboardingCompleted;
 
         if (needsOnboarding) {
@@ -866,7 +866,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 리다이렉트 분기: 기업 사용자이면서 온보딩 미완료 시 온보딩으로
       const needsOnboarding =
         memberType === 'corporate' &&
-        updatedUser.creationMethod === 'admin_invited' &&
+        (updatedUser as any).creationMethod === 'admin_invited' &&
         !updatedUser.onboardingCompleted;
 
       if (needsOnboarding) {
