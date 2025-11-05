@@ -54,6 +54,7 @@ import { getAddresses } from "@/lib/api/addresses";
 import { WhitelistedAddress } from "@/types/address";
 import { useToast } from "@/hooks/use-toast";
 import { WalletGroup } from "@/types/groups";
+import { useWithdrawalSocket } from "@/hooks/useWithdrawalSocket";
 
 export default function CorporateWithdrawalManagement({
   plan,
@@ -276,6 +277,40 @@ export default function CorporateWithdrawalManagement({
 
     fetchAddresses();
   }, [user?.organizationId]);
+
+  // WebSocket 실시간 업데이트
+  const handleWithdrawalUpdate = (updatedWithdrawal: any) => {
+    console.log('[CorporateWithdrawal] WebSocket 출금 업데이트 수신:', updatedWithdrawal);
+
+    setWithdrawals((prevWithdrawals) => {
+      console.log('[CorporateWithdrawal] 현재 출금 목록:', prevWithdrawals.length, '건');
+      const index = prevWithdrawals.findIndex(w => w.id === updatedWithdrawal.id);
+
+      if (index !== -1) {
+        // 기존 출금 업데이트
+        const newWithdrawals = [...prevWithdrawals];
+        newWithdrawals[index] = updatedWithdrawal;
+        console.log('[CorporateWithdrawal] 기존 출금 업데이트:', updatedWithdrawal.id, '상태:', updatedWithdrawal.status);
+        return newWithdrawals;
+      } else {
+        // 새 출금 추가
+        console.log('[CorporateWithdrawal] 새 출금 추가:', updatedWithdrawal.id);
+        return [updatedWithdrawal, ...prevWithdrawals];
+      }
+    });
+  };
+
+  // WebSocket 연결
+  const socketInfo = useWithdrawalSocket({
+    userId: user?.id || null,
+    onWithdrawalUpdate: handleWithdrawalUpdate,
+  });
+
+  console.log('[CorporateWithdrawal] WebSocket 연결 상태:', {
+    userId: user?.id,
+    isConnected: socketInfo.isConnected,
+    error: socketInfo.error
+  });
 
   const mockRequests = withdrawals;
 
@@ -710,24 +745,16 @@ export default function CorporateWithdrawalManagement({
               id: "approval",
               name: "결재 승인 대기",
               icon: CheckCircleIcon,
-              count: mockRequests.filter((r) => r.status === "withdrawal_request")
-                .length,
             },
             {
               id: "airgap",
               name: "출금 처리",
               icon: LockClosedIcon,
-              count: mockRequests.filter((r) =>
-                ["withdrawal_pending", "processing"].includes(r.status)
-              ).length,
             },
             {
               id: "rejected",
               name: "반려/보류 관리",
               icon: XCircleIcon,
-              count: mockRequests.filter(
-                (r) => r.status === "withdrawal_rejected" || r.status === "archived"
-              ).length,
             },
             {
               id: "audit",
@@ -746,17 +773,6 @@ export default function CorporateWithdrawalManagement({
             >
               <tab.icon className="h-5 w-5 mr-2" />
               {tab.name}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span
-                  className={`ml-2 px-2 py-0.5 text-xs rounded-full ${
-                    activeTab === tab.id
-                      ? "bg-primary-100 text-primary-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
             </button>
           ))}
         </nav>
@@ -773,7 +789,7 @@ export default function CorporateWithdrawalManagement({
 
       {/* 출금 처리 탭 */}
       {activeTab === "airgap" && (
-        <AirgapTab withdrawalRequests={mockRequests} />
+        <AirgapTab withdrawalRequests={mockRequests} managers={managers} />
       )}
 
       {/* 반려/보류 관리 탭 */}

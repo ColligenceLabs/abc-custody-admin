@@ -80,42 +80,8 @@ export function ProcessingTableRow({
         eta,
         type: "pending",
       };
-    } else if (request.status === "transferring") {
-      return {
-        progress: 50,
-        step: "출금중",
-        eta: "",
-        type: "transferring",
-      };
-    } else if (request.status === "processing") {
-      // 개인회원의 processingStep 확인
-      const individualRequest = request as IndividualWithdrawalRequest;
-
-      if (individualRequest.processingStep === "security_check") {
-        return {
-          progress: 45,
-          step: "보안 검증 중...",
-          eta: "",
-          type: "processing",
-        };
-      } else if (individualRequest.processingStep === "blockchain_broadcast") {
-        return {
-          progress: 70,
-          step: "블록체인 전송 중...",
-          eta: "",
-          type: "processing",
-        };
-      } else if (individualRequest.processingStep === "confirmation") {
-        const confirmations = individualRequest.blockConfirmations || 0;
-        return {
-          progress: 85,
-          step: `컨펌 대기 중 (${confirmations}/12)`,
-          eta: "",
-          type: "processing",
-        };
-      }
-
-      // 기본 processing 상태: 보안 검증
+    } else if (["aml_review", "aml_issue", "withdrawal_pending", "processing", "transferring"].includes(request.status)) {
+      // 5개 상태를 "보안 검증"으로 통합 표시
       return {
         progress: 45,
         step: "보안 검증",

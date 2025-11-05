@@ -372,13 +372,13 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
     setIsSubmitting(true);
     try {
+      // 역할만 변경하고 permissions는 Backend에서 자동 설정되도록 전달하지 않음
       const updatedUser = await updateOrganizationUser(editingUser.id, {
         name: editingUser.name,
         email: editingUser.email,
         phone: editingUser.phone,
         role: editingUser.role,
         department: editingUser.department,
-        permissions: editingUser.permissions,
         status: editingUser.status,
         changedBy: currentUser.id,
       });

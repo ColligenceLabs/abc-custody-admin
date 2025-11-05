@@ -3,7 +3,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ApprovalStatus } from "./ApprovalStatus";
 import { formatAmount, formatDateTime } from "@/utils/withdrawalHelpers";
 import CryptoIcon from "@/components/ui/CryptoIcon";
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface WithdrawalTableRowProps {
   request: WithdrawalRequest;
@@ -107,10 +107,25 @@ export function WithdrawalTableRow({
               (rejection) => rejection.userId === currentUserId
             ));
 
+            // 순차 결재: 현재 사용자의 순서 확인
+            const currentUserIndex = request.requiredApprovals.findIndex(
+              approverId => approverId === currentUserId
+            );
+
+            // 이전 결재자들이 모두 승인했는지 확인
+            const previousApprovers = request.requiredApprovals.slice(0, currentUserIndex);
+            const allPreviousApproved = previousApprovers.every(prevApprover =>
+              request.approvals.some(a => a.userId === prevApprover)
+            );
+
+            // 자기 순서가 아니면 버튼 비활성화
+            const isMyTurn = currentUserIndex === 0 || allPreviousApproved;
+            const canApprove = isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected;
+
             return (
               <>
                 <div className="h-4 w-px bg-gray-300"></div>
-                {!hasAlreadyApproved && (
+                {canApprove && (
                   <button
                     onClick={() => onApproval(request.id, "approve")}
                     className="px-3 py-1 text-xs rounded transition-colors bg-sky-600 text-white hover:bg-sky-700"
@@ -124,7 +139,7 @@ export function WithdrawalTableRow({
                     결재 완료
                   </div>
                 )}
-                {!hasAlreadyApproved && !hasAlreadyRejected && (
+                {canApprove && (
                   <button
                     onClick={() => onApproval(request.id, "reject")}
                     className="px-3 py-1 text-xs rounded transition-colors bg-gray-600 text-white hover:bg-gray-700"
@@ -138,6 +153,12 @@ export function WithdrawalTableRow({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     반려 완료
+                  </div>
+                )}
+                {!isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected && (
+                  <div className="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded">
+                    <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                    순서 대기 중
                   </div>
                 )}
               </>

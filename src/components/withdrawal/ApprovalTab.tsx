@@ -489,38 +489,75 @@ export default function ApprovalTab({
                             (rejection) => rejection.userId === user.id
                           );
 
+                          // 순차 결재: 현재 사용자의 순서 확인
+                          const currentUserIndex = request.requiredApprovals.findIndex(
+                            approverId => approverId === user.id
+                          );
+
+                          console.log('[ApprovalTab] 순차 결재 확인:', {
+                            requestId: request.id,
+                            userId: user.id,
+                            currentUserIndex,
+                            requiredApprovals: request.requiredApprovals,
+                            approvals: request.approvals.map(a => a.userId)
+                          });
+
+                          // 이전 결재자들이 모두 승인했는지 확인
+                          const previousApprovers = request.requiredApprovals.slice(0, currentUserIndex);
+                          const allPreviousApproved = previousApprovers.every(prevApprover =>
+                            request.approvals.some(a => a.userId === prevApprover)
+                          );
+
+                          console.log('[ApprovalTab] 이전 결재자 확인:', {
+                            previousApprovers,
+                            allPreviousApproved
+                          });
+
+                          // 자기 순서가 아니면 버튼 비활성화
+                          const isMyTurn = currentUserIndex === 0 || allPreviousApproved;
+                          const canApprove = isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected;
+
+                          console.log('[ApprovalTab] 결재 가능 여부:', { isMyTurn, canApprove });
+
                           return (
-                            <div className="flex justify-end space-x-3">
-                              {!hasAlreadyApproved && (
-                                <button
-                                  onClick={() => onApproval(request.id, "approve")}
-                                  className="px-6 py-2 text-sm rounded-lg transition-colors bg-sky-600 text-white hover:bg-sky-700"
-                                >
-                                  승인
-                                </button>
-                              )}
-                              {hasAlreadyApproved && (
-                                <div className="inline-flex items-center text-sm font-medium text-sky-600">
-                                  <CheckCircleIcon className="w-4 h-4 mr-1" />
-                                  결재 완료
+                            <div className="flex flex-col items-end space-y-3">
+                              {!isMyTurn && !hasAlreadyApproved && !hasAlreadyRejected && (
+                                <div className="text-sm text-gray-500">
+                                  이전 결재자의 승인을 기다리는 중입니다
                                 </div>
                               )}
-                              {!hasAlreadyApproved && !hasAlreadyRejected && (
-                                <button
-                                  onClick={() => onApproval(request.id, "reject")}
-                                  className="px-6 py-2 text-sm rounded-lg transition-colors bg-gray-600 text-white hover:bg-gray-700"
-                                >
-                                  반려
-                                </button>
-                              )}
-                              {hasAlreadyRejected && (
-                                <div className="inline-flex items-center text-sm font-medium text-red-600">
-                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  반려 완료
-                                </div>
-                              )}
+                              <div className="flex space-x-3">
+                                {canApprove && (
+                                  <button
+                                    onClick={() => onApproval(request.id, "approve")}
+                                    className="px-6 py-2 text-sm rounded-lg transition-colors bg-sky-600 text-white hover:bg-sky-700"
+                                  >
+                                    승인
+                                  </button>
+                                )}
+                                {hasAlreadyApproved && (
+                                  <div className="inline-flex items-center text-sm font-medium text-sky-600">
+                                    <CheckCircleIcon className="w-4 h-4 mr-1" />
+                                    결재 완료
+                                  </div>
+                                )}
+                                {canApprove && (
+                                  <button
+                                    onClick={() => onApproval(request.id, "reject")}
+                                    className="px-6 py-2 text-sm rounded-lg transition-colors bg-gray-600 text-white hover:bg-gray-700"
+                                  >
+                                    반려
+                                  </button>
+                                )}
+                                {hasAlreadyRejected && (
+                                  <div className="inline-flex items-center text-sm font-medium text-red-600">
+                                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    반려 완료
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           );
                         })()}

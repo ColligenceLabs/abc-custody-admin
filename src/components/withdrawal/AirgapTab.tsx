@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { WithdrawalRequest } from "@/types/withdrawal";
 import {
   getStatusInfo,
-  getPriorityInfo,
   formatAmount,
   formatDateTime,
 } from "@/utils/withdrawalHelpers";
@@ -15,9 +14,16 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface AirgapTabProps {
   withdrawalRequests: WithdrawalRequest[];
+  managers?: Array<{ id: string; name: string; email: string }>;
 }
 
-export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
+export default function AirgapTab({ withdrawalRequests, managers = [] }: AirgapTabProps) {
+
+  // ID를 이름으로 변환하는 함수
+  const getApproverName = (approverId: string): string => {
+    const manager = managers.find(m => m.id === approverId);
+    return manager ? manager.name : approverId;
+  };
   const { user } = useAuth();
   const [processingSearchTerm, setProcessingSearchTerm] = useState("");
   const [processingStatusFilter, setProcessingStatusFilter] =
@@ -32,22 +38,24 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
   const [stopModalRequest, setStopModalRequest] =
     useState<WithdrawalRequest | null>(null);
 
+  // 필터 변경 시 첫 페이지로 이동
+  useEffect(() => {
+    setProcessingCurrentPage(1);
+  }, [processingSearchTerm, processingStatusFilter, processingDateFilter]);
+
   // 출금 처리 필터링 로직
   const getFilteredProcessingRequests = () => {
+    console.log('[AirgapTab] 전체 출금 요청:', withdrawalRequests.length, '건');
+    console.log('[AirgapTab] 출금 요청 상태들:', withdrawalRequests.map(r => ({ id: r.id, status: r.status })));
+
     return withdrawalRequests.filter((request) => {
       // 상태 필터
       const statusMatch =
         processingStatusFilter === "all" ||
         (processingStatusFilter === "pending" &&
-          [
-            "withdrawal_wait",
-            "withdrawal_pending",
-            "approval_pending",
-          ].includes(request.status)) ||
-        (processingStatusFilter === "processing" &&
-          ["processing", "transferring"].includes(request.status)) ||
+          request.status === "withdrawal_wait") ||
         (processingStatusFilter === "security_verification" &&
-          ["processing", "transferring"].includes(request.status)) ||
+          ["aml_review", "aml_issue", "withdrawal_pending", "processing", "transferring"].includes(request.status)) ||
         (processingStatusFilter === "completed" &&
           request.status === "success");
 
@@ -73,7 +81,12 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
       if (processingDateFilter !== "all") {
         const requestDate = new Date(request.initiatedAt);
         const now = new Date();
-        const diffTime = now.getTime() - requestDate.getTime();
+
+        // 오늘 00:00:00 기준으로 비교
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const reqDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
+
+        const diffTime = today.getTime() - reqDay.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         switch (processingDateFilter) {
@@ -81,32 +94,42 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
             dateMatch = diffDays === 0;
             break;
           case "week":
-            dateMatch = diffDays <= 7;
+            dateMatch = diffDays >= 0 && diffDays <= 7;
             break;
           case "month":
-            dateMatch = diffDays <= 30;
+            dateMatch = diffDays >= 0 && diffDays <= 30;
             break;
           case "quarter":
-            dateMatch = diffDays <= 90;
+            dateMatch = diffDays >= 0 && diffDays <= 90;
             break;
           default:
             dateMatch = true;
         }
       }
 
-      return (
-        statusMatch &&
-        searchMatch &&
-        dateMatch &&
-        [
-          "withdrawal_wait",
-          "withdrawal_pending",
-          "approval_pending",
-          "processing",
-          "transferring",
-          "success",
-        ].includes(request.status)
-      );
+      const isInAirgapTab = [
+        "withdrawal_wait",
+        "aml_review",
+        "aml_issue",
+        "withdrawal_pending",
+        "processing",
+        "transferring",
+        "success",
+      ].includes(request.status);
+
+      const result = statusMatch && searchMatch && dateMatch && isInAirgapTab;
+
+      if (!result && request.id === 'CORP-1762306282290') {
+        console.log('[AirgapTab] CORP-1762306282290 필터링 실패:', {
+          status: request.status,
+          statusMatch,
+          searchMatch,
+          dateMatch,
+          isInAirgapTab
+        });
+      }
+
+      return result;
     });
   };
 
@@ -174,7 +197,6 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
               >
                 <option value="all">모든 상태</option>
                 <option value="pending">출금 대기</option>
-                <option value="processing">보안 검증</option>
                 <option value="security_verification">보안 검증</option>
                 <option value="completed">처리완료</option>
               </select>
@@ -237,6 +259,9 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         자산
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        수량
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         상태
@@ -457,16 +482,6 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                               {request.initiator}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-500">우선순위</span>
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded ${
-                                getPriorityInfo(request.priority).color
-                              }`}
-                            >
-                              {getPriorityInfo(request.priority).name}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -485,7 +500,7 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                           <div className="space-y-2">
                             {request.requiredApprovals.map((approver) => {
                               const approval = request.approvals.find(
-                                (a) => a.userName === approver
+                                (a) => a.userId === approver
                               );
                               return (
                                 <div
@@ -499,7 +514,7 @@ export default function AirgapTab({ withdrawalRequests }: AirgapTabProps) {
                                       <ClockIcon className="h-5 w-5 text-yellow-500 mr-3" />
                                     )}
                                     <span className="font-medium text-gray-900">
-                                      {approver}
+                                      {getApproverName(approver)}
                                     </span>
                                   </div>
                                   <div className="text-right">

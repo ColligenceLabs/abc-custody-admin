@@ -32,18 +32,19 @@ export function ApprovalStatus({
   };
   
   const getApprovalState = (approver: string, index: number): ApprovalState => {
-    const approval = request.approvals.find(a => a.userName === approver);
-    const rejection = request.rejections.find(r => r.userName === approver);
-    
+    // approver는 userId이므로 userId로 비교
+    const approval = request.approvals.find(a => a.userId === approver);
+    const rejection = request.rejections.find(r => r.userId === approver);
+
     // 순차적 결재 로직: 이전 결재자들이 모두 승인했는지 확인
     const previousApprovers = request.requiredApprovals.slice(0, index);
-    const allPreviousApproved = previousApprovers.every(prevApprover => 
-      request.approvals.some(a => a.userName === prevApprover)
+    const allPreviousApproved = previousApprovers.every(prevApprover =>
+      request.approvals.some(a => a.userId === prevApprover)
     );
-    
+
     // 이전 결재자가 반려했는지 확인
     const anyPreviousRejected = previousApprovers.some(prevApprover =>
-      request.rejections.some(r => r.userName === prevApprover)
+      request.rejections.some(r => r.userId === prevApprover)
     );
     
     // 상태 결정
