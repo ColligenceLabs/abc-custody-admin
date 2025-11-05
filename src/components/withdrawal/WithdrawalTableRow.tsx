@@ -3,6 +3,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ApprovalStatus } from "./ApprovalStatus";
 import { formatAmount, formatDateTime } from "@/utils/withdrawalHelpers";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 interface WithdrawalTableRowProps {
   request: WithdrawalRequest;
@@ -118,9 +119,10 @@ export function WithdrawalTableRow({
                   </button>
                 )}
                 {hasAlreadyApproved && (
-                  <span className="text-xs font-medium text-sky-600">
+                  <div className="inline-flex items-center text-xs font-medium text-sky-600">
+                    <CheckCircleIcon className="w-3.5 h-3.5 mr-1" />
                     결재 완료
-                  </span>
+                  </div>
                 )}
                 {!hasAlreadyApproved && !hasAlreadyRejected && (
                   <button
@@ -131,9 +133,12 @@ export function WithdrawalTableRow({
                   </button>
                 )}
                 {hasAlreadyRejected && (
-                  <span className="text-xs font-medium text-red-600">
+                  <div className="inline-flex items-center text-xs font-medium text-red-600">
+                    <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     반려 완료
-                  </span>
+                  </div>
                 )}
               </>
             );
