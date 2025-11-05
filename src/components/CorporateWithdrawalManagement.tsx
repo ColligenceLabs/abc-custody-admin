@@ -238,12 +238,15 @@ export default function CorporateWithdrawalManagement({
     const fetchWithdrawals = async () => {
       try {
         setLoading(true);
+        console.log('[CorporateWithdrawal] 출금 목록 조회 시작');
         const response = await getCorporateWithdrawals();
+        console.log('[CorporateWithdrawal] 출금 목록 조회 성공:', response.data.length, '건');
+        console.log('[CorporateWithdrawal] 데이터:', response.data);
         setWithdrawals(response.data);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : '출금 목록을 불러오는데 실패했습니다.');
-        console.error('출금 목록 조회 실패:', err);
+        console.error('[CorporateWithdrawal] 출금 목록 조회 실패:', err);
       } finally {
         setLoading(false);
       }
@@ -300,14 +303,17 @@ export default function CorporateWithdrawalManagement({
     // CreateWithdrawalModal에서 이미 API 호출을 처리하므로
     // 여기서는 모달 닫기와 목록 갱신만 처리
     try {
+      console.log('[handleCreateRequest] 출금 목록 갱신 시작');
       // 출금 목록 갱신
       const response = await getCorporateWithdrawals();
+      console.log('[handleCreateRequest] 갱신된 목록:', response.data.length, '건');
+      console.log('[handleCreateRequest] 갱신 데이터:', response.data);
       setWithdrawals(response.data);
 
       // 모달 닫기 및 폼 초기화
       handleCloseModal();
     } catch (err) {
-      console.error('출금 목록 갱신 실패:', err);
+      console.error('[handleCreateRequest] 출금 목록 갱신 실패:', err);
       // 목록 갱신 실패는 조용히 처리 (이미 신청은 성공했으므로)
       handleCloseModal();
     }

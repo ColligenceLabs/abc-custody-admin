@@ -54,7 +54,7 @@ export default function ApprovalTab({
       const statusMatch = request.status === "withdrawal_request";
 
       // 현재 사용자가 신청자이거나 결재자인 건 표시
-      const isRequester = request.initiator === user?.id;
+      const isRequester = request.userId === user?.id;
       const isApprover = request.requiredApprovals?.includes(user?.id || '') || false;
       const isRelevantToUser = isRequester || isApprover;
 
