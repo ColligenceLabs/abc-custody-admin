@@ -843,22 +843,22 @@ export default function CorporateWithdrawalManagement({
                     <h4 className="font-medium text-gray-900 mb-2">
                       {request.title}
                     </h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-gray-500">신청 ID:</span>
                         <span className="ml-1 font-medium">#{request.id}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">기안자:</span>
-                        <span className="ml-1 font-medium">
-                          {request.initiator}
-                        </span>
-                      </div>
-                      <div className="col-span-2">
                         <span className="text-gray-500">출금 금액:</span>
                         <span className="ml-1 font-medium">
                           {formatAmount(request.amount, request.currency)}{" "}
                           {request.currency}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">기안자:</span>
+                        <span className="ml-1 font-medium">
+                          {request.initiator}
                         </span>
                       </div>
                     </div>
