@@ -123,6 +123,11 @@ export function RequestTableRow({ request, onView }: RequestTableRowProps) {
       success: { variant: "default", label: "완료", className: "bg-green-600" },
       admin_rejected: { variant: "destructive", label: "관리자거부" },
       failed: { variant: "destructive", label: "실패" },
+      blockchain_failed: {
+        variant: "destructive",
+        label: "블록체인 실패 (수동 확인 필요)",
+        className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-200",
+      },
       withdrawal_stopped: {
         variant: "secondary",
         label: "출금 중지",

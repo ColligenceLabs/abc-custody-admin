@@ -23,6 +23,7 @@ function getStatusText(status: string): string {
     transferring: "출금 중",
     success: "출금 완료",
     failed: "출금 실패",
+    blockchain_failed: "블록체인 실패 (수동 확인)",
     admin_rejected: "관리자 거부",
   };
   return statusMap[status] || status;
@@ -51,6 +52,7 @@ function getStatusBadgeVariant(
 
     // 실패/거부 상태
     case "failed":
+    case "blockchain_failed":
     case "admin_rejected":
     case "withdrawal_rejected":
     case "aml_issue":

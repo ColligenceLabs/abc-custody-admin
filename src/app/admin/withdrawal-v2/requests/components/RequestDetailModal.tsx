@@ -59,6 +59,7 @@ const getStatusBadge = (status: string) => {
     aml_review: { label: "AML 검토 중", variant: "default" as const, className: "bg-yellow-600" },
     aml_issue: { label: "AML 문제", variant: "destructive" as const, className: "" },
     processing: { label: "출금처리대기", variant: "default" as const, className: "bg-purple-600" },
+    blockchain_failed: { label: "블록체인 실패 (수동 확인 필요)", variant: "destructive" as const, className: "bg-orange-600" },
     transferring: { label: "출금중", variant: "default" as const, className: "bg-indigo-600" },
     success: { label: "완료", variant: "default" as const, className: "bg-green-600" },
     admin_rejected: { label: "관리자거부", variant: "destructive" as const, className: "" },
@@ -108,10 +109,10 @@ export function RequestDetailModal({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  // processing 상태일 때 지갑 잔고 확인
+  // processing 또는 blockchain_failed 상태일 때 지갑 잔고 확인
   useEffect(() => {
     if (open && request) {
-      if (request.status === "processing") {
+      if (request.status === "processing" || request.status === "blockchain_failed") {
         performWalletBalanceCheck();
       }
     } else {
@@ -626,16 +627,26 @@ export function RequestDetailModal({
             </>
           )}
 
-          {/* processing: 처리 중 */}
-          {request.status === "processing" && (
+          {/* processing 또는 blockchain_failed: 출금 처리 대기 */}
+          {(request.status === "processing" || request.status === "blockchain_failed") && (
             <>
-              <Alert>
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertTitle>AML 검토 완료</AlertTitle>
-                <AlertDescription>
-                  AML 검토를 통과했습니다. Hot 또는 Cold 지갑을 선택하여 출금을 승인해주세요.
-                </AlertDescription>
-              </Alert>
+              {request.status === "processing" ? (
+                <Alert>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle>AML 검토 완료</AlertTitle>
+                  <AlertDescription>
+                    AML 검토를 통과했습니다. Hot 또는 Cold 지갑을 선택하여 출금을 승인해주세요.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive">
+                  <XCircle className="h-4 w-4" />
+                  <AlertTitle>블록체인 실패 (수동 확인 필요)</AlertTitle>
+                  <AlertDescription>
+                    블록체인 트랜잭션이 실패했습니다. 실패 사유를 확인하고 Hot 또는 Cold 지갑으로 재처리해주세요.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* 지갑 잔고 확인 */}
               {isLoading && (
@@ -674,6 +685,7 @@ export function RequestDetailModal({
                       onApproveCold={handleApproveCold}
                       onReject={handleReject}
                       isLoading={isLoading}
+                      isRetry={request.status === "blockchain_failed"}
                     />
                   </div>
                 </div>

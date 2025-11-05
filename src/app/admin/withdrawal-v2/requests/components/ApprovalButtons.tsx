@@ -16,6 +16,7 @@ interface ApprovalButtonsProps {
   onApproveCold: () => void;
   onReject: () => void;
   isLoading?: boolean;
+  isRetry?: boolean;
 }
 
 export function ApprovalButtonsComponent({
@@ -24,6 +25,7 @@ export function ApprovalButtonsComponent({
   onApproveCold,
   onReject,
   isLoading = false,
+  isRetry = false,
 }: ApprovalButtonsProps) {
   const hotSufficient = hotWalletCheck.isSufficient;
 
@@ -45,7 +47,7 @@ export function ApprovalButtonsComponent({
           }
         >
           <Flame className="w-4 h-4 mr-2" />
-          Hot 지갑에서 출금
+          {isRetry ? "Hot 지갑에서 재출금" : "Hot 지갑에서 출금"}
         </Button>
 
         {/* Cold 지갑 출금 버튼 */}
@@ -60,21 +62,23 @@ export function ApprovalButtonsComponent({
           }
         >
           <Snowflake className="w-4 h-4 mr-2" />
-          Cold 지갑에서 출금
+          {isRetry ? "Cold 지갑에서 재출금" : "Cold 지갑에서 출금"}
         </Button>
 
-        {/* 거부 버튼 */}
-        <div className="border-t pt-4">
-          <Button
-            variant="outline"
-            className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
-            onClick={onReject}
-            disabled={isLoading}
-          >
-            <XCircle className="w-4 h-4 mr-2" />
-            거부
-          </Button>
-        </div>
+        {/* 거부 버튼 (재처리 모드일 때는 숨김) */}
+        {!isRetry && (
+          <div className="border-t pt-4">
+            <Button
+              variant="outline"
+              className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
+              onClick={onReject}
+              disabled={isLoading}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              거부
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

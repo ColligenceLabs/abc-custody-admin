@@ -814,6 +814,7 @@ class WithdrawalV2ApiService {
       'transferring': 'transferring',
       'success': 'success',
       'failed': 'failed',
+      'blockchain_failed': 'blockchain_failed',
       'admin_rejected': 'admin_rejected',
       'withdrawal_stopped': 'withdrawal_stopped',
     };
@@ -894,10 +895,11 @@ const ALLOWED_TRANSITIONS: Record<WithdrawalStatus, WithdrawalStatus[]> = {
   aml_review: ["processing", "aml_issue"],
   aml_issue: ["admin_rejected"],
   processing: ["transferring", "admin_rejected"],
-  transferring: ["success", "failed"],
+  transferring: ["success", "failed", "blockchain_failed"],
   success: [],
   admin_rejected: [],
   failed: [],
+  blockchain_failed: [],
   withdrawal_stopped: [],
 };
 

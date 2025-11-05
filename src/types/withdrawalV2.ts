@@ -50,6 +50,7 @@ export type WithdrawalStatus =
   | "transferring"        // 출금 중 (BlockDaemon 처리 중)
   | "success"             // 출금 성공
   | "failed"              // 출금 실패
+  | "blockchain_failed"   // 블록체인 전송 실패 (관리자 수동 확인 필요)
   | "admin_rejected";     // 관리자 거부
 
 /**
