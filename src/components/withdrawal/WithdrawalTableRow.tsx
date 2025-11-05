@@ -118,9 +118,9 @@ export function WithdrawalTableRow({
                   </button>
                 )}
                 {hasAlreadyApproved && (
-                  <div className="px-3 py-1 text-xs rounded bg-sky-50 text-sky-600 border border-sky-200">
-                    승인 완료
-                  </div>
+                  <span className="text-xs font-medium text-sky-600">
+                    결재 완료
+                  </span>
                 )}
                 {!hasAlreadyApproved && !hasAlreadyRejected && (
                   <button
@@ -131,9 +131,9 @@ export function WithdrawalTableRow({
                   </button>
                 )}
                 {hasAlreadyRejected && (
-                  <div className="px-3 py-1 text-xs rounded bg-red-50 text-red-600 border border-red-200">
+                  <span className="text-xs font-medium text-red-600">
                     반려 완료
-                  </div>
+                  </span>
                 )}
               </>
             );

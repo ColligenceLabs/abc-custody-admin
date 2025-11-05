@@ -500,9 +500,9 @@ export default function ApprovalTab({
                                 </button>
                               )}
                               {hasAlreadyApproved && (
-                                <div className="px-6 py-2 text-sm rounded-lg bg-sky-50 text-sky-600 border border-sky-200">
-                                  승인 완료
-                                </div>
+                                <span className="text-sm font-medium text-sky-600">
+                                  결재 완료
+                                </span>
                               )}
                               {!hasAlreadyApproved && !hasAlreadyRejected && (
                                 <button
@@ -513,9 +513,9 @@ export default function ApprovalTab({
                                 </button>
                               )}
                               {hasAlreadyRejected && (
-                                <div className="px-6 py-2 text-sm rounded-lg bg-red-50 text-red-600 border border-red-200">
+                                <span className="text-sm font-medium text-red-600">
                                   반려 완료
-                                </div>
+                                </span>
                               )}
                             </div>
                           );
