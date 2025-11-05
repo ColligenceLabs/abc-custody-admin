@@ -491,43 +491,31 @@ export default function ApprovalTab({
 
                           return (
                             <div className="flex justify-end space-x-3">
-                              <button
-                                onClick={() => onApproval(request.id, "approve")}
-                                disabled={hasAlreadyApproved}
-                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
-                                  hasAlreadyApproved
-                                    ? 'bg-sky-50 text-sky-600 border border-sky-200 cursor-not-allowed'
-                                    : 'bg-sky-600 text-white hover:bg-sky-700'
-                                }`}
-                              >
-                                {hasAlreadyApproved ? '승인 완료' : '승인'}
-                              </button>
-                              {hasAlreadyApproved && (
+                              {!hasAlreadyApproved && (
                                 <button
-                                  onClick={() => onApproval(request.id, "cancel-approve")}
-                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                                  onClick={() => onApproval(request.id, "approve")}
+                                  className="px-6 py-2 text-sm rounded-lg transition-colors bg-sky-600 text-white hover:bg-sky-700"
                                 >
-                                  승인 취소
+                                  승인
                                 </button>
                               )}
-                              <button
-                                onClick={() => onApproval(request.id, "reject")}
-                                disabled={hasAlreadyRejected}
-                                className={`px-6 py-2 text-sm rounded-lg transition-colors ${
-                                  hasAlreadyRejected
-                                    ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed'
-                                    : 'bg-gray-600 text-white hover:bg-gray-700'
-                                }`}
-                              >
-                                {hasAlreadyRejected ? '반려 완료' : '반려'}
-                              </button>
-                              {hasAlreadyRejected && (
+                              {hasAlreadyApproved && (
+                                <div className="px-6 py-2 text-sm rounded-lg bg-sky-50 text-sky-600 border border-sky-200">
+                                  승인 완료
+                                </div>
+                              )}
+                              {!hasAlreadyApproved && !hasAlreadyRejected && (
                                 <button
-                                  onClick={() => onApproval(request.id, "cancel-reject")}
-                                  className="px-6 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                                  onClick={() => onApproval(request.id, "reject")}
+                                  className="px-6 py-2 text-sm rounded-lg transition-colors bg-gray-600 text-white hover:bg-gray-700"
                                 >
-                                  반려 취소
+                                  반려
                                 </button>
+                              )}
+                              {hasAlreadyRejected && (
+                                <div className="px-6 py-2 text-sm rounded-lg bg-red-50 text-red-600 border border-red-200">
+                                  반려 완료
+                                </div>
                               )}
                             </div>
                           );
