@@ -106,6 +106,10 @@ export default function UserManagement({ plan }: UserManagementProps) {
   // 드롭다운 메뉴 상태
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  // 페이징 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const { t, language } = useLanguage();
   const { companySettings } = useCompany();
 
@@ -169,6 +173,18 @@ export default function UserManagement({ plan }: UserManagementProps) {
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
+
+  // 페이징 계산
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // 필터나 검색어 변경시 페이지를 1로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRole]);
 
   const handleRoleChange = (role: UserRole) => {
     setNewUser(prev => ({
@@ -355,7 +371,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
   };
 
   const handleUpdateUser = async () => {
-    if (!editingUser) return;
+    if (!editingUser || !currentUser) return;
 
     setIsSubmitting(true);
     try {
@@ -368,6 +384,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
         position: editingUser.position,
         permissions: editingUser.permissions,
         status: editingUser.status,
+        changedBy: currentUser.id,
       });
 
       // 로컬 상태 업데이트
@@ -399,6 +416,63 @@ export default function UserManagement({ plan }: UserManagementProps) {
   };
 
 
+  // API 응답을 UI 형식으로 변환하는 함수
+  const convertPermissionLogsToChangeLog = (apiLogs: PermissionLog[]): PermissionChangeLog[] => {
+    const changeLogs: PermissionChangeLog[] = [];
+
+    apiLogs.forEach((log) => {
+      // 역할 변경
+      if (log.previousRole && log.newRole && log.previousRole !== log.newRole) {
+        changeLogs.push({
+          id: `${log.id}-role`,
+          userId: log.userId,
+          changedBy: log.changedByUser?.name || log.changedBy,
+          changeType: 'role_change',
+          oldValue: log.previousRole,
+          newValue: log.newRole,
+          reason: log.reason || undefined,
+          timestamp: log.changedAt,
+        });
+      }
+
+      // 권한 변경 (추가/제거)
+      if (log.previousPermissions && log.newPermissions) {
+        const oldPerms = Array.isArray(log.previousPermissions) ? log.previousPermissions : [];
+        const newPerms = Array.isArray(log.newPermissions) ? log.newPermissions : [];
+
+        // 추가된 권한
+        const addedPerms = newPerms.filter(p => !oldPerms.includes(p));
+        addedPerms.forEach((perm) => {
+          changeLogs.push({
+            id: `${log.id}-add-${perm}`,
+            userId: log.userId,
+            changedBy: log.changedByUser?.name || log.changedBy,
+            changeType: 'permission_add',
+            newValue: perm,
+            reason: log.reason || undefined,
+            timestamp: log.changedAt,
+          });
+        });
+
+        // 제거된 권한
+        const removedPerms = oldPerms.filter(p => !newPerms.includes(p));
+        removedPerms.forEach((perm) => {
+          changeLogs.push({
+            id: `${log.id}-remove-${perm}`,
+            userId: log.userId,
+            changedBy: log.changedByUser?.name || log.changedBy,
+            changeType: 'permission_remove',
+            oldValue: perm,
+            reason: log.reason || undefined,
+            timestamp: log.changedAt,
+          });
+        });
+      }
+    });
+
+    return changeLogs;
+  };
+
   const handleShowHistory = async (user: OrganizationUser) => {
     setEditingUser(user);
     setShowHistoryModal(true);
@@ -406,7 +480,8 @@ export default function UserManagement({ plan }: UserManagementProps) {
 
     try {
       const logs = await getPermissionLogs(user.id);
-      setPermissionLogs(logs);
+      const convertedLogs = convertPermissionLogsToChangeLog(logs);
+      setPermissionLogs(convertedLogs as any);
     } catch (error) {
       console.error('권한 변경 이력 조회 실패:', error);
       setPermissionLogs([]);
@@ -549,9 +624,10 @@ export default function UserManagement({ plan }: UserManagementProps) {
         ))}
       </div>
 
-      {/* 검색 및 필터 */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+      {/* 검색 및 필터 + 사용자 목록 통합 컨테이너 */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        {/* 검색 및 필터 */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -560,7 +636,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
                 placeholder="이름, 이메일로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
               />
             </div>
           </div>
@@ -568,7 +644,7 @@ export default function UserManagement({ plan }: UserManagementProps) {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value as UserRole | "all")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-sky-500 focus:border-sky-500"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
             >
               <option value="all">모든 역할</option>
               {Object.entries(ROLE_NAMES).map(([role, name]) => (
@@ -579,12 +655,10 @@ export default function UserManagement({ plan }: UserManagementProps) {
             </select>
           </div>
         </div>
-      </div>
 
-      {/* 사용자 목록 */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {/* 사용자 목록 테이블 */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -605,7 +679,12 @@ export default function UserManagement({ plan }: UserManagementProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user, index) => {
+                // 테이블 내 위치에 따라 드롭다운 방향 결정
+                // 상위 절반은 아래로, 하위 절반은 위로 열림
+                const isTopHalf = index < paginatedUsers.length / 2;
+
+                return (
                 <tr
                   key={user.id}
                   className={`hover:bg-gray-50 ${
@@ -643,7 +722,10 @@ export default function UserManagement({ plan }: UserManagementProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="relative inline-block text-left">
                       <button
-                        onClick={() => setOpenDropdownId(openDropdownId === user.id ? null : user.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === user.id ? null : user.id);
+                        }}
                         className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100"
                         title="작업"
                       >
@@ -659,8 +741,10 @@ export default function UserManagement({ plan }: UserManagementProps) {
                             onClick={() => setOpenDropdownId(null)}
                           />
 
-                          {/* 메뉴 */}
-                          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                          {/* 메뉴 - 행 위치에 따라 동적으로 위/아래 결정 */}
+                          <div className={`absolute right-0 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 ${
+                            isTopHalf ? 'top-full mt-2' : 'bottom-full mb-2'
+                          }`}>
                             <div className="py-1">
                               {/* 수정 */}
                               {currentUser && hasPermission(currentUser, 'users.edit') && (
@@ -718,10 +802,68 @@ export default function UserManagement({ plan }: UserManagementProps) {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
+
+        {/* 데이터 없음 메시지 */}
+        {paginatedUsers.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">검색 결과가 없습니다.</p>
+          </div>
+        )}
+
+        {/* 페이징 네비게이션 */}
+        {totalPages > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-center">
+              <div className="text-sm text-gray-700 mb-4 sm:mb-0">
+                총 {totalItems}개 중{" "}
+                {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}-
+                {Math.min(currentPage * itemsPerPage, totalItems)}개 표시
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  이전
+                </button>
+
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  const isCurrentPage = pageNumber === currentPage;
+
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      className={`px-3 py-1 text-sm border rounded-md ${
+                        isCurrentPage
+                          ? "bg-sky-600 text-white border-sky-600"
+                          : "border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 사용자 추가 모달 */}
