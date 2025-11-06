@@ -566,3 +566,120 @@ export interface RescanRequest {
   message: string;
   estimatedCompletionTime?: string; // ISO 8601
 }
+
+// ===========================
+// 법인 사용자 리스트
+// ===========================
+
+/**
+ * 법인 소속 사용자 정보
+ */
+export interface OrganizationUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'admin' | 'manager' | 'operator' | 'viewer';
+  status: 'active' | 'inactive' | 'pending';
+  department: string | null;
+  lastLogin: string | null;  // ISO 8601
+  createdAt: string;          // ISO 8601
+  isOrganizationOwner: boolean;
+  onboardingCompleted: boolean;
+  permissions: string[];       // 권한 배열
+}
+
+/**
+ * 법인 사용자 리스트 응답
+ */
+export interface OrganizationUsersResponse {
+  organizationId: string;
+  organizationName: string;
+  totalUsers: number;
+  users: OrganizationUser[];
+}
+
+/**
+ * 법인 입금 주소 정보
+ */
+export interface OrganizationDepositAddress {
+  id: string;
+  userId: string;
+  userName: string;
+  label: string;
+  coin: string;
+  network: string;
+  address: string;
+  type: 'personal' | 'vasp';
+  isActive: boolean;
+  addedAt: string;  // ISO 8601
+  networkGroup: string;
+}
+
+/**
+ * 법인 입금 주소 리스트 응답
+ */
+export interface OrganizationDepositAddressesResponse {
+  organizationId: string;
+  organizationName: string;
+  totalAddresses: number;
+  addresses: OrganizationDepositAddress[];
+}
+
+/**
+ * 법인 입금 내역 정보
+ */
+export interface OrganizationDeposit {
+  id: string;
+  userId: string;
+  userName: string;
+  txHash: string;
+  asset: string;
+  network: string;
+  amount: string;
+  fromAddress: string;
+  toAddress: string;
+  status: 'detected' | 'confirming' | 'confirmed' | 'credited';
+  detectedAt: string;  // ISO 8601
+  creditedAt: string | null;  // ISO 8601
+}
+
+/**
+ * 법인 입금 내역 리스트 응답
+ */
+export interface OrganizationDepositsResponse {
+  organizationId: string;
+  organizationName: string;
+  totalDeposits: number;
+  deposits: OrganizationDeposit[];
+}
+
+/**
+ * 법인 출금 주소 정보
+ */
+export interface OrganizationWithdrawalAddress {
+  id: string;
+  userId: string;
+  userName: string;
+  label: string;
+  address: string;
+  coin: string;
+  type: 'personal' | 'vasp';
+  permissions: {
+    canDeposit: boolean;
+    canWithdraw: boolean;
+  };
+  txCount?: number;  // 선택적 필드
+  lastUsed: string | null;  // ISO 8601
+  addedAt: string;  // ISO 8601
+}
+
+/**
+ * 법인 출금 주소 리스트 응답
+ */
+export interface OrganizationWithdrawalAddressesResponse {
+  organizationId: string;
+  organizationName: string;
+  totalAddresses: number;
+  addresses: OrganizationWithdrawalAddress[];
+}

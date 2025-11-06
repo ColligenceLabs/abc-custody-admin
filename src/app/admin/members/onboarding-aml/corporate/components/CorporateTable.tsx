@@ -7,15 +7,26 @@
 
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronLeft, ChevronRight, MoreVertical, Eye, FileText, Users, Wallet, History } from "lucide-react";
 import { CorporateOnboarding } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
 import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
+import { OrganizationUsersModal } from "./OrganizationUsersModal";
+import { OrganizationDepositAddressesModal } from "./OrganizationDepositAddressesModal";
+import { OrganizationDepositsModal } from "./OrganizationDepositsModal";
+import { OrganizationWithdrawalAddressesModal } from "./OrganizationWithdrawalAddressesModal";
 
 interface CorporateTableProps {
   applications: CorporateOnboarding[];
@@ -36,6 +47,14 @@ export function CorporateTable({
   onPageChange,
 }: CorporateTableProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
+  const [usersModalOpen, setUsersModalOpen] = useState(false);
+  const [depositAddressesModalOpen, setDepositAddressesModalOpen] = useState(false);
+  const [depositsModalOpen, setDepositsModalOpen] = useState(false);
+  const [withdrawalAddressesModalOpen, setWithdrawalAddressesModalOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   if (loading) {
     return (
@@ -152,12 +171,69 @@ export function CorporateTable({
 
                   {/* 작업 */}
                   <td className="p-4 text-center">
-                    <Link href={`/admin/members/onboarding-aml/review/corporate/${application.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        검토
-                      </Button>
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/members/onboarding-aml/review/corporate/${application.id}`} className="cursor-pointer">
+                            <Eye className="h-4 w-4 mr-2" />
+                            검토
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedOrganization({
+                              id: application.companyId,
+                              name: application.companyName
+                            });
+                            setUsersModalOpen(true);
+                          }}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          사용자 관리
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedOrganization({
+                              id: application.companyId,
+                              name: application.companyName
+                            });
+                            setDepositAddressesModalOpen(true);
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          입금 주소 관리
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedOrganization({
+                              id: application.companyId,
+                              name: application.companyName
+                            });
+                            setDepositsModalOpen(true);
+                          }}
+                        >
+                          <History className="h-4 w-4 mr-2" />
+                          입금 내역
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedOrganization({
+                              id: application.companyId,
+                              name: application.companyName
+                            });
+                            setWithdrawalAddressesModalOpen(true);
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          출금 주소 관리
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -221,6 +297,46 @@ export function CorporateTable({
           </div>
         )}
       </CardContent>
+
+      {/* 사용자 관리 모달 */}
+      {selectedOrganization && usersModalOpen && (
+        <OrganizationUsersModal
+          open={usersModalOpen}
+          onOpenChange={setUsersModalOpen}
+          organizationId={selectedOrganization.id}
+          companyName={selectedOrganization.name}
+        />
+      )}
+
+      {/* 입금 주소 관리 모달 */}
+      {selectedOrganization && depositAddressesModalOpen && (
+        <OrganizationDepositAddressesModal
+          open={depositAddressesModalOpen}
+          onOpenChange={setDepositAddressesModalOpen}
+          organizationId={selectedOrganization.id}
+          companyName={selectedOrganization.name}
+        />
+      )}
+
+      {/* 입금 내역 모달 */}
+      {selectedOrganization && depositsModalOpen && (
+        <OrganizationDepositsModal
+          open={depositsModalOpen}
+          onOpenChange={setDepositsModalOpen}
+          organizationId={selectedOrganization.id}
+          companyName={selectedOrganization.name}
+        />
+      )}
+
+      {/* 출금 주소 관리 모달 */}
+      {selectedOrganization && withdrawalAddressesModalOpen && (
+        <OrganizationWithdrawalAddressesModal
+          open={withdrawalAddressesModalOpen}
+          onOpenChange={setWithdrawalAddressesModalOpen}
+          organizationId={selectedOrganization.id}
+          companyName={selectedOrganization.name}
+        />
+      )}
     </Card>
   );
 }

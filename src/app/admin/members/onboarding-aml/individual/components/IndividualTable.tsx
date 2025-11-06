@@ -7,15 +7,25 @@
 
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Eye, FileText } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronLeft, ChevronRight, MoreVertical, Eye, FileText, Wallet, History } from "lucide-react";
 import { IndividualOnboarding } from "@/types/onboardingAml";
 import { RiskLevelBadge } from "../../components/RiskLevelBadge";
 import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
 import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
+import { OrganizationDepositAddressesModal } from "../../corporate/components/OrganizationDepositAddressesModal";
+import { OrganizationDepositsModal } from "../../corporate/components/OrganizationDepositsModal";
+import { OrganizationWithdrawalAddressesModal } from "../../corporate/components/OrganizationWithdrawalAddressesModal";
 
 interface IndividualTableProps {
   applications: IndividualOnboarding[];
@@ -36,6 +46,13 @@ export function IndividualTable({
   onPageChange,
 }: IndividualTableProps) {
   const totalPages = Math.ceil(totalCount / pageSize);
+  const [depositAddressesModalOpen, setDepositAddressesModalOpen] = useState(false);
+  const [depositsModalOpen, setDepositsModalOpen] = useState(false);
+  const [withdrawalAddressesModalOpen, setWithdrawalAddressesModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   if (loading) {
     return (
@@ -174,14 +191,57 @@ export function IndividualTable({
 
                   {/* 작업 */}
                   <td className="p-4 text-center">
-                    <Link
-                      href={`/admin/members/onboarding-aml/review/${application.id}`}
-                    >
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4 mr-1" />
-                        검토
-                      </Button>
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/members/onboarding-aml/review/${application.id}`} className="cursor-pointer">
+                            <Eye className="h-4 w-4 mr-2" />
+                            검토
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser({
+                              id: application.userId,
+                              name: application.userName
+                            });
+                            setDepositAddressesModalOpen(true);
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          입금 주소 관리
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser({
+                              id: application.userId,
+                              name: application.userName
+                            });
+                            setDepositsModalOpen(true);
+                          }}
+                        >
+                          <History className="h-4 w-4 mr-2" />
+                          입금 내역
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser({
+                              id: application.userId,
+                              name: application.userName
+                            });
+                            setWithdrawalAddressesModalOpen(true);
+                          }}
+                        >
+                          <Wallet className="h-4 w-4 mr-2" />
+                          출금 주소 관리
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -245,6 +305,36 @@ export function IndividualTable({
           </div>
         )}
       </CardContent>
+
+      {/* 입금 주소 관리 모달 */}
+      {selectedUser && depositAddressesModalOpen && (
+        <OrganizationDepositAddressesModal
+          open={depositAddressesModalOpen}
+          onOpenChange={setDepositAddressesModalOpen}
+          organizationId={selectedUser.id}
+          companyName={selectedUser.name}
+        />
+      )}
+
+      {/* 입금 내역 모달 */}
+      {selectedUser && depositsModalOpen && (
+        <OrganizationDepositsModal
+          open={depositsModalOpen}
+          onOpenChange={setDepositsModalOpen}
+          organizationId={selectedUser.id}
+          companyName={selectedUser.name}
+        />
+      )}
+
+      {/* 출금 주소 관리 모달 */}
+      {selectedUser && withdrawalAddressesModalOpen && (
+        <OrganizationWithdrawalAddressesModal
+          open={withdrawalAddressesModalOpen}
+          onOpenChange={setWithdrawalAddressesModalOpen}
+          organizationId={selectedUser.id}
+          companyName={selectedUser.name}
+        />
+      )}
     </Card>
   );
 }

@@ -24,6 +24,10 @@ import {
   ReviewNote,
   IndividualEDDSubmission,
   CorporateEDDSubmission,
+  OrganizationUsersResponse,
+  OrganizationDepositAddressesResponse,
+  OrganizationDepositsResponse,
+  OrganizationWithdrawalAddressesResponse,
 } from '@/types/onboardingAml';
 
 import {
@@ -177,11 +181,8 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
 export async function fetchIndividualOnboardings(
   query: OnboardingListQuery = {}
 ): Promise<OnboardingListResponse<IndividualOnboarding>> {
-  // 1. Mock 데이터 가져오기
-  let mockApplications = getIndividualOnboardings();
-
-  // 2. 실제 API 데이터 가져오기
-  let apiApplications: IndividualOnboarding[] = [];
+  // 실제 API 데이터 가져오기
+  let applications: IndividualOnboarding[] = [];
   try {
     const params: any = {
       memberType: 'individual',
@@ -193,15 +194,11 @@ export async function fetchIndividualOnboardings(
 
     const response = await axios.get<BackendUser[]>(`${API_URL}/api/users`, { params });
     const users = response.data;
-    apiApplications = users.map(mapUserToIndividualOnboarding);
+    applications = users.map(mapUserToIndividualOnboarding);
   } catch (error) {
-    console.error('실제 API 데이터 조회 실패 (Mock 데이터만 사용):', error);
+    console.error('개인회원 데이터 조회 실패:', error);
+    throw error;
   }
-
-  // 3. Mock 데이터 + API 데이터 합치기 (중복 제거: API 데이터 우선)
-  const apiIds = new Set(apiApplications.map(app => app.id));
-  const mockOnlyApplications = mockApplications.filter(app => !apiIds.has(app.id));
-  let applications = [...apiApplications, ...mockOnlyApplications];
 
   // 4. 필터링
   if (query.status) {
@@ -247,7 +244,6 @@ export async function fetchIndividualOnboardings(
 export async function fetchIndividualOnboardingById(
   id: string
 ): Promise<IndividualOnboarding> {
-  // 1. 실제 API에서 조회 시도
   try {
     const response = await axios.get<BackendUser>(`${API_URL}/api/users/${id}`);
     const user = response.data;
@@ -267,14 +263,6 @@ export async function fetchIndividualOnboardingById(
     });
     return mapped;
   } catch (error: any) {
-    // API 실패 시 Mock 데이터에서 조회
-    if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
-      const application = getIndividualOnboardingById(id);
-      if (application) {
-        return application;
-      }
-    }
-
     console.error(`개인회원 온보딩 상세 조회 실패 (ID: ${id}):`, error);
     throw new Error(`Individual onboarding application not found: ${id}`);
   }
@@ -596,7 +584,6 @@ function mapUserToCorporateOnboarding(user: BackendUser): CorporateOnboarding {
 export async function fetchCorporateOnboardingById(
   id: string
 ): Promise<CorporateOnboarding> {
-  // 1. 실제 API에서 조회 시도
   try {
     const response = await axios.get<BackendUser>(`${API_URL}/api/users/${id}`);
     const user = response.data;
@@ -616,14 +603,6 @@ export async function fetchCorporateOnboardingById(
     });
     return mapped;
   } catch (error: any) {
-    // API 실패 시 Mock 데이터에서 조회
-    if (error.response?.status === 404 || error.code === 'ECONNREFUSED') {
-      const application = getCorporateOnboardingById(id);
-      if (application) {
-        return application;
-      }
-    }
-
     console.error(`법인회원 온보딩 상세 조회 실패 (ID: ${id}):`, error);
     throw new Error(`Corporate onboarding application not found: ${id}`);
   }
@@ -994,4 +973,96 @@ export async function getEDDStatus(
     eddRequestedAt: application.edd ? application.createdAt : undefined,
     eddSubmittedAt: application.edd?.submittedAt,
   };
+}
+
+/**
+ * 법인의 모든 사용자 조회
+ */
+export async function fetchOrganizationUsers(
+  organizationId: string
+): Promise<OrganizationUsersResponse> {
+  const response = await fetch(
+    `${API_URL}/api/admin/organizations/${organizationId}/users`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch organization users');
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * 법인의 모든 입금 주소 조회
+ */
+export async function fetchOrganizationDepositAddresses(
+  organizationId: string
+): Promise<OrganizationDepositAddressesResponse> {
+  const response = await fetch(
+    `${API_URL}/api/admin/organizations/${organizationId}/deposit-addresses`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch organization deposit addresses');
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * 법인의 모든 입금 내역 조회
+ */
+export async function fetchOrganizationDeposits(
+  organizationId: string
+): Promise<OrganizationDepositsResponse> {
+  const response = await fetch(
+    `${API_URL}/api/admin/organizations/${organizationId}/deposits`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch organization deposits');
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
+/**
+ * 법인의 모든 출금 주소 조회
+ */
+export async function fetchOrganizationWithdrawalAddresses(
+  organizationId: string
+): Promise<OrganizationWithdrawalAddressesResponse> {
+  const response = await fetch(
+    `${API_URL}/api/admin/organizations/${organizationId}/withdrawal-addresses`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch organization withdrawal addresses');
+  }
+
+  const result = await response.json();
+  return result.data;
 }
