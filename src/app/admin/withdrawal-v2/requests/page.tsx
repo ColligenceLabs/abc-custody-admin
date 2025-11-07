@@ -28,6 +28,7 @@ export default function WithdrawalRequestsPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // 지갑 비율 새로고침 트리거
   const { toast } = useToast();
 
   // 출금 요청 목록 상태
@@ -100,6 +101,7 @@ export default function WithdrawalRequestsPage() {
 
   const handleRefresh = () => {
     fetchWithdrawals();
+    setRefreshKey(prev => prev + 1); // 지갑 비율도 함께 새로고침
   };
 
   const handleView = (request: WithdrawalV2Request) => {
@@ -198,7 +200,7 @@ export default function WithdrawalRequestsPage() {
       )}
 
       {/* 자산별 Hot/Cold 지갑 비율 */}
-      <AssetWalletRatioSection />
+      <AssetWalletRatioSection refreshKey={refreshKey} />
 
       {/* 승인 대기 중인 출금 자산 */}
       <PendingWithdrawalAssetsSection requests={requests} />

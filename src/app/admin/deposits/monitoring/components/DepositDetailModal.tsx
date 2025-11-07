@@ -71,7 +71,7 @@ export function DepositDetailModal({
   const getBlockExplorerUrl = () => {
     const baseUrl = deposit.network === 'Ethereum'
       ? 'https://etherscan.io'
-      : 'https://holesky.etherscan.io';
+      : 'https://hoodi.etherscan.io';
     return `${baseUrl}/tx/${deposit.txHash}`;
   };
 

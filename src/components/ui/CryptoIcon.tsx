@@ -5,7 +5,9 @@
  * 로컬 cryptocurrency-icons 패키지 활용
  */
 
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface CryptoIconProps {
@@ -19,30 +21,46 @@ export default function CryptoIcon({
   size = 24,
   className,
 }: CryptoIconProps) {
-  const symbolLower = symbol.toLowerCase();
-  const iconPath = `/cryptocurrency-icons/32/color/${symbolLower}.png`;
+  const [hasError, setHasError] = useState(false);
+
+  // 심볼을 소문자로 변환하고 공백 제거
+  const normalizedSymbol = symbol.toLowerCase().trim();
+
+  // 로컬 아이콘 경로
+  const iconPath = `/cryptocurrency-icons/32/color/${normalizedSymbol}.png`;
+
+  const handleError = () => {
+    setHasError(true);
+  };
+
+  // 에러 발생 시 또는 지원되지 않는 심볼의 경우 fallback UI
+  if (hasError || ["krw", "krd", "won"].includes(normalizedSymbol)) {
+    return (
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-full bg-gray-100",
+          className
+        )}
+        style={{ width: size, height: size }}
+      >
+        <span
+          className="text-gray-600 font-bold text-xs"
+          style={{ fontSize: Math.max(8, size * 0.3) }}
+        >
+          {symbol.toUpperCase().slice(0, 3)}
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={cn("inline-flex items-center justify-center", className)}
-      style={{ width: size, height: size }}
-    >
-      <Image
-        src={iconPath}
-        alt={`${symbol} icon`}
-        width={size}
-        height={size}
-        className="object-contain"
-        onError={(e) => {
-          // Fallback: 이미지 로드 실패 시 텍스트 표시
-          const target = e.target as HTMLImageElement;
-          target.style.display = "none";
-          const parent = target.parentElement;
-          if (parent) {
-            parent.innerHTML = `<span class="text-xs font-bold text-muted-foreground">${symbol}</span>`;
-          }
-        }}
-      />
-    </div>
+    <img
+      src={iconPath}
+      alt={symbol}
+      width={size}
+      height={size}
+      className={cn("rounded-full", className)}
+      onError={handleError}
+    />
   );
 }

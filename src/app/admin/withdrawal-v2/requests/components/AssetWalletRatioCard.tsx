@@ -6,11 +6,11 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AssetType } from "@/types/withdrawalV2";
 import CryptoIcon from "@/components/ui/CryptoIcon";
+import { formatCryptoAmount } from "@/lib/format";
 
 interface AssetWalletRatioCardProps {
-  asset: AssetType;
+  asset: string; // 동적 자산 심볼 (BTC, ETH, TALK 등)
   hotBalance: string;
   coldBalance: string;
   hotRatio: number;
@@ -117,11 +117,11 @@ export function AssetWalletRatioCard({
         <div className="space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Hot:</span>
-            <span className="font-medium">{hotBalance} {asset}</span>
+            <span className="font-medium">{formatCryptoAmount(hotBalance, asset)} {asset}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Cold:</span>
-            <span className="font-medium">{coldBalance} {asset}</span>
+            <span className="font-medium">{formatCryptoAmount(coldBalance, asset)} {asset}</span>
           </div>
         </div>
 

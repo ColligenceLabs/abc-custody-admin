@@ -1,112 +1,87 @@
 /**
  * Asset Wallet Ratio Section Component
  *
- * 5개 자산(BTC, ETH, USDT, USDC, SOL)의 Hot/Cold 지갑 비율을 표시하는 섹션
+ * API에서 반환하는 모든 자산의 Hot/Cold 지갑 비율을 표시하는 섹션
  */
 
-import { AssetWalletRatioCard } from "./AssetWalletRatioCard";
-import { AssetType } from "@/types/withdrawalV2";
+"use client";
 
-export interface AssetWalletInfo {
-  asset: AssetType;
-  hotBalance: string;
-  coldBalance: string;
-  totalBalance: string;
-  hotRatio: number;
-  coldRatio: number;
-  targetHotRatio: number;
-  targetColdRatio: number;
-  deviation: number;
-  needsRebalancing: boolean;
-}
+import { useState, useEffect } from 'react';
+import { AssetWalletRatioCard } from "./AssetWalletRatioCard";
+import { getAssetWalletRatios, type AssetWalletInfo } from "@/services/walletApi";
 
 interface AssetWalletRatioSectionProps {
-  assetsData?: AssetWalletInfo[];
+  refreshKey?: number; // 새로고침 트리거용 키
 }
 
-// Mock 데이터 (개발용) - export하여 다른 컴포넌트에서도 사용 가능
-export const DEFAULT_ASSETS_DATA: AssetWalletInfo[] = [
-  {
-    asset: "BTC",
-    hotBalance: "5.20",
-    coldBalance: "20.80",
-    totalBalance: "26.00",
-    hotRatio: 20.0,
-    coldRatio: 80.0,
-    targetHotRatio: 20,
-    targetColdRatio: 80,
-    deviation: 0,
-    needsRebalancing: false,
-  },
-  {
-    asset: "ETH",
-    hotBalance: "45.50",
-    coldBalance: "154.50",
-    totalBalance: "200.00",
-    hotRatio: 22.75,
-    coldRatio: 77.25,
-    targetHotRatio: 20,
-    targetColdRatio: 80,
-    deviation: 2.75,
-    needsRebalancing: false,
-  },
-  {
-    asset: "USDT",
-    hotBalance: "15000.00",
-    coldBalance: "60000.00",
-    totalBalance: "75000.00",
-    hotRatio: 20.0,
-    coldRatio: 80.0,
-    targetHotRatio: 20,
-    targetColdRatio: 80,
-    deviation: 0,
-    needsRebalancing: false,
-  },
-  {
-    asset: "USDC",
-    hotBalance: "8500.00",
-    coldBalance: "41500.00",
-    totalBalance: "50000.00",
-    hotRatio: 17.0,
-    coldRatio: 83.0,
-    targetHotRatio: 20,
-    targetColdRatio: 80,
-    deviation: -3.0,
-    needsRebalancing: false,
-  },
-  {
-    asset: "SOL",
-    hotBalance: "1200.00",
-    coldBalance: "3800.00",
-    totalBalance: "5000.00",
-    hotRatio: 24.0,
-    coldRatio: 76.0,
-    targetHotRatio: 20,
-    targetColdRatio: 80,
-    deviation: 4.0,
-    needsRebalancing: false,
-  },
-];
+export function AssetWalletRatioSection({ refreshKey }: AssetWalletRatioSectionProps) {
+  const [assetsData, setAssetsData] = useState<AssetWalletInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-export function AssetWalletRatioSection({
-  assetsData = DEFAULT_ASSETS_DATA,
-}: AssetWalletRatioSectionProps) {
+  const fetchAssetRatios = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getAssetWalletRatios();
+      setAssetsData(data);
+      console.log('지갑 잔고 조회 성공:', data.length, '개 자산');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '데이터 조회 실패';
+      setError(errorMessage);
+      console.error('지갑 잔고 조회 실패:', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 또는 refreshKey 변경 시 데이터 로드
+  useEffect(() => {
+    fetchAssetRatios();
+  }, [refreshKey]);
+
+  // 로딩 중이거나 데이터가 없으면 표시하지 않음
+  if (loading && assetsData.length === 0) {
+    return (
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">자산별 Hot/Cold 지갑 밸런스</h2>
+        <div className="flex items-center justify-center py-8 text-gray-500">
+          <span className="text-sm">지갑 잔고를 불러오는 중...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 발생 시 표시하지 않음 (조용한 실패)
+  if (error || assetsData.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      {assetsData.map((assetInfo) => (
-        <AssetWalletRatioCard
-          key={assetInfo.asset}
-          asset={assetInfo.asset}
-          hotBalance={assetInfo.hotBalance}
-          coldBalance={assetInfo.coldBalance}
-          hotRatio={assetInfo.hotRatio}
-          coldRatio={assetInfo.coldRatio}
-          targetHotRatio={assetInfo.targetHotRatio}
-          targetColdRatio={assetInfo.targetColdRatio}
-          deviation={assetInfo.deviation}
-          needsRebalancing={assetInfo.needsRebalancing}
-        />
-      ))}
+    <div className="space-y-3">
+      {/* 헤더: 제목만 표시 */}
+      <div>
+        <h2 className="text-lg font-semibold">자산별 Hot/Cold 지갑 밸런스</h2>
+      </div>
+
+      {/* 카드 그리드 - 동적 레이아웃 (최대 5열) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {assetsData.map((assetInfo) => (
+          <AssetWalletRatioCard
+            key={assetInfo.asset}
+            asset={assetInfo.asset}
+            hotBalance={assetInfo.hotBalance}
+            coldBalance={assetInfo.coldBalance}
+            hotRatio={assetInfo.hotRatio}
+            coldRatio={assetInfo.coldRatio}
+            targetHotRatio={assetInfo.targetHotRatio}
+            targetColdRatio={assetInfo.targetColdRatio}
+            deviation={assetInfo.deviation}
+            needsRebalancing={assetInfo.needsRebalancing}
+          />
+        ))}
+      </div>
     </div>
   );
 }

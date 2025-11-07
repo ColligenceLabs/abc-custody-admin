@@ -21,6 +21,9 @@ export interface SupportedToken {
 export interface CustomTokenRequest {
   id: string;
   userId: string;
+  userName?: string;  // 요청자 이름
+  memberType?: 'individual' | 'corporate';  // 회원 타입
+  organizationName?: string;  // 조직명 (법인인 경우)
   symbol: string;
   name: string;
   contractAddress: string;
@@ -28,6 +31,7 @@ export interface CustomTokenRequest {
   logoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   reviewedBy?: string;
+  reviewedAt?: string;
   adminComment?: string;
   createdAt: string;
   updatedAt: string;
@@ -74,8 +78,30 @@ export const getCustomTokenRequests = async (params?: { status?: string; userId?
 // 커스텀 토큰 요청 승인/반려
 export const updateCustomTokenRequestStatus = async (
   id: string,
-  data: { status: 'approved' | 'rejected'; adminComment?: string }
+  data: { status: 'approved' | 'rejected'; adminComment?: string; [key: string]: any }
 ) => {
-  const response = await apiClient.patch<{ success: boolean; data: CustomTokenRequest }>(`/customTokenRequests/${id}/status`, data);
+  const response = await apiClient.patch<{ success: boolean; data: CustomTokenRequest }>(`/customTokenRequests/${id}`, data);
   return response.data;
+};
+
+// 커스텀 토큰 요청 승인
+export const approveCustomTokenRequest = async (
+  id: string,
+  settings?: {
+    minWithdrawalAmount?: number;
+    withdrawalFee?: number;
+    withdrawalFeeType?: 'fixed' | 'percentage';
+    requiredConfirmations?: number | null;
+    isActive?: boolean;
+  }
+) => {
+  return updateCustomTokenRequestStatus(id, {
+    status: 'approved',
+    ...settings
+  });
+};
+
+// 커스텀 토큰 요청 반려
+export const rejectCustomTokenRequest = async (id: string, reason: string) => {
+  return updateCustomTokenRequestStatus(id, { status: 'rejected', adminComment: reason });
 };
