@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 자산별 Hot/Cold 지갑 밸런스 상태 */}
-      <AssetWalletRatioSection assetsData={assetWalletInfo} />
+      <AssetWalletRatioSection />
 
       {/* 2열 레이아웃: 자산 분포 Hot + Cold */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

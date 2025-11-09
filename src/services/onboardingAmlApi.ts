@@ -1005,7 +1005,7 @@ export async function fetchOrganizationDepositAddresses(
   organizationId: string
 ): Promise<OrganizationDepositAddressesResponse> {
   const response = await fetch(
-    `${API_URL}/api/admin/organizations/${organizationId}/deposit-addresses`,
+    `${API_URL}/api/admin/organizations/${organizationId}/wallets`,
     {
       headers: {
         'Content-Type': 'application/json',
