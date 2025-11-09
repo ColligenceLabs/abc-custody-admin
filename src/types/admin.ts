@@ -123,6 +123,7 @@ export interface CreateAdminUserRequest {
   permissions?: AdminPermission[];
   twoFactorRequired?: boolean;
   ipWhitelist?: string[];
+  sessionTimeout?: number;
   notes?: string;
 }
 

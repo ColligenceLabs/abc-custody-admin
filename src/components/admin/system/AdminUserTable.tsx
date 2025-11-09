@@ -11,8 +11,14 @@ import RoleBadge from './RoleBadge';
 import AdminStatusBadge from './AdminStatusBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { PencilIcon, TrashIcon, KeyIcon, ClockIcon } from 'lucide-react';
+import { PencilIcon, TrashIcon, KeyIcon, ClockIcon, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AdminUserTableProps {
   users: AdminUser[];
@@ -85,7 +91,7 @@ export default function AdminUserTable({
               마지막 로그인
             </th>
             <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              액션
+              작업
             </th>
           </tr>
         </thead>
@@ -118,35 +124,30 @@ export default function AdminUserTable({
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex items-center justify-end space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(user.id)}
-                    className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50"
-                  >
-                    <PencilIcon className="h-4 w-4 mr-1" />
-                    수정
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onResetPassword(user.id)}
-                    className="text-blue-600 hover:text-blue-900 hover:bg-blue-50"
-                  >
-                    <KeyIcon className="h-4 w-4 mr-1" />
-                    비밀번호
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(user.id)}
-                    className="text-red-600 hover:text-red-900 hover:bg-red-50"
-                  >
-                    <TrashIcon className="h-4 w-4 mr-1" />
-                    삭제
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit(user.id)}>
+                      <PencilIcon className="h-4 w-4 mr-2" />
+                      수정
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onResetPassword(user.id)}>
+                      <KeyIcon className="h-4 w-4 mr-2" />
+                      비밀번호 재설정
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => onDelete(user.id)}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <TrashIcon className="h-4 w-4 mr-2" />
+                      삭제
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </td>
             </tr>
           ))}

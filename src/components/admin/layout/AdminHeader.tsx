@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from './ThemeToggle';
+import { useAdminAuth } from '@/contexts/AdminAuthContext';
 
 interface AdminHeaderProps {
   sidebarCollapsed: boolean;
@@ -24,12 +25,10 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ sidebarCollapsed, onToggleSidebar }: AdminHeaderProps) {
-  // Temporary mock data - will be replaced with real auth context
-  const adminUser = { name: '관리자', email: 'admin@custody.com', role: 'SUPER_ADMIN' };
+  const { user, logout } = useAdminAuth();
 
-  const handleLogout = () => {
-    // This would be handled by the auth context
-    console.log('Logout requested');
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -74,13 +73,13 @@ export function AdminHeader({ sidebarCollapsed, onToggleSidebar }: AdminHeaderPr
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {adminUser?.name || '관리자'}
+                    {user?.name || '관리자'}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {adminUser?.email || 'admin@custody.com'}
+                    {user?.email || 'admin@custody.com'}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {adminUser?.role || 'SUPER_ADMIN'}
+                    {user?.role?.toUpperCase() || 'SUPER_ADMIN'}
                   </p>
                 </div>
               </DropdownMenuLabel>

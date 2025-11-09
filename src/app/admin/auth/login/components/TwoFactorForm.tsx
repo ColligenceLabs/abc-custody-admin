@@ -84,11 +84,6 @@ export function TwoFactorForm() {
     await logout();
   };
 
-  const handleResendCode = () => {
-    // TODO: Implement resend 2FA code functionality
-    console.log('Resend 2FA code');
-  };
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -140,22 +135,14 @@ export function TwoFactorForm() {
               {isLoading ? '인증 중...' : '인증'}
             </Button>
 
-            <div className="flex justify-between items-center text-sm">
+            <div className="text-center">
               <button
                 onClick={handleBackToLogin}
-                className="flex items-center gap-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 mx-auto"
                 disabled={isLoading}
               >
                 <ArrowLeft size={16} />
                 로그인으로 돌아가기
-              </button>
-
-              <button
-                onClick={handleResendCode}
-                className="text-sapphire-600 hover:text-sapphire-800 dark:text-sapphire-400 dark:hover:text-sapphire-200"
-                disabled={isLoading}
-              >
-                코드 재전송
               </button>
             </div>
           </div>
@@ -167,13 +154,6 @@ export function TwoFactorForm() {
               • Google Authenticator 앱에서 6자리 코드를 확인하세요<br />
               • 코드는 30초마다 변경됩니다<br />
               • 코드를 복사하여 붙여넣을 수 있습니다
-            </p>
-          </div>
-
-          {/* Test code notice */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-            <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-              <strong>테스트용:</strong> 123456 입력
             </p>
           </div>
         </div>

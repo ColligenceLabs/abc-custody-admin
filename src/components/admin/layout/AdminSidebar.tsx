@@ -326,6 +326,22 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: Settings,
     requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
   },
+  {
+    id: 'system',
+    label: '시스템 관리',
+    href: '/admin/system',
+    icon: Settings,
+    requiredPermissions: [{ resource: AdminResource.ADMIN_USERS, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'system-admins',
+        label: '관리자 계정',
+        href: '/admin/system/admins',
+        icon: Users,
+        requiredPermissions: [{ resource: AdminResource.ADMIN_USERS, action: AdminAction.READ }],
+      },
+    ],
+  },
 ];
 
 interface AdminSidebarProps {

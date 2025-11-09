@@ -333,7 +333,7 @@ export default function AdminUsersPage() {
                   </code>
                 </div>
                 <p className="text-sm text-gray-600">
-                  이 비밀번호는 24시간 동안 유효합니다.
+                  관리자는 최초 로그인 시 비밀번호 변경이 필요합니다.
                 </p>
               </div>
             </AlertDialogDescription>

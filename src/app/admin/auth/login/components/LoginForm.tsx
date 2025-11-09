@@ -14,8 +14,8 @@ export function LoginForm() {
   const { login, isAuthenticated, requiresTwoFactor, isLoading, error, clearError } = useAdminAuth();
 
   const [formData, setFormData] = useState({
-    email: 'admin@custody.com',
-    password: 'admin123',
+    email: '',
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -122,17 +122,8 @@ export function LoginForm() {
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
 
-          <div className="space-y-2">
-            <div className="text-center text-sm text-gray-500">
-              <p>2FA 인증이 활성화된 계정의 경우 추가 인증이 필요합니다.</p>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-              <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-                <strong>테스트 계정:</strong> admin@custody.com / admin123<br />
-                <strong>2FA 코드:</strong> 123456
-              </p>
-            </div>
+          <div className="text-center text-sm text-gray-500">
+            <p>2FA 인증이 활성화된 계정의 경우 추가 인증이 필요합니다.</p>
           </div>
         </form>
       </CardContent>

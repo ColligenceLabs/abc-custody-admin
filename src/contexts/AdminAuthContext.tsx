@@ -125,123 +125,104 @@ interface AdminAuthProviderProps {
   children: ReactNode;
 }
 
-// Mock API Service (실제 구현에서는 별도 API 서비스로 분리)
+// Real API Service
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 class AdminAuthService {
   static async login(credentials: AdminLoginRequest): Promise<AdminAuthResponse> {
-    // Mock implementation
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const response = await fetch(`${API_URL}/api/admin/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
 
-    // Mock successful login
-    if (credentials.email === 'admin@custody.com' && credentials.password === 'admin123') {
-      const mockUser: AdminUser = {
-        id: 'admin-1',
-        email: 'admin@custody.com',
-        name: '관리자',
-        role: 'super_admin' as any,
-        permissions: [],
-        status: 'active' as any,
-        twoFactorEnabled: true,
-        sessionTimeout: 30,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    const data = await response.json();
 
-      const mockSession = {
-        id: 'session-1',
-        userId: 'admin-1',
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-        ipAddress: '127.0.0.1',
-        userAgent: navigator.userAgent,
-        lastActivity: new Date(),
-        isActive: true,
-        loginMethod: 'password_2fa' as any,
-      };
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || '로그인에 실패했습니다.');
+    }
 
+    // 2FA 설정이 필요한 경우 (enabled이지만 secret 없음)
+    if (data.requires2FASetup) {
       return {
-        user: mockUser,
-        session: mockSession,
+        user: data.user || {} as AdminUser,
+        session: {} as any,
+        requiresPasswordChange: false,
+        requiresTwoFactor: false,
+        requires2FASetup: true,
+        tempToken: data.tempToken
+      } as any;
+    }
+
+    // 2FA 코드 입력이 필요한 경우
+    if (data.requiresTwoFactor) {
+      return {
+        user: {} as AdminUser,
+        session: {} as any,
         requiresTwoFactor: true,
-        tempToken: 'temp-token-123'
+        tempToken: data.tempToken
       };
     }
 
-    throw new Error('Invalid credentials');
+    // 일반 로그인 성공
+    return {
+      user: data.user,
+      session: data.session,
+      requiresPasswordChange: data.requiresPasswordChange
+    } as any;
   }
 
   static async verify2FA(tempToken: string, code: string): Promise<AdminAuthResponse> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    const response = await fetch(`${API_URL}/api/admin/auth/verify-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tempToken, code }),
+    });
 
-    if (tempToken === 'temp-token-123' && code === '123456') {
-      const mockUser: AdminUser = {
-        id: 'admin-1',
-        email: 'admin@custody.com',
-        name: '관리자',
-        role: 'super_admin' as any,
-        permissions: [],
-        status: 'active' as any,
-        twoFactorEnabled: true,
-        sessionTimeout: 30,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    const data = await response.json();
 
-      const mockSession = {
-        id: 'session-1',
-        userId: 'admin-1',
-        accessToken: 'mock-access-token-verified',
-        refreshToken: 'mock-refresh-token',
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-        ipAddress: '127.0.0.1',
-        userAgent: navigator.userAgent,
-        lastActivity: new Date(),
-        isActive: true,
-        loginMethod: 'password_2fa' as any,
-      };
-
-      return {
-        user: mockUser,
-        session: mockSession,
-      };
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || '2FA 검증에 실패했습니다.');
     }
 
-    throw new Error('Invalid 2FA code');
+    return {
+      user: data.user,
+      session: data.session
+    };
   }
 
   static async refreshToken(refreshToken: string): Promise<AdminAuthResponse> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const response = await fetch(`${API_URL}/api/admin/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
 
-    // Mock token refresh
-    const mockUser: AdminUser = {
-      id: 'admin-1',
-      email: 'admin@custody.com',
-      name: '관리자',
-      role: 'super_admin' as any,
-      permissions: [],
-      status: 'active' as any,
-      twoFactorEnabled: true,
-      sessionTimeout: 30,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const data = await response.json();
 
-    const mockSession = {
-      id: 'session-1',
-      userId: 'admin-1',
-      accessToken: 'mock-access-token-refreshed',
-      refreshToken: 'mock-refresh-token-new',
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-      ipAddress: '127.0.0.1',
-      userAgent: navigator.userAgent,
-      lastActivity: new Date(),
-      isActive: true,
-      loginMethod: 'password_2fa' as any,
-    };
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || '토큰 갱신에 실패했습니다.');
+    }
+
+    // 기존 사용자 정보 유지, 토큰만 갱신
+    const storedAuth = AdminAuthManager.getStoredAuth();
+    if (!storedAuth) {
+      throw new Error('저장된 인증 정보가 없습니다.');
+    }
 
     return {
-      user: mockUser,
-      session: mockSession,
+      user: storedAuth.user,
+      session: {
+        ...storedAuth,
+        accessToken: data.accessToken,
+        expiresAt: new Date(data.expiresAt)
+      } as any
     };
   }
 }
@@ -289,6 +270,21 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     try {
       const response = await AdminAuthService.login(credentials);
 
+      // 2FA 설정이 필요한 경우 (enabled이지만 secret 없음)
+      if ((response as any).requires2FASetup) {
+        // 2FA 설정 페이지로 리다이렉트
+        if (typeof window !== 'undefined') {
+          // 임시 인증 정보 저장
+          localStorage.setItem('temp-2fa-setup', JSON.stringify({
+            tempToken: (response as any).tempToken,
+            user: (response as any).user
+          }));
+          window.location.href = '/admin/auth/setup-2fa';
+        }
+        return;
+      }
+
+      // 2FA 코드 입력 필요
       if (response.requiresTwoFactor && response.tempToken) {
         dispatch({
           type: 'AUTH_2FA_REQUIRED',
@@ -298,11 +294,15 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       }
 
       // Store auth info
+      const expiresAt = typeof response.session.expiresAt === 'string'
+        ? new Date(response.session.expiresAt).getTime()
+        : response.session.expiresAt.getTime();
+
       const authData = {
         user: response.user,
         accessToken: response.session.accessToken,
         refreshToken: response.session.refreshToken,
-        expiresAt: response.session.expiresAt.getTime(),
+        expiresAt,
       };
 
       AdminAuthManager.storeAuth(authData);
@@ -311,7 +311,7 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         type: 'AUTH_SUCCESS',
         payload: {
           user: response.user,
-          expiresAt: response.session.expiresAt.getTime(),
+          expiresAt,
         },
       });
 
@@ -326,6 +326,13 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         () => logout(),
         (minutesLeft) => dispatch({ type: 'SESSION_WARNING', payload: true })
       );
+
+      // 비밀번호 변경 필요 시 리다이렉트
+      if ((response as any).requiresPasswordChange) {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/admin/auth/change-password';
+        }
+      }
 
     } catch (error) {
       dispatch({
@@ -348,11 +355,15 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       const response = await AdminAuthService.verify2FA(state.tempToken, code);
 
       // Store auth info
+      const expiresAt = typeof response.session.expiresAt === 'string'
+        ? new Date(response.session.expiresAt).getTime()
+        : response.session.expiresAt.getTime();
+
       const authData = {
         user: response.user,
         accessToken: response.session.accessToken,
         refreshToken: response.session.refreshToken,
-        expiresAt: response.session.expiresAt.getTime(),
+        expiresAt,
       };
 
       AdminAuthManager.storeAuth(authData);
@@ -361,7 +372,7 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         type: 'AUTH_SUCCESS',
         payload: {
           user: response.user,
-          expiresAt: response.session.expiresAt.getTime(),
+          expiresAt,
         },
       });
 
@@ -391,6 +402,11 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     AdminAuthManager.clearStoredAuth();
     SessionManager.stopSessionMonitoring();
     dispatch({ type: 'AUTH_LOGOUT' });
+
+    // 로그인 페이지로 리다이렉트
+    if (typeof window !== 'undefined') {
+      window.location.href = '/admin/auth/login';
+    }
   };
 
   // Token refresh
