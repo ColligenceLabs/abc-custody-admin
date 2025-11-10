@@ -19,7 +19,7 @@ export interface AdminUserListParams {
   role?: AdminRole | AdminRole[];
   status?: AdminUserStatus | AdminUserStatus[];
   search?: string;
-  sortBy?: 'name' | 'email' | 'role' | 'last_login' | 'created_at';
+  sortBy?: 'name' | 'email' | 'role' | 'lastLogin' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
 

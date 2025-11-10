@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
       const params: any = {
         page: currentPage,
         limit: 20,
-        sortBy: 'created_at',
+        sortBy: 'createdAt',
         sortOrder: 'desc'
       };
 
