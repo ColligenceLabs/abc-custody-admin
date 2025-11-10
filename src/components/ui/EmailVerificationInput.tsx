@@ -249,6 +249,7 @@ export function EmailVerificationInput({
               (codeSent && !canResend) ||
               resendCount >= 3
             }
+            className="hidden"
           >
             {isSending ? (
               <>
