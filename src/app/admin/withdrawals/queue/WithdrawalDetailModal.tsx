@@ -87,8 +87,9 @@ export default function WithdrawalDetailModal({
   const handleCompleteAML = async () => {
     setIsLoading(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const response = await fetch(
-        `http://localhost:4000/api/withdrawals/${withdrawal.id}/aml/complete`,
+        `${API_URL}/api/withdrawals/${withdrawal.id}/aml/complete`,
         {
           method: "POST",
           headers: {
@@ -132,8 +133,9 @@ export default function WithdrawalDetailModal({
   const handleHotWalletTransfer = async () => {
     setIsLoading(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const response = await fetch(
-        `http://localhost:4000/api/withdrawals/${withdrawal.id}/approve/hot`,
+        `${API_URL}/api/withdrawals/${withdrawal.id}/approve/hot`,
         {
           method: "POST",
           headers: {
@@ -176,8 +178,9 @@ export default function WithdrawalDetailModal({
   const handleColdWalletTransfer = async () => {
     setIsLoading(true);
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
       const response = await fetch(
-        `http://localhost:4000/api/withdrawals/${withdrawal.id}/approve/cold`,
+        `${API_URL}/api/withdrawals/${withdrawal.id}/approve/cold`,
         {
           method: "POST",
           headers: {
