@@ -327,6 +327,29 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
   },
   {
+    id: 'audit-reports',
+    label: '감사 및 리포트',
+    href: '/admin/audit-reports',
+    icon: FileText,
+    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+    children: [
+      {
+        id: 'audit-dashboard',
+        label: '감사 대시보드',
+        href: '/admin/audit-reports',
+        icon: Activity,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+      {
+        id: 'audit-logs',
+        label: '감사 로그',
+        href: '/admin/audit-reports/audit-logs',
+        icon: FileSignature,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
+      },
+    ],
+  },
+  {
     id: 'system',
     label: '시스템 관리',
     href: '/admin/system',
