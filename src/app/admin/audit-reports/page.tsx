@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Activity, AlertTriangle, Clock, Shield, Users } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Clock, Shield, Users } from "lucide-react";
 import AnomalyTransactionsTable from "./components/AnomalyTransactionsTable";
 import ActivityHeatmap from "./components/ActivityHeatmap";
 
@@ -28,7 +28,8 @@ function StatCard({ title, value, icon: Icon, alert }: StatCardProps) {
 
 export default function AuditDashboardPage() {
   const [stats, setStats] = useState({
-    todayTransactions: 0,
+    todayDeposits: 0,
+    todayWithdrawals: 0,
     anomalies: 0,
     pendingApprovals: 0,
     policyViolations: 0,
@@ -83,11 +84,16 @@ export default function AuditDashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard
-              title="금일 거래"
-              value={stats.todayTransactions}
-              icon={Activity}
+              title="금일 입금"
+              value={stats.todayDeposits}
+              icon={ArrowDownToLine}
+            />
+            <StatCard
+              title="금일 출금"
+              value={stats.todayWithdrawals}
+              icon={ArrowUpFromLine}
             />
             <StatCard
               title="이상 거래"
