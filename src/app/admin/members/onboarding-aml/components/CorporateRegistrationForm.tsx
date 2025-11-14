@@ -23,6 +23,7 @@ import { AddressSearchField } from "./AddressSearchField";
 import { InternationalAddressField } from "./InternationalAddressField";
 import { UserAddress, AddressKorea, AddressInternational } from "@/types/address";
 import { generateUserId } from "@/utils/idGenerator";
+import { S3FileUploadButton } from "@/components/ui/S3FileUploadButton";
 
 interface CorporateRegistrationFormProps {
   onSubmit: (data: ManualRegisterCorporateRequest) => Promise<void>;
@@ -79,25 +80,6 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
   const [contactEmail, setContactEmail] = useState("");
   const [contactEmailVerified, setContactEmailVerified] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
-
-  // 파일 업로드 시뮬레이션 (Mock)
-  const handleFileUpload = async (fieldName: string): Promise<string> => {
-    const timestamp = Date.now();
-    return `/uploads/corp/${fieldName}-${timestamp}.pdf`;
-  };
-
-  const handleUpload = async (setter: (url: string) => void, successMessage: string) => {
-    try {
-      const url = await handleFileUpload("document");
-      setter(url);
-      toast({ description: successMessage });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        description: "파일 업로드에 실패했습니다.",
-      });
-    }
-  };
 
   // UBO 추가/삭제 (CDD: 기본 정보만)
   const handleAddUbo = () => {
@@ -265,118 +247,64 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             {/* 사업자등록증 */}
-            <div className="space-y-2">
-              <Label>사업자등록증</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setBusinessLicenseUrl, "사업자등록증이 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {businessLicenseUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{businessLicenseUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="사업자등록증"
+              required
+              documentType="business-registration"
+              s3Key={businessLicenseUrl}
+              onUploadSuccess={setBusinessLicenseUrl}
+              onRemove={() => setBusinessLicenseUrl("")}
+            />
 
             {/* 법인등기부등본 */}
-            <div className="space-y-2">
-              <Label>법인등기부등본</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setCorporateRegistryUrl, "법인등기부등본이 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {corporateRegistryUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{corporateRegistryUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="법인등기부등본"
+              required
+              documentType="corporate-registry"
+              s3Key={corporateRegistryUrl}
+              onUploadSuccess={setCorporateRegistryUrl}
+              onRemove={() => setCorporateRegistryUrl("")}
+            />
 
             {/* 정관 */}
-            <div className="space-y-2">
-              <Label>정관</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setArticlesOfIncorporationUrl, "정관이 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {articlesOfIncorporationUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{articlesOfIncorporationUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="정관"
+              required
+              documentType="articles-of-incorporation"
+              s3Key={articlesOfIncorporationUrl}
+              onUploadSuccess={setArticlesOfIncorporationUrl}
+              onRemove={() => setArticlesOfIncorporationUrl("")}
+            />
 
             {/* 주주명부 */}
-            <div className="space-y-2">
-              <Label>주주명부</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setShareholderListUrl, "주주명부가 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {shareholderListUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{shareholderListUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="주주명부"
+              required
+              documentType="shareholder-list"
+              s3Key={shareholderListUrl}
+              onUploadSuccess={setShareholderListUrl}
+              onRemove={() => setShareholderListUrl("")}
+            />
 
             {/* 대표자 신분증 */}
-            <div className="space-y-2">
-              <Label>대표자 신분증</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setRepresentativeIdUrl, "대표자 신분증이 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {representativeIdUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{representativeIdUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="대표자 신분증"
+              required
+              documentType="representative-id"
+              s3Key={representativeIdUrl}
+              onUploadSuccess={setRepresentativeIdUrl}
+              onRemove={() => setRepresentativeIdUrl("")}
+            />
 
             {/* 대표자 인감증명서 */}
-            <div className="space-y-2">
-              <Label>대표자 인감증명서</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setRepresentativeSealCertUrl, "대표자 인감증명서가 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {representativeSealCertUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{representativeSealCertUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="대표자 인감증명서"
+              required
+              documentType="representative-seal-cert"
+              s3Key={representativeSealCertUrl}
+              onUploadSuccess={setRepresentativeSealCertUrl}
+              onRemove={() => setRepresentativeSealCertUrl("")}
+            />
           </div>
         </CardContent>
       </Card>

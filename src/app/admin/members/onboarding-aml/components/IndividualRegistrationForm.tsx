@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ import { NationalitySelectField } from "./NationalitySelectField";
 import { AddressSearchField } from "./AddressSearchField";
 import { InternationalAddressField } from "./InternationalAddressField";
 import { UserAddress, AddressKorea, AddressInternational } from "@/types/address";
+import { uploadToS3 } from "@/lib/uploadToS3";
 
 interface IndividualRegistrationFormProps {
   onSubmit: (data: ManualRegisterIndividualRequest) => Promise<void>;
@@ -51,37 +52,55 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
   const [countryCode, setCountryCode] = useState("");
   const [address, setAddress] = useState<UserAddress>(null);
 
-  // 파일 업로드 시뮬레이션 (Mock)
-  const handleFileUpload = async (fieldName: string): Promise<string> => {
-    // 실제 환경에서는 서버로 파일 업로드
-    // Mock 환경에서는 가상 URL 생성
-    const timestamp = Date.now();
-    return `/uploads/kyc/${fieldName}-${timestamp}.jpg`;
-  };
+  // 신분증 이미지 파일 업로드 상태
+  const [idImageFile, setIdImageFile] = useState<File | null>(null);
+  const [idImageUploading, setIdImageUploading] = useState(false);
 
-  const handleIdImageUpload = async () => {
+  // 주소증명 파일 업로드 상태
+  const [addressProofFile, setAddressProofFile] = useState<File | null>(null);
+  const [addressProofUploading, setAddressProofUploading] = useState(false);
+
+  // 파일 input refs
+  const idImageInputRef = useRef<HTMLInputElement>(null);
+  const addressProofInputRef = useRef<HTMLInputElement>(null);
+
+  // 신분증 이미지 업로드
+  const handleIdImageUpload = async (file: File) => {
+    if (!file) return;
+
+    setIdImageUploading(true);
     try {
-      const url = await handleFileUpload("id-image");
-      setIdImageUrl(url);
+      const s3Key = await uploadToS3(file, 'kyc-id-image');
+      setIdImageFile(file);
+      setIdImageUrl(s3Key);
       toast({ description: "신분증 이미지가 업로드되었습니다." });
     } catch (error) {
       toast({
         variant: "destructive",
         description: "파일 업로드에 실패했습니다.",
       });
+    } finally {
+      setIdImageUploading(false);
     }
   };
 
-  const handleAddressProofUpload = async () => {
+  // 주소증명 파일 업로드
+  const handleAddressProofUpload = async (file: File) => {
+    if (!file) return;
+
+    setAddressProofUploading(true);
     try {
-      const url = await handleFileUpload("address-proof");
-      setAddressProofUrl(url);
+      const s3Key = await uploadToS3(file, 'kyc-address-proof');
+      setAddressProofFile(file);
+      setAddressProofUrl(s3Key);
       toast({ description: "주소증명 이미지가 업로드되었습니다." });
     } catch (error) {
       toast({
         variant: "destructive",
         description: "파일 업로드에 실패했습니다.",
       });
+    } finally {
+      setAddressProofUploading(false);
     }
   };
 
@@ -311,14 +330,34 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
           <div className="space-y-2">
             <Label>신분증 이미지 *</Label>
             <div className="flex items-center gap-2">
+              <input
+                ref={idImageInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleIdImageUpload(file);
+                }}
+                className="hidden"
+              />
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleIdImageUpload}
+                onClick={() => idImageInputRef.current?.click()}
+                disabled={idImageUploading}
                 className="flex-1"
               >
-                <Upload className="mr-2 h-4 w-4" />
-                파일 선택
+                {idImageUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    업로드 중...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    파일 선택
+                  </>
+                )}
               </Button>
               {idImageUrl && (
                 <span className="text-sm text-muted-foreground truncate max-w-[200px]">
@@ -346,14 +385,34 @@ export function IndividualRegistrationForm({ onSubmit, onCancel }: IndividualReg
           <div className="space-y-2">
             <Label>주소증명 이미지 *</Label>
             <div className="flex items-center gap-2">
+              <input
+                ref={addressProofInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleAddressProofUpload(file);
+                }}
+                className="hidden"
+              />
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleAddressProofUpload}
+                onClick={() => addressProofInputRef.current?.click()}
+                disabled={addressProofUploading}
                 className="flex-1"
               >
-                <Upload className="mr-2 h-4 w-4" />
-                파일 선택
+                {addressProofUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    업로드 중...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    파일 선택
+                  </>
+                )}
               </Button>
               {addressProofUrl && (
                 <span className="text-sm text-muted-foreground truncate max-w-[200px]">
