@@ -22,10 +22,10 @@ export async function uploadToS3(
     console.log('[uploadToS3] File:', file.name);
 
     // 1. Backend에서 Presigned Upload URL 요청
-    const token = localStorage.getItem('adminToken');
+    const authData = localStorage.getItem('admin-auth');
+    const token = authData ? JSON.parse(authData).accessToken : null;
 
-    const fullUrl = `${API_URL}/upload/presigned-url`;
-    console.log('[uploadToS3] Full URL:', fullUrl);
+    console.log('[uploadToS3] Token:', token ? 'exists' : 'missing');
 
     const presignedResponse = await fetch(`${API_URL}/upload/presigned-url`, {
       method: 'POST',
@@ -75,7 +75,8 @@ export async function uploadToS3(
  */
 export async function getDownloadUrl(key: string): Promise<string> {
   try {
-    const token = localStorage.getItem('adminToken');
+    const authData = localStorage.getItem('admin-auth');
+    const token = authData ? JSON.parse(authData).accessToken : null;
 
     const response = await fetch(`${API_URL}/upload/presigned-download-url`, {
       method: 'POST',
