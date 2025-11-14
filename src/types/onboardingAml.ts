@@ -72,6 +72,7 @@ export interface KYCInfo {
   idNumber: string;       // 신분증 번호 (DB의 personalId와 연결)
   residentNumber?: string; // 주민등록번호 (개인회원용)
   idImageUrl: string;
+  selfieImageUrl?: string; // 셀피 이미지 URL
   addressProofType: AddressProofType;
   addressProofUrl: string;
   phoneVerified: boolean;

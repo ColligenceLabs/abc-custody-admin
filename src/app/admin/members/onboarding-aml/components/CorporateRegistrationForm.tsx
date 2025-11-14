@@ -342,23 +342,13 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>신분증 이미지 (앞뒤면)</Label>
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleUpload(setRepIdImageUrl, "신분증 이미지가 업로드되었습니다.")}
-                className="w-full"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                파일 선택
-              </Button>
-              {repIdImageUrl && (
-                <span className="text-xs text-muted-foreground truncate">{repIdImageUrl}</span>
-              )}
-            </div>
-          </div>
+          <S3FileUploadButton
+            label="신분증 이미지 (앞뒤면)"
+            documentType="kyc-id-image"
+            s3Key={repIdImageUrl}
+            onUploadSuccess={setRepIdImageUrl}
+            onRemove={() => setRepIdImageUrl("")}
+          />
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -375,23 +365,13 @@ export function CorporateRegistrationForm({ onSubmit, onCancel }: CorporateRegis
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>주소증명 이미지</Label>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleUpload(setRepAddressProofUrl, "주소증명 이미지가 업로드되었습니다.")}
-                  className="w-full"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  파일 선택
-                </Button>
-                {repAddressProofUrl && (
-                  <span className="text-xs text-muted-foreground truncate">{repAddressProofUrl}</span>
-                )}
-              </div>
-            </div>
+            <S3FileUploadButton
+              label="주소증명 이미지"
+              documentType="kyc-address-proof"
+              s3Key={repAddressProofUrl}
+              onUploadSuccess={setRepAddressProofUrl}
+              onRemove={() => setRepAddressProofUrl("")}
+            />
           </div>
         </CardContent>
       </Card>

@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -117,21 +117,77 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
     ? maskResidentNumber(kyc.idNumber)
     : kyc.idNumber;
 
-  // 백엔드 API URL 생성
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  const idCardImageUrl = userId
-    ? `${API_URL}/api/users/${userId}/kyc-image`
-    : kyc.idImageUrl;
-  const selfieImageUrl = userId
-    ? `${API_URL}/api/users/${userId}/kyc-selfie-image`
-    : null;
+  // Pre-signed URL 상태
+  const [idCardImageUrl, setIdCardImageUrl] = useState<string | null>(null);
+  const [selfieImageUrl, setSelfieImageUrl] = useState<string | null>(null);
 
   // 이미지 모달 상태
   const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
+  // Pre-signed URL 가져오기
+  useEffect(() => {
+    const fetchImageUrls = async () => {
+      const isS3Key = kyc.idImageUrl?.startsWith('kyc/');
+
+      if (!userId || !isS3Key) {
+        setIdCardImageUrl(kyc.idImageUrl || null);
+        setSelfieImageUrl(kyc.selfieImageUrl || null);
+        return;
+      }
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const token = localStorage.getItem('admin-auth');
+      const accessToken = token ? JSON.parse(token).accessToken : null;
+
+      // 신분증 이미지 URL
+      try {
+        const response = await fetch(`${API_URL}/api/users/${userId}/kyc-image`, {
+          headers: {
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIdCardImageUrl(data.imageUrl);
+        }
+      } catch (error) {
+        console.error('신분증 이미지 URL 가져오기 실패:', error);
+      }
+
+      // 셀피 이미지 URL
+      try {
+        const response = await fetch(`${API_URL}/api/users/${userId}/kyc-selfie-image`, {
+          headers: {
+            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSelfieImageUrl(data.imageUrl);
+        }
+      } catch (error) {
+        console.error('셀피 이미지 URL 가져오기 실패:', error);
+      }
+    };
+
+    fetchImageUrls();
+  }, [userId, kyc.idImageUrl]);
+
   // 이미지 모달 열기
   const handleOpenImage = (type: 'idcard' | 'selfie') => {
+    const imageUrl = type === 'idcard' ? idCardImageUrl : selfieImageUrl;
+
+    if (!imageUrl) {
+      toast({
+        variant: "destructive",
+        description: "등록된 이미지가 없습니다.",
+      });
+      return;
+    }
+
     if (type === 'idcard') {
       setIsIdCardModalOpen(true);
     } else {

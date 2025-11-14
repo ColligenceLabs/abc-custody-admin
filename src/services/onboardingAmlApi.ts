@@ -128,9 +128,8 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     kyc: {
       idType: 'RESIDENT_CARD' as const,
       idNumber: user.personalId || '******-*******',
-      idImageUrl: user.idCardImagePath
-        ? `${API_URL}/api/users/${user.id}/kyc-image`
-        : '',
+      idImageUrl: user.idCardImagePath || '', // S3 키 그대로 전달
+      selfieImageUrl: user.selfieImagePath || '', // 셀피도 추가
       addressProofType: 'REGISTRY' as const,
       addressProofUrl: '',
       phoneVerified: true,
