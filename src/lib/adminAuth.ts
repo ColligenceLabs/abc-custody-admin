@@ -15,6 +15,7 @@ export interface StoredAuth {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  sessionId?: string;
 }
 
 export class AdminAuthManager {
@@ -46,14 +47,14 @@ export class AdminAuthManager {
 
   /**
    * 인증 정보 저장
+   * HttpOnly Cookie는 서버에서 설정하므로 localStorage만 사용
    */
   static storeAuth(auth: StoredAuth): void {
     if (typeof window === 'undefined') return;
 
     try {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
-      // 쿠키에도 토큰 저장 (middleware에서 사용)
-      document.cookie = `admin-token=${auth.accessToken}; path=/; max-age=1800; secure; samesite=strict`;
+      // HttpOnly Cookie는 백엔드에서 설정하므로 클라이언트 측 Cookie 설정 제거
     } catch (error) {
       console.error('Failed to store auth:', error);
     }
@@ -61,6 +62,7 @@ export class AdminAuthManager {
 
   /**
    * 저장된 인증 정보 제거
+   * HttpOnly Cookie는 백엔드 logout API에서 삭제
    */
   static clearStoredAuth(): void {
     if (typeof window === 'undefined') return;
@@ -69,8 +71,10 @@ export class AdminAuthManager {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
 
-    // 쿠키 제거
+    // 기존 쿠키들 제거
     document.cookie = 'admin-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    document.cookie = 'auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    // HttpOnly Cookie (admin_accessToken, admin_refreshToken)는 서버에서 삭제
   }
 
   /**

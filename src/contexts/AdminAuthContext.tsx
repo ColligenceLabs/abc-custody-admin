@@ -130,15 +130,24 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 class AdminAuthService {
   static async login(credentials: AdminLoginRequest): Promise<AdminAuthResponse> {
+    console.log('[AdminAuthService] Fetch 호출:', `${API_URL}/api/admin/auth/login`);
     const response = await fetch(`${API_URL}/api/admin/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify(credentials),
     });
 
+    console.log('[AdminAuthService] Response status:', response.status);
+    console.log('[AdminAuthService] Response headers:', {
+      setCookie: response.headers.get('set-cookie'),
+      contentType: response.headers.get('content-type')
+    });
+
     const data = await response.json();
+    console.log('[AdminAuthService] Response data:', data);
 
     if (!response.ok || !data.success) {
       throw new Error(data.error || '로그인에 실패했습니다.');
@@ -180,6 +189,7 @@ class AdminAuthService {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({ tempToken, code }),
     });
 
@@ -201,6 +211,7 @@ class AdminAuthService {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({ refreshToken }),
     });
 
@@ -268,7 +279,9 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     dispatch({ type: 'AUTH_START' });
 
     try {
+      console.log('[Login] API 호출 시작:', `${API_URL}/api/admin/auth/login`);
       const response = await AdminAuthService.login(credentials);
+      console.log('[Login] API 응답:', response);
 
       // 2FA 설정이 필요한 경우 (enabled이지만 secret 없음)
       if ((response as any).requires2FASetup) {
@@ -303,6 +316,7 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         accessToken: response.session.accessToken,
         refreshToken: response.session.refreshToken,
         expiresAt,
+        sessionId: response.session.id,
       };
 
       AdminAuthManager.storeAuth(authData);
@@ -364,6 +378,7 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         accessToken: response.session.accessToken,
         refreshToken: response.session.refreshToken,
         expiresAt,
+        sessionId: response.session.id,
       };
 
       AdminAuthManager.storeAuth(authData);
@@ -395,17 +410,36 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
 
   // Logout function
   const logout = async (): Promise<void> => {
-    if (state.user) {
-      await AuditLogger.logAdminAction(state.user, 'LOGOUT', 'AUTH');
-    }
+    try {
+      if (state.user) {
+        await AuditLogger.logAdminAction(state.user, 'LOGOUT', 'AUTH');
+      }
 
-    AdminAuthManager.clearStoredAuth();
-    SessionManager.stopSessionMonitoring();
-    dispatch({ type: 'AUTH_LOGOUT' });
+      // 백엔드 logout API 호출 (HttpOnly Cookie 삭제)
+      const storedAuth = AdminAuthManager.getStoredAuth();
+      if (storedAuth?.sessionId) {
+        await fetch(`${API_URL}/api/admin/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            sessionId: storedAuth.sessionId
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Logout API 호출 실패:', error);
+    } finally {
+      AdminAuthManager.clearStoredAuth();
+      SessionManager.stopSessionMonitoring();
+      dispatch({ type: 'AUTH_LOGOUT' });
 
-    // 로그인 페이지로 리다이렉트
-    if (typeof window !== 'undefined') {
-      window.location.href = '/admin/auth/login';
+      // 로그인 페이지로 리다이렉트
+      if (typeof window !== 'undefined') {
+        window.location.href = '/admin/auth/login';
+      }
     }
   };
 
