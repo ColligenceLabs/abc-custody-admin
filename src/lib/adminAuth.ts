@@ -12,10 +12,9 @@ export const REFRESH_TOKEN_STORAGE_KEY = 'admin-refresh-token';
 
 export interface StoredAuth {
   user: AdminUser;
-  accessToken: string;
-  refreshToken: string;
   expiresAt: number;
   sessionId?: string;
+  // accessToken과 refreshToken은 HttpOnly 쿠키로만 관리되므로 localStorage에 저장하지 않음
 }
 
 export class AdminAuthManager {

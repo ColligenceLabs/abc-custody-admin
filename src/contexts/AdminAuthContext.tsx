@@ -129,12 +129,39 @@ interface AdminAuthProviderProps {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 class AdminAuthService {
+  /**
+   * CSRF 토큰 가져오기
+   */
+  static async getCsrfToken(): Promise<string> {
+    try {
+      const response = await fetch(`${API_URL}/api/csrf-token`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('CSRF 토큰을 가져오는데 실패했습니다.');
+      }
+
+      const data = await response.json();
+      return data.csrfToken || '';
+    } catch (error) {
+      console.error('[AdminAuthService] CSRF 토큰 가져오기 실패:', error);
+      return '';
+    }
+  }
+
   static async login(credentials: AdminLoginRequest): Promise<AdminAuthResponse> {
     console.log('[AdminAuthService] Fetch 호출:', `${API_URL}/api/admin/auth/login`);
+
+    // CSRF 토큰 가져오기
+    const csrfToken = await this.getCsrfToken();
+
     const response = await fetch(`${API_URL}/api/admin/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken,
       },
       credentials: 'include',
       body: JSON.stringify(credentials),
@@ -184,10 +211,14 @@ class AdminAuthService {
   }
 
   static async verify2FA(tempToken: string, code: string): Promise<AdminAuthResponse> {
+    // CSRF 토큰 가져오기
+    const csrfToken = await this.getCsrfToken();
+
     const response = await fetch(`${API_URL}/api/admin/auth/verify-2fa`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken,
       },
       credentials: 'include',
       body: JSON.stringify({ tempToken, code }),
@@ -206,13 +237,17 @@ class AdminAuthService {
   }
 
   static async refreshToken(refreshToken: string): Promise<AdminAuthResponse> {
+    // CSRF 토큰 가져오기
+    const csrfToken = await this.getCsrfToken();
+
+    // refreshToken은 HttpOnly 쿠키로 자동 전송되므로 body에 포함하지 않음
     const response = await fetch(`${API_URL}/api/admin/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken,
       },
-      credentials: 'include',
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include', // 쿠키 자동 전송
     });
 
     const data = await response.json();
@@ -221,7 +256,7 @@ class AdminAuthService {
       throw new Error(data.error || '토큰 갱신에 실패했습니다.');
     }
 
-    // 기존 사용자 정보 유지, 토큰만 갱신
+    // 기존 사용자 정보 유지
     const storedAuth = AdminAuthManager.getStoredAuth();
     if (!storedAuth) {
       throw new Error('저장된 인증 정보가 없습니다.');
@@ -230,8 +265,6 @@ class AdminAuthService {
     return {
       user: storedAuth.user,
       session: {
-        ...storedAuth,
-        accessToken: data.accessToken,
         expiresAt: new Date(data.expiresAt)
       } as any
     };
@@ -287,10 +320,11 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       if ((response as any).requires2FASetup) {
         // 2FA 설정 페이지로 리다이렉트
         if (typeof window !== 'undefined') {
-          // 임시 인증 정보 저장
-          localStorage.setItem('temp-2fa-setup', JSON.stringify({
-            tempToken: (response as any).tempToken,
-            user: (response as any).user
+          // 임시 인증 정보를 sessionStorage에 저장 (탭 닫으면 자동 삭제)
+          sessionStorage.setItem('temp-2fa-setup', JSON.stringify({
+            user: (response as any).user,
+            sessionId: (response as any).session?.id
+            // tempToken은 저장하지 않음 (XSS 방지)
           }));
           window.location.href = '/admin/auth/setup-2fa';
         }
@@ -306,15 +340,13 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
         return;
       }
 
-      // Store auth info
+      // Store auth info (토큰은 HttpOnly 쿠키로 관리되므로 localStorage에 저장하지 않음)
       const expiresAt = typeof response.session.expiresAt === 'string'
         ? new Date(response.session.expiresAt).getTime()
         : response.session.expiresAt.getTime();
 
       const authData = {
         user: response.user,
-        accessToken: response.session.accessToken,
-        refreshToken: response.session.refreshToken,
         expiresAt,
         sessionId: response.session.id,
       };
@@ -368,15 +400,13 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     try {
       const response = await AdminAuthService.verify2FA(state.tempToken, code);
 
-      // Store auth info
+      // Store auth info (토큰은 HttpOnly 쿠키로 관리되므로 localStorage에 저장하지 않음)
       const expiresAt = typeof response.session.expiresAt === 'string'
         ? new Date(response.session.expiresAt).getTime()
         : response.session.expiresAt.getTime();
 
       const authData = {
         user: response.user,
-        accessToken: response.session.accessToken,
-        refreshToken: response.session.refreshToken,
         expiresAt,
         sessionId: response.session.id,
       };
@@ -418,10 +448,14 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       // 백엔드 logout API 호출 (HttpOnly Cookie 삭제)
       const storedAuth = AdminAuthManager.getStoredAuth();
       if (storedAuth?.sessionId) {
+        // CSRF 토큰 가져오기
+        const csrfToken = await AdminAuthService.getCsrfToken();
+
         await fetch(`${API_URL}/api/admin/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
           },
           credentials: 'include',
           body: JSON.stringify({
@@ -443,19 +477,19 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
     }
   };
 
-  // Token refresh
+  // Token refresh (refreshToken은 HttpOnly 쿠키로 자동 전송됨)
   const refreshToken = async (): Promise<boolean> => {
     const storedAuth = AdminAuthManager.getStoredAuth();
     if (!storedAuth) return false;
 
     try {
-      const response = await AdminAuthService.refreshToken(storedAuth.refreshToken);
+      // refreshToken은 쿠키에서 자동으로 전송되므로 body에 포함하지 않음
+      const response = await AdminAuthService.refreshToken('');
 
       const authData = {
         user: response.user,
-        accessToken: response.session.accessToken,
-        refreshToken: response.session.refreshToken,
         expiresAt: response.session.expiresAt.getTime(),
+        sessionId: storedAuth.sessionId,
       };
 
       AdminAuthManager.storeAuth(authData);

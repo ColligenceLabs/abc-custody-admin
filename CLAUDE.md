@@ -1,5 +1,17 @@
 # 기업용 커스터디 관리자 페이지 프로젝트
 
+## Git Commit Message Policy
+
+**CRITICAL: Claude 서명 제거 (Commercial Product)**
+
+- **Claude 서명 절대 금지**: 모든 커밋 메시지에서 Claude 관련 서명 제거
+- **제거 대상 내용**:
+  - `🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+  - `Co-Authored-By: Claude <noreply@anthropic.com>`
+  - Claude, AI, 자동 코드 생성 관련 모든 언급
+- **이유**: 외부 클라이언트 납품용 상업 제품
+- **적용 범위**: 모든 커밋
+
 ## 프로젝트 개요
 
 - **프로젝트명**: 기업용 가상자산 커스터디 관리자 페이지
