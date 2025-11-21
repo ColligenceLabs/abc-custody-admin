@@ -6,20 +6,57 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // 쿠키 자동 전송
 });
 
-// 요청 인터셉터 (인증 토큰 추가)
+// CSRF 토큰 캐시
+let csrfTokenCache: string | null = null;
+
+// CSRF 토큰 가져오기
+async function getCsrfToken(): Promise<string> {
+  if (csrfTokenCache) {
+    return csrfTokenCache;
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/csrf-token`, {
+      credentials: 'include'
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      csrfTokenCache = data.csrfToken || '';
+      return csrfTokenCache;
+    }
+  } catch (error) {
+    console.error('CSRF 토큰 가져오기 실패:', error);
+  }
+
+  return '';
+}
+
+// 요청 인터셉터 (인증 토큰 및 CSRF 토큰 추가)
 apiClient.interceptors.request.use(
-  (config) => {
-    // 로컬 스토리지에서 토큰 가져오기
+  async (config) => {
+    console.log('[API Client] 요청:', config.method?.toUpperCase(), config.url);
+
+    // CSRF 토큰 추가 (POST, PATCH, DELETE 요청)
+    if (['post', 'patch', 'put', 'delete'].includes(config.method?.toLowerCase() || '')) {
+      const csrfToken = await getCsrfToken();
+      console.log('[API Client] CSRF 토큰:', csrfToken?.substring(0, 20) + '...');
+      if (csrfToken && config.headers) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
+    // 로컬 스토리지에서 인증 토큰 가져오기 (HttpOnly 쿠키로 대체 예정)
     if (typeof window !== 'undefined') {
       try {
         const storedAuth = localStorage.getItem('admin-auth');
         if (storedAuth) {
           const auth = JSON.parse(storedAuth);
-          if (auth.accessToken && config.headers) {
-            config.headers.Authorization = `Bearer ${auth.accessToken}`;
-          }
+          // accessToken은 이제 localStorage에 없지만 쿠키로 자동 전송됨
+          // 여기서는 제거 (쿠키가 대신 사용됨)
         }
       } catch (error) {
         console.error('Failed to get auth token:', error);

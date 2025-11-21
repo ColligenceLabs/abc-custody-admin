@@ -9,6 +9,32 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 // API 기본 URL 설정 (항상 /api 프리픽스 추가)
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api`;
 
+// CSRF 토큰 캐시
+let csrfTokenCache: string | null = null;
+
+// CSRF 토큰 가져오기
+async function getCsrfToken(): Promise<string> {
+  if (csrfTokenCache) {
+    return csrfTokenCache;
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/csrf-token`, {
+      credentials: 'include'
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      csrfTokenCache = data.csrfToken || '';
+      return csrfTokenCache;
+    }
+  } catch (error) {
+    console.error('[CSRF] 토큰 가져오기 실패:', error);
+  }
+
+  return '';
+}
+
 // axios 인스턴스 생성
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -16,17 +42,31 @@ export const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // 쿠키 자동 전송
 });
 
 // 요청 인터셉터
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // 인증 토큰이 있으면 헤더에 추가
+  async (config: InternalAxiosRequestConfig) => {
+    console.log('[API Client] 요청:', config.method?.toUpperCase(), config.url);
+
+    // CSRF 토큰 추가 (POST, PATCH, PUT, DELETE 요청)
+    if (['post', 'patch', 'put', 'delete'].includes(config.method?.toLowerCase() || '')) {
+      const csrfToken = await getCsrfToken();
+      console.log('[API Client] CSRF 토큰:', csrfToken?.substring(0, 20) + '...');
+      if (csrfToken && config.headers) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
+    // HttpOnly 쿠키로 토큰이 전송되므로 localStorage에서 가져올 필요 없음
+    // 하지만 기존 코드 호환성을 위해 유지 (쿠키가 우선)
     if (typeof window !== 'undefined') {
       try {
         const storedAuth = localStorage.getItem('admin-auth');
         if (storedAuth) {
           const auth = JSON.parse(storedAuth);
+          // accessToken은 localStorage에 없으므로 이 코드는 실행 안 됨
           if (auth.accessToken && config.headers) {
             config.headers.Authorization = `Bearer ${auth.accessToken}`;
           }
