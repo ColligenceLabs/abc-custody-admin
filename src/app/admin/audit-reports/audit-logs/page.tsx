@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { Download } from "lucide-react";
 
 export default function AuditLogsPage() {

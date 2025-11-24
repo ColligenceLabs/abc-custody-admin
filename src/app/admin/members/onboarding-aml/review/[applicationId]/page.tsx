@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

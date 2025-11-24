@@ -6,6 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import {
   Dialog,
   DialogContent,

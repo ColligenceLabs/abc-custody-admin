@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { Badge } from "@/components/ui/badge";
 import { OrganizationUser, OrganizationUsersResponse } from "@/types/onboardingAml";
 import { fetchOrganizationUsers } from "@/services/onboardingAmlApi";

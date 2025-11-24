@@ -10,6 +10,7 @@ import {
   AdminUserStatus,
   AdminRole
 } from '@/types/admin';
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -113,7 +114,7 @@ export async function getAdminUserById(id: string): Promise<AdminUserDetailRespo
 export async function createAdminUser(
   data: CreateAdminUserRequest
 ): Promise<CreateAdminUserResponse> {
-  const response = await fetch(`${API_URL}/api/admin/users`, {
+  const response = await fetchWithCsrf(`${API_URL}/api/admin/users`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ export async function updateAdminUser(
   id: string,
   data: UpdateAdminUserRequest
 ): Promise<{ success: boolean; data: AdminUser }> {
-  const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
+  const response = await fetchWithCsrf(`${API_URL}/api/admin/users/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -160,7 +161,7 @@ export async function deleteAdminUser(
   force: boolean = false
 ): Promise<{ success: boolean; message: string }> {
   const url = `${API_URL}/api/admin/users/${id}${force ? '?force=true' : ''}`;
-  const response = await fetch(url, {
+  const response = await fetchWithCsrf(url, {
     method: 'DELETE',
   });
 
@@ -178,7 +179,7 @@ export async function deleteAdminUser(
 export async function resetAdminPassword(
   id: string
 ): Promise<ResetPasswordResponse> {
-  const response = await fetch(`${API_URL}/api/admin/users/${id}/reset-password`, {
+  const response = await fetchWithCsrf(`${API_URL}/api/admin/users/${id}/reset-password`, {
     method: 'POST',
   });
 

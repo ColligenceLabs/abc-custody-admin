@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
