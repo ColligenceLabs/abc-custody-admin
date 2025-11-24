@@ -7,6 +7,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import {
   Dialog,
   DialogContent,
@@ -88,7 +89,7 @@ export default function WithdrawalDetailModal({
     setIsLoading(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `${API_URL}/api/withdrawals/${withdrawal.id}/aml/complete`,
         {
           method: "POST",
@@ -134,7 +135,7 @@ export default function WithdrawalDetailModal({
     setIsLoading(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `${API_URL}/api/withdrawals/${withdrawal.id}/approve/hot`,
         {
           method: "POST",
@@ -179,7 +180,7 @@ export default function WithdrawalDetailModal({
     setIsLoading(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `${API_URL}/api/withdrawals/${withdrawal.id}/approve/cold`,
         {
           method: "POST",

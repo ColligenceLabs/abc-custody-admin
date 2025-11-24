@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { ArrowDownToLine, ArrowUpFromLine, AlertTriangle, Clock, Shield, Users } from "lucide-react";
 import AnomalyTransactionsTable from "./components/AnomalyTransactionsTable";
 import ActivityHeatmap from "./components/ActivityHeatmap";

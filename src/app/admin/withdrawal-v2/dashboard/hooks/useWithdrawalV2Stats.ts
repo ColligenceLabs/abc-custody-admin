@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { WithdrawalV2DashboardStats } from '@/types/withdrawalV2';
 import { withdrawalV2Api } from '@/services/withdrawalV2Api';
 

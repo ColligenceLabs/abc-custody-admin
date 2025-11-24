@@ -25,8 +25,9 @@ async function getCsrfToken(): Promise<string> {
 
     if (response.ok) {
       const data = await response.json();
-      csrfTokenCache = data.csrfToken || '';
-      return csrfTokenCache;
+      const token = data.csrfToken || '';
+      csrfTokenCache = token;
+      return token;
     }
   } catch (error) {
     console.error('CSRF 토큰 가져오기 실패:', error);

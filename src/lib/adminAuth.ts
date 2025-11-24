@@ -4,6 +4,7 @@
  */
 
 import { AdminUser, AdminRole, AdminResource, AdminAction, ROLE_PERMISSIONS } from '@/types/admin';
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 
 // JWT 토큰 관리
 export const AUTH_STORAGE_KEY = 'admin-auth';

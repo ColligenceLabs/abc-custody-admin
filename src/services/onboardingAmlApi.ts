@@ -8,6 +8,7 @@
  */
 
 import axios from 'axios';
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import {
   IndividualOnboarding,
   CorporateOnboarding,

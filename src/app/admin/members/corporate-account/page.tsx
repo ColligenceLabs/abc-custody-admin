@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
 import { SimpleCorporateAccountForm } from "./components/SimpleCorporateAccountForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
