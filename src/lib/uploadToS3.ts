@@ -21,18 +21,13 @@ export async function uploadToS3(
     console.log('[uploadToS3] Document Type:', documentType);
     console.log('[uploadToS3] File:', file.name);
 
-    // 1. Backend에서 Presigned Upload URL 요청
-    const authData = localStorage.getItem('admin-auth');
-    const token = authData ? JSON.parse(authData).accessToken : null;
-
-    console.log('[uploadToS3] Token:', token ? 'exists' : 'missing');
-
+    // 1. Backend에서 Presigned Upload URL 요청 (쿠키로 자동 인증)
     const presignedResponse = await fetch(`${API_URL}/upload/presigned-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
       },
+      credentials: 'include', // 쿠키 자동 전송
       body: JSON.stringify({
         filename: file.name,
         contentType: file.type,
@@ -75,15 +70,12 @@ export async function uploadToS3(
  */
 export async function getDownloadUrl(key: string): Promise<string> {
   try {
-    const authData = localStorage.getItem('admin-auth');
-    const token = authData ? JSON.parse(authData).accessToken : null;
-
     const response = await fetch(`${API_URL}/upload/presigned-download-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
       },
+      credentials: 'include', // 쿠키 자동 전송
       body: JSON.stringify({ key })
     });
 

@@ -60,23 +60,7 @@ apiClient.interceptors.request.use(
       }
     }
 
-    // HttpOnly 쿠키로 토큰이 전송되므로 localStorage에서 가져올 필요 없음
-    // 하지만 기존 코드 호환성을 위해 유지 (쿠키가 우선)
-    if (typeof window !== 'undefined') {
-      try {
-        const storedAuth = localStorage.getItem('admin-auth');
-        if (storedAuth) {
-          const auth = JSON.parse(storedAuth);
-          // accessToken은 localStorage에 없으므로 이 코드는 실행 안 됨
-          if (auth.accessToken && config.headers) {
-            config.headers.Authorization = `Bearer ${auth.accessToken}`;
-          }
-        }
-      } catch (error) {
-        console.error('Failed to get auth token:', error);
-      }
-    }
-
+    // JWT 토큰은 HttpOnly 쿠키로 자동 전송됨 (withCredentials: true 설정)
     return config;
   },
   (error: AxiosError) => {

@@ -138,15 +138,11 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
       }
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const token = localStorage.getItem('admin-auth');
-      const accessToken = token ? JSON.parse(token).accessToken : null;
 
-      // 신분증 이미지 URL
+      // 신분증 이미지 URL (쿠키로 자동 인증)
       try {
         const response = await fetch(`${API_URL}/api/users/${userId}/kyc-image`, {
-          headers: {
-            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
-          }
+          credentials: 'include',
         });
 
         if (response.ok) {
@@ -157,12 +153,10 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
         console.error('신분증 이미지 URL 가져오기 실패:', error);
       }
 
-      // 셀피 이미지 URL
+      // 셀피 이미지 URL (쿠키로 자동 인증)
       try {
         const response = await fetch(`${API_URL}/api/users/${userId}/kyc-selfie-image`, {
-          headers: {
-            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
-          }
+          credentials: 'include',
         });
 
         if (response.ok) {

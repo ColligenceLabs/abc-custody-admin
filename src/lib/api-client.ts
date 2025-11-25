@@ -50,19 +50,7 @@ apiClient.interceptors.request.use(
       }
     }
 
-    // 로컬 스토리지에서 인증 토큰 가져오기 (HttpOnly 쿠키로 대체 예정)
-    if (typeof window !== 'undefined') {
-      try {
-        const storedAuth = localStorage.getItem('admin-auth');
-        if (storedAuth) {
-          const auth = JSON.parse(storedAuth);
-          // accessToken은 이제 localStorage에 없지만 쿠키로 자동 전송됨
-          // 여기서는 제거 (쿠키가 대신 사용됨)
-        }
-      } catch (error) {
-        console.error('Failed to get auth token:', error);
-      }
-    }
+    // JWT 토큰은 HttpOnly 쿠키로 자동 전송됨 (withCredentials: true 설정)
     return config;
   },
   (error) => {
