@@ -43,9 +43,8 @@ export function useAdminWithdrawalSocket({ onWithdrawalUpdate }: UseAdminWithdra
       setIsConnected(true);
       setError(null);
 
-      // 관리자 인증 및 admin 룸 조인
-      const token = localStorage.getItem('token');
-      socket.emit('authenticate', { role: 'admin', token });
+      // 관리자 인증 및 admin 룸 조인 (쿠키로 자동 인증)
+      socket.emit('authenticate', { role: 'admin' });
     });
 
     // 인증 응답
@@ -83,9 +82,8 @@ export function useAdminWithdrawalSocket({ onWithdrawalUpdate }: UseAdminWithdra
       setIsConnected(true);
       setError(null);
 
-      // 재연결 후 다시 인증
-      const token = localStorage.getItem('token');
-      socket.emit('authenticate', { role: 'admin', token });
+      // 재연결 후 다시 인증 (쿠키로 자동 인증)
+      socket.emit('authenticate', { role: 'admin' });
     });
 
     // 연결 에러
