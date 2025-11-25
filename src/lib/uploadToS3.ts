@@ -46,6 +46,7 @@ export async function uploadToS3(
       method: 'PUT',
       headers: {
         'Content-Type': file.type,
+        'x-amz-server-side-encryption': 'AES256', // Presigned URL 서명에 포함된 헤더
       },
       body: file
     });
