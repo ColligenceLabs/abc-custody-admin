@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IndividualRegistrationForm } from "./IndividualRegistrationForm";
 import { CorporateRegistrationForm } from "./CorporateRegistrationForm";
+import { CorporateRegistrationFormMultiStep } from "./CorporateRegistrationFormMultiStep";
 import { ManualRegisterIndividualRequest, ManualRegisterCorporateRequest } from "@/types/onboardingAml";
 import { manualRegisterIndividual, manualRegisterCorporate } from "@/services/onboardingAmlApi";
 import { useToast } from "@/hooks/use-toast";
@@ -119,7 +120,7 @@ export function ManualRegistrationDialog({
               </TabsContent>
 
               <TabsContent value="corporate" className="mt-0">
-                <CorporateRegistrationForm
+                <CorporateRegistrationFormMultiStep
                   onSubmit={handleCorporateSubmit}
                   onCancel={handleCancel}
                 />

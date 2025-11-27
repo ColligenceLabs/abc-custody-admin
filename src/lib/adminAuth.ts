@@ -347,8 +347,9 @@ export class AuditLogger {
    */
   private static async getClientIP(): Promise<string> {
     try {
-      // 실제 환경에서는 서버에서 IP를 전달받아야 함
-      const response = await fetch('/api/client-ip');
+      // Backend API에서 IP 조회
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${API_URL}/api/client-ip`);
       const data = await response.json();
       return data.ip || 'unknown';
     } catch {
