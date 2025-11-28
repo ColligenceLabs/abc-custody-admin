@@ -47,6 +47,10 @@ export function CorporateRegistrationFormMultiStep({
     establishmentDate: "",
     corporateType: "",
     industryType: "",
+    zipCode: "",
+    address: "",
+    addressDetail: "",
+    phone: "",
     contactName: "",
     contactEmail: "",
     contactPhone: "",
@@ -156,6 +160,11 @@ export function CorporateRegistrationFormMultiStep({
         establishmentDate: formData.establishmentDate,
         corporateType: formData.corporateType,
         industryType: formData.industryType,
+        zipCode: formData.zipCode,
+        address: formData.address,
+        addressDetail: formData.addressDetail,
+        countryCode: "KR",
+        phone: formData.phone,
 
         // Step 1: 담당자
         contactName: formData.contactName,

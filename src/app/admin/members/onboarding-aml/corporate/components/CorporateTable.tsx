@@ -179,7 +179,7 @@ export function CorporateTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem asChild>
-                          <Link href={`/admin/members/onboarding-aml/review/corporate/${application.id}`} className="cursor-pointer">
+                          <Link href={`/admin/members/onboarding-aml/review/corporate/${application.companyId}`} className="cursor-pointer">
                             <Eye className="h-4 w-4 mr-2" />
                             검토
                           </Link>

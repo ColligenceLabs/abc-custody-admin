@@ -28,8 +28,11 @@ import { CompactProcessIndicator } from "../../../components/CompactProcessIndic
 import { ApprovalDialog } from "../../../components/ApprovalDialog";
 import { RejectionDialog } from "../../../components/RejectionDialog";
 import { OnHoldDialog } from "../../../components/OnHoldDialog";
-import { CorporateInfoSection } from "./components/CorporateInfoSection";
 import { UBOStructureViewer } from "./components/UBOStructureViewer";
+import { OrganizationInfoSection } from "./components/review-sections/OrganizationInfoSection";
+import { RepresentativeKYCSection } from "./components/review-sections/RepresentativeKYCSection";
+import { OwnersDetailSection } from "./components/review-sections/OwnersDetailSection";
+import { BusinessFinanceSection } from "./components/review-sections/BusinessFinanceSection";
 import { CorporateRiskSection } from "./components/CorporateRiskSection";
 import { CorporateEDDSection } from "./components/CorporateEDDSection";
 import { CorporateAdminDecisionPanel } from "./components/CorporateAdminDecisionPanel";
@@ -40,6 +43,7 @@ export default function CorporateOnboardingReviewPage() {
   const applicationId = params.applicationId as string;
 
   const [application, setApplication] = useState<CorporateOnboarding | null>(null);
+  const [reviewData, setReviewData] = useState<any>(null); // Organization 상세 데이터
   const [loading, setLoading] = useState(true);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
@@ -54,6 +58,24 @@ export default function CorporateOnboardingReviewPage() {
       setLoading(true);
       const data = await fetchCorporateOnboardingById(applicationId);
       setApplication(data);
+
+      // Organization 상세 데이터 조회 (신규)
+      if (data?.companyId) {
+        console.log('[Review Page] Fetching organization data for:', data.companyId);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/organizations/${data.companyId}/onboarding-review`, {
+          credentials: 'include'
+        });
+        console.log('[Review Page] API response status:', response.status);
+        if (response.ok) {
+          const reviewResult = await response.json();
+          console.log('[Review Page] API response data:', reviewResult);
+          console.log('[Review Page] Files object:', reviewResult.data?.files);
+          setReviewData(reviewResult.data);
+        } else {
+          const errorText = await response.text();
+          console.error('[Review Page] API error:', response.status, errorText);
+        }
+      }
     } catch (error) {
       console.error('Failed to load application:', error);
       toast({
@@ -209,21 +231,39 @@ export default function CorporateOnboardingReviewPage() {
         </div>
       </Card>
 
-      {/* Corporate Info Section */}
-      <CorporateInfoSection
-        corporateInfo={application.corporateInfo}
-        companyName={application.companyName}
-        businessNumber={application.businessNumber}
-        corporateRegistryNumber={application.corporateRegistryNumber}
-        establishedDate={application.establishedDate}
-        corporateAddress={application.corporateAddress}
-        corporateNationality={application.corporateNationality}
-        industry={application.industry}
-        businessDescription={application.businessDescription}
-      />
+      {/* Corporate Info Section - 제거됨: OrganizationInfoSection으로 대체 */}
+
+      {/* 신규: 법인 상세 정보 */}
+      {reviewData?.organization && (
+        <OrganizationInfoSection
+          organization={reviewData.organization}
+          files={reviewData.files}
+        />
+      )}
+
+      {/* 신규: 대표자 KYC */}
+      {reviewData?.representative && (
+        <RepresentativeKYCSection
+          representative={reviewData.representative}
+          files={reviewData.files}
+        />
+      )}
+
+      {/* 신규: 소유자 상세 */}
+      {reviewData?.owners && reviewData.owners.length > 0 && (
+        <OwnersDetailSection owners={reviewData.owners} />
+      )}
 
       {/* UBO Structure (외부 검증 결과 읽기 전용) */}
       {application.ubo && <UBOStructureViewer ubo={application.ubo} />}
+
+      {/* 신규: 사업/재무 정보 */}
+      {reviewData?.businessInfo && (
+        <BusinessFinanceSection
+          businessInfo={reviewData.businessInfo}
+          files={reviewData.files}
+        />
+      )}
 
       {/* Corporate Risk Assessment Section (외부 결과 읽기 전용) */}
       {application.riskAssessment && (

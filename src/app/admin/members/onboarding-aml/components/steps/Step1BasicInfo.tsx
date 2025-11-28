@@ -15,6 +15,10 @@ interface Step1Data {
   establishmentDate: string;
   corporateType: string;
   industryType: string;
+  zipCode: string;
+  address: string;
+  addressDetail: string;
+  phone: string;
   contactName: string;
   contactEmail: string;
   contactPhone: string;
@@ -122,6 +126,51 @@ export function Step1BasicInfo({ data, onChange }: Step1Props) {
               value={data.industryType}
               onChange={(e) => onChange({ industryType: e.target.value })}
               placeholder="정보통신업"
+            />
+          </div>
+
+          {/* 법인 전화번호 */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">법인 전화번호</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={data.phone}
+              onChange={(e) => onChange({ phone: e.target.value })}
+              placeholder="02-1234-5678"
+            />
+          </div>
+
+          {/* 우편번호 */}
+          <div className="space-y-2">
+            <Label htmlFor="zipCode">우편번호</Label>
+            <Input
+              id="zipCode"
+              value={data.zipCode}
+              onChange={(e) => onChange({ zipCode: e.target.value })}
+              placeholder="06234"
+            />
+          </div>
+
+          {/* 법인 주소 */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="address">법인 주소</Label>
+            <Input
+              id="address"
+              value={data.address}
+              onChange={(e) => onChange({ address: e.target.value })}
+              placeholder="서울특별시 강남구 테헤란로 123"
+            />
+          </div>
+
+          {/* 상세 주소 */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="addressDetail">상세 주소</Label>
+            <Input
+              id="addressDetail"
+              value={data.addressDetail}
+              onChange={(e) => onChange({ addressDetail: e.target.value })}
+              placeholder="테크빌딩 10층"
             />
           </div>
         </div>
