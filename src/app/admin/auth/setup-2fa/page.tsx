@@ -4,36 +4,36 @@
  * Google Authenticator QR 코드 스캔 및 활성화
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { fetchWithCsrf } from '@/lib/fetchWithCsrf';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect } from "react";
+import { fetchWithCsrf } from "@/lib/fetchWithCsrf";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { ShieldCheckIcon, Smartphone } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import Image from 'next/image';
+} from "@/components/ui/card";
+import { ShieldCheckIcon, Smartphone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import Image from "next/image";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function Setup2FAPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, logout } = useAdminAuth();
 
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
-  const [secret, setSecret] = useState<string>('');
-  const [verificationCode, setVerificationCode] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [secret, setSecret] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -44,7 +44,7 @@ export default function Setup2FAPage() {
 
       // 로그인 중 2FA 설정인 경우 임시 정보 사용
       if (!emailToUse) {
-        const tempData = localStorage.getItem('temp-2fa-setup');
+        const tempData = localStorage.getItem("temp-2fa-setup");
         if (tempData) {
           const parsed = JSON.parse(tempData);
           emailToUse = parsed.user?.email;
@@ -52,7 +52,7 @@ export default function Setup2FAPage() {
       }
 
       if (!emailToUse) {
-        router.push('/admin/auth/login');
+        router.push("/admin/auth/login");
         return;
       }
 
@@ -60,9 +60,9 @@ export default function Setup2FAPage() {
         setIsLoading(true);
 
         const response = await fetch(`${API_URL}/api/admin/auth/setup-2fa`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ email: emailToUse }),
         });
@@ -70,18 +70,21 @@ export default function Setup2FAPage() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || '2FA 설정 초기화에 실패했습니다.');
+          throw new Error(data.error || "2FA 설정 초기화에 실패했습니다.");
         }
 
         setQrCodeDataUrl(data.data.qrCodeDataUrl);
         setSecret(data.data.secret);
       } catch (error) {
         toast({
-          variant: 'destructive',
-          title: '오류',
-          description: error instanceof Error ? error.message : '2FA 설정 초기화에 실패했습니다.'
+          variant: "destructive",
+          title: "오류",
+          description:
+            error instanceof Error
+              ? error.message
+              : "2FA 설정 초기화에 실패했습니다.",
         });
-        router.push('/admin/dashboard');
+        router.push("/admin/dashboard");
       } finally {
         setIsLoading(false);
       }
@@ -96,8 +99,8 @@ export default function Setup2FAPage() {
 
     if (verificationCode.length !== 6) {
       toast({
-        variant: 'destructive',
-        description: '6자리 인증 코드를 입력하세요.'
+        variant: "destructive",
+        description: "6자리 인증 코드를 입력하세요.",
       });
       return;
     }
@@ -109,37 +112,40 @@ export default function Setup2FAPage() {
 
       // 임시 정보 확인
       if (!emailToUse) {
-        const tempData = localStorage.getItem('temp-2fa-setup');
+        const tempData = localStorage.getItem("temp-2fa-setup");
         if (tempData) {
           const parsed = JSON.parse(tempData);
           emailToUse = parsed.user?.email;
         }
       }
 
-      const response = await fetch(`${API_URL}/api/admin/auth/verify-2fa-setup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: emailToUse,
-          code: verificationCode
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/api/admin/auth/verify-2fa-setup`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: emailToUse,
+            code: verificationCode,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || '코드 검증에 실패했습니다.');
+        throw new Error(data.error || "코드 검증에 실패했습니다.");
       }
 
       toast({
-        title: '2FA 활성화 완료',
-        description: '2단계 인증이 활성화되었습니다. 다시 로그인해주세요.'
+        title: "2FA 활성화 완료",
+        description: "2단계 인증이 활성화되었습니다. 다시 로그인해주세요.",
       });
 
       // 임시 정보 삭제
-      localStorage.removeItem('temp-2fa-setup');
+      localStorage.removeItem("temp-2fa-setup");
 
       // 로그아웃 후 재로그인
       setTimeout(async () => {
@@ -147,15 +153,15 @@ export default function Setup2FAPage() {
           await logout();
         } else {
           // 로그인 페이지로 이동
-          window.location.href = '/admin/auth/login';
+          window.location.href = "/admin/auth/login";
         }
       }, 1500);
-
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: '오류',
-        description: error instanceof Error ? error.message : '코드 검증에 실패했습니다.'
+        variant: "destructive",
+        title: "오류",
+        description:
+          error instanceof Error ? error.message : "코드 검증에 실패했습니다.",
       });
     } finally {
       setIsVerifying(false);
@@ -164,7 +170,7 @@ export default function Setup2FAPage() {
 
   // 나중에 설정
   const handleSkip = () => {
-    router.push('/admin/dashboard');
+    router.push("/admin/dashboard");
   };
 
   if (isLoading) {
@@ -204,7 +210,7 @@ export default function Setup2FAPage() {
             )}
 
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">Secret Key (수동 입력용)</p>
+              <p className="text-sm text-gray-600 mb-2">Secret Key</p>
               <code className="text-sm font-mono bg-gray-100 px-3 py-2 rounded border border-gray-200">
                 {secret}
               </code>
@@ -236,7 +242,9 @@ export default function Setup2FAPage() {
                 inputMode="numeric"
                 maxLength={6}
                 value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) =>
+                  setVerificationCode(e.target.value.replace(/\D/g, ""))
+                }
                 placeholder="000000"
                 className="text-center text-2xl tracking-widest font-mono"
                 autoComplete="off"
@@ -259,7 +267,7 @@ export default function Setup2FAPage() {
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700"
                 disabled={isVerifying || verificationCode.length !== 6}
               >
-                {isVerifying ? '검증 중...' : '활성화'}
+                {isVerifying ? "검증 중..." : "활성화"}
               </Button>
             </div>
           </form>
