@@ -199,9 +199,21 @@ export async function executeReturn(id: string): Promise<{
 }
 
 /**
+ * 반환 취소 파라미터
+ */
+export interface CancelReturnRequest {
+  reason?: string;
+}
+
+/**
  * 반환 취소
  */
-export async function cancelReturn(id: string): Promise<{ message: string }> {
-  const response = await apiClient.delete(`/deposit-returns/${id}`);
+export async function cancelReturn(
+  id: string,
+  request?: CancelReturnRequest
+): Promise<{ message: string }> {
+  const response = await apiClient.delete(`/deposit-returns/${id}`, {
+    data: request,
+  });
   return response.data;
 }

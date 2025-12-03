@@ -502,6 +502,22 @@ export default function AuditLogsPage() {
                                         </>
                                       )}
 
+                                      {/* 입금 환불 관련 정보 */}
+                                      {(log.resource === "depositReturns" || log.resource === "deposit-returns") && log.details?.changes && (
+                                        <div className="mt-3">
+                                          <div className="text-xs font-semibold text-gray-700 mb-2">환불 상세 내역</div>
+                                          {log.details.changes.map((change: string, idx: number) => (
+                                            <div key={idx} className="text-xs text-gray-600 mb-1">
+                                              {idx === 0 ? (
+                                                <div className="font-semibold text-gray-800 mb-1">{change}</div>
+                                              ) : (
+                                                <div className="ml-2">- {change}</div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
                                       {/* 사용자 생성/수정 관련 정보 */}
                                       {log.resource !== "groups" && log.details.body && (
                                         <>
