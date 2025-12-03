@@ -13,16 +13,12 @@ export default function ApprovalsReportPage() {
 
   const fetchStatistics = async () => {
     try {
-      const authData = localStorage.getItem("admin-auth");
-      const token = authData ? JSON.parse(authData).accessToken : null;
       const response = await fetch(
         `${
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
         }/api/reports/approvals/statistics`,
         {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          credentials: "include",
         }
       );
 

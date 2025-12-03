@@ -16,8 +16,6 @@ export default function TransactionsReportPage() {
 
   const fetchTransactions = async () => {
     try {
-      const authData = localStorage.getItem("admin-auth");
-      const token = authData ? JSON.parse(authData).accessToken : null;
       const params = new URLSearchParams({ limit: "100" });
       if (memberType !== "all") {
         params.append("memberType", memberType);
@@ -28,9 +26,7 @@ export default function TransactionsReportPage() {
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
         }/api/reports/transactions?${params}`,
         {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          credentials: "include",
         }
       );
 

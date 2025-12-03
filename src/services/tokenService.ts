@@ -13,6 +13,8 @@ export interface SupportedToken {
   withdrawalFee: string;
   withdrawalFeeType: 'fixed' | 'percentage';
   requiredConfirmations: number | null;
+  returnFeeType: 'fixed' | 'percent';
+  returnFeeValue: string;
   customTokenRequestId?: string;
   createdAt: string;
   updatedAt: string;
@@ -41,6 +43,8 @@ export interface UpdateTokenSettingsRequest {
   minWithdrawalAmount?: number;
   withdrawalFee?: number;
   withdrawalFeeType?: 'fixed' | 'percentage';
+  returnFeeType?: 'fixed' | 'percent';
+  returnFeeValue?: number;
   requiredConfirmations?: number | null;
   isActive?: boolean;
 }

@@ -99,7 +99,7 @@ export async function getReturns(params: GetReturnsParams = {}): Promise<GetRetu
     queryParams.asset = asset;
   }
 
-  const response = await apiClient.get<GetReturnsResponse>('/api/deposit-returns', {
+  const response = await apiClient.get<GetReturnsResponse>('/deposit-returns', {
     params: queryParams,
   });
 
@@ -110,7 +110,7 @@ export async function getReturns(params: GetReturnsParams = {}): Promise<GetRetu
  * 반환 상세 조회
  */
 export async function getReturnById(id: string): Promise<ReturnTransaction> {
-  const response = await apiClient.get<ReturnTransaction>(`/api/deposit-returns/${id}`);
+  const response = await apiClient.get<ReturnTransaction>(`/deposit-returns/${id}`);
   return response.data;
 }
 
@@ -119,7 +119,7 @@ export async function getReturnById(id: string): Promise<ReturnTransaction> {
  */
 export async function getReturnStats(): Promise<ReturnStats> {
   // 모든 반환 데이터 조회
-  const response = await apiClient.get<GetReturnsResponse>('/api/deposit-returns', {
+  const response = await apiClient.get<GetReturnsResponse>('/deposit-returns', {
     params: { _limit: 10000 },
   });
 
@@ -166,7 +166,7 @@ export async function createReturn(
   request: CreateReturnRequest
 ): Promise<ReturnTransaction> {
   const response = await apiClient.post<ReturnTransaction>(
-    `/api/deposits/${depositId}/return`,
+    `/deposits/${depositId}/return`,
     request
   );
   return response.data;
@@ -180,7 +180,7 @@ export async function approveReturn(
   request: ApproveReturnRequest
 ): Promise<ReturnTransaction> {
   const response = await apiClient.post<ReturnTransaction>(
-    `/api/deposit-returns/${id}/approve`,
+    `/deposit-returns/${id}/approve`,
     request
   );
   return response.data;
@@ -194,7 +194,7 @@ export async function executeReturn(id: string): Promise<{
   txHash: string;
   depositReturn: ReturnTransaction;
 }> {
-  const response = await apiClient.post(`/api/deposit-returns/${id}/execute`);
+  const response = await apiClient.post(`/deposit-returns/${id}/execute`);
   return response.data;
 }
 
@@ -202,6 +202,6 @@ export async function executeReturn(id: string): Promise<{
  * 반환 취소
  */
 export async function cancelReturn(id: string): Promise<{ message: string }> {
-  const response = await apiClient.delete(`/api/deposit-returns/${id}`);
+  const response = await apiClient.delete(`/deposit-returns/${id}`);
   return response.data;
 }

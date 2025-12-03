@@ -16,14 +16,88 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ReturnTransaction, Currency } from '@/types/deposit';
-import { ExternalLink, AlertCircle } from 'lucide-react';
+import { ExternalLink, AlertCircle, Check, X } from 'lucide-react';
+import { formatCryptoAmount } from '@/lib/format';
+import { approveReturn, cancelReturn } from '@/services/depositReturnApiService';
+import { useToast } from '@/hooks/use-toast';
 
 interface ReturnQueueTableProps {
   returns: ReturnTransaction[];
   onReturnClick?: (returnId: string) => void;
+  onRefresh?: () => void;
 }
 
-export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTableProps) {
+export function ReturnQueueTable({ returns, onReturnClick, onRefresh }: ReturnQueueTableProps) {
+  const { toast } = useToast();
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  const handleApprove = async (returnTx: ReturnTransaction) => {
+    if (processingIds.has(returnTx.id)) return;
+
+    try {
+      setProcessingIds(prev => new Set(prev).add(returnTx.id));
+
+      // 관리자 ID는 임시로 'admin'으로 설정 (추후 실제 관리자 정보 사용)
+      await approveReturn(returnTx.id, { approvedBy: 'admin' });
+
+      toast({
+        description: '환불이 승인되어 블록체인 트랜잭션이 전송되었습니다.',
+      });
+
+      // 목록 새로고침
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: '환불 승인 실패',
+        description: error.response?.data?.error || '환불 승인 중 오류가 발생했습니다.',
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(returnTx.id);
+        return next;
+      });
+    }
+  };
+
+  const handleReject = async (returnTx: ReturnTransaction) => {
+    if (processingIds.has(returnTx.id)) return;
+
+    if (!confirm(`정말 이 환불을 거부하시겠습니까?\n\n자산: ${returnTx.asset}\n금액: ${formatCryptoAmount(returnTx.returnAmount, returnTx.asset)}\n사유: ${getReasonLabel(returnTx.reason)}`)) {
+      return;
+    }
+
+    try {
+      setProcessingIds(prev => new Set(prev).add(returnTx.id));
+
+      await cancelReturn(returnTx.id);
+
+      toast({
+        description: '환불이 거부되었습니다.',
+      });
+
+      // 목록 새로고침
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: '환불 거부 실패',
+        description: error.response?.data?.error || '환불 거부 중 오류가 발생했습니다.',
+      });
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(returnTx.id);
+        return next;
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -131,6 +205,7 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
         <TableHeader>
           <TableRow>
             <TableHead>상태</TableHead>
+            <TableHead>회원</TableHead>
             <TableHead>원본 TxHash</TableHead>
             <TableHead>환불 사유</TableHead>
             <TableHead>자산</TableHead>
@@ -144,9 +219,43 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
           </TableRow>
         </TableHeader>
         <TableBody>
-          {returns.map((returnTx) => (
+          {returns.map((returnTx) => {
+            const user = returnTx.deposit?.user;
+            const memberType = user?.memberType;
+            const isCorporate = memberType === 'corporate';
+
+            return (
             <TableRow key={returnTx.id} className="hover:bg-muted/50">
               <TableCell>{getStatusBadge(returnTx.status)}</TableCell>
+
+              <TableCell>
+                {user ? (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {isCorporate ? '기업' : '개인'}
+                      </Badge>
+                      <span className="font-medium">
+                        {isCorporate && user.organizationName
+                          ? user.organizationName
+                          : user.name}
+                      </span>
+                    </div>
+                    {isCorporate && returnTx.deposit?.organizationId && (
+                      <code className="text-xs text-muted-foreground">
+                        {returnTx.deposit.organizationId}
+                      </code>
+                    )}
+                    {!isCorporate && returnTx.deposit?.userId && (
+                      <code className="text-xs text-muted-foreground">
+                        {returnTx.deposit.userId}
+                      </code>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </TableCell>
 
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -164,19 +273,19 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
               </TableCell>
 
               <TableCell>
-                <Badge variant="outline">{returnTx.currency}</Badge>
+                <Badge variant="outline">{returnTx.asset}</Badge>
               </TableCell>
 
               <TableCell className="text-right font-mono">
-                {parseFloat(returnTx.returnAmount).toFixed(8)}
+                {formatCryptoAmount(returnTx.originalAmount, returnTx.asset)}
               </TableCell>
 
               <TableCell className="text-right font-mono text-muted-foreground">
-                {returnTx.networkFee ? parseFloat(returnTx.networkFee).toFixed(8) : '-'}
+                {returnTx.returnFee ? formatCryptoAmount(returnTx.returnFee, returnTx.asset) : '0'}
               </TableCell>
 
               <TableCell className="text-right font-mono font-semibold">
-                {parseFloat(returnTx.returnAmount).toFixed(8)}
+                {formatCryptoAmount(returnTx.returnAmount, returnTx.asset)}
               </TableCell>
 
               <TableCell>
@@ -187,7 +296,7 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
-                {returnTx.processedAt ? formatDate(returnTx.processedAt) : '-'}
+                {returnTx.requestedAt ? formatDate(returnTx.requestedAt) : '-'}
               </TableCell>
 
               <TableCell className="text-sm text-muted-foreground">
@@ -195,23 +304,68 @@ export function ReturnQueueTable({ returns, onReturnClick }: ReturnQueueTablePro
               </TableCell>
 
               <TableCell className="text-center">
-                {returnTx.returnTxHash && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      window.open(
-                        `https://etherscan.io/tx/${returnTx.returnTxHash}`,
-                        '_blank'
-                      );
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
+                <div className="flex items-center justify-center gap-2">
+                  {/* pending 상태: 승인/거부 버튼 */}
+                  {returnTx.status === 'pending' && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-xs bg-sky-50 text-sky-600 border-sky-200 hover:bg-sky-100"
+                        onClick={() => handleApprove(returnTx)}
+                        disabled={processingIds.has(returnTx.id)}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        승인
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-3 text-xs bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                        onClick={() => handleReject(returnTx)}
+                        disabled={processingIds.has(returnTx.id)}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        거부
+                      </Button>
+                    </>
+                  )}
+
+                  {/* processing 상태: 블록체인 전송 중 */}
+                  {returnTx.status === 'processing' && (
+                    <span className="text-xs text-yellow-600 font-medium">블록체인 전송 중...</span>
+                  )}
+
+                  {/* completed 상태: Etherscan 링크 */}
+                  {returnTx.status === 'completed' && returnTx.returnTxHash && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        window.open(
+                          `https://etherscan.io/tx/${returnTx.returnTxHash}`,
+                          '_blank'
+                        );
+                      }}
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+
+                  {/* failed 상태 */}
+                  {returnTx.status === 'failed' && (
+                    <span className="text-xs text-red-600 font-medium">실패</span>
+                  )}
+
+                  {/* cancelled 상태 */}
+                  {returnTx.status === 'cancelled' && (
+                    <span className="text-xs text-gray-600 font-medium">취소됨</span>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>

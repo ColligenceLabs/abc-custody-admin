@@ -4,42 +4,68 @@
  * 검증 실패로 환불이 필요한 입금을 관리하는 페이지
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { ReturnStats, ReturnStatsData } from './components/ReturnStats';
-import { ReturnFilters, ReturnFilterState } from './components/ReturnFilters';
-import { ReturnQueueTable } from './components/ReturnQueueTable';
-import { ReturnTransaction } from '@/types/deposit';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  getReturns,
-  getReturnStats,
-} from '@/services/depositReturnApiService';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { ReturnStats, ReturnStatsData } from "./components/ReturnStats";
+import { ReturnFilters, ReturnFilterState } from "./components/ReturnFilters";
+import { ReturnQueueTable } from "./components/ReturnQueueTable";
+import { ReturnTransaction } from "@/types/deposit";
+import { getReturns, getReturnStats } from "@/services/depositReturnApiService";
+import { getSocketClient } from "@/lib/socket-client";
 
 export default function ReturnsPage() {
   const [filters, setFilters] = useState<ReturnFilterState>({});
 
   // 반환 통계 조회 (5분마다 백그라운드 동기화)
   const { data: stats, isLoading: isStatsLoading } = useQuery({
-    queryKey: ['returnStats'],
+    queryKey: ["returnStats"],
     queryFn: getReturnStats,
     refetchInterval: 5 * 60 * 1000, // 5분
   });
 
   // 반환 목록 조회 (5분마다 백그라운드 동기화)
-  const { data: returnsData, isLoading: isReturnsLoading, refetch } = useQuery({
-    queryKey: ['returns', filters],
-    queryFn: () => getReturns({
-      status: filters.status,
-      page: 1,
-      pageSize: 1000,
-    }),
+  const {
+    data: returnsData,
+    isLoading: isReturnsLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["returns", filters],
+    queryFn: () =>
+      getReturns({
+        status: filters.status,
+        page: 1,
+        pageSize: 1000,
+      }),
     refetchInterval: 5 * 60 * 1000, // 5분
   });
+
+  // 웹소켓 연결 및 실시간 업데이트
+  useEffect(() => {
+    const socket = getSocketClient();
+
+    // 환불 상태 업데이트 이벤트 수신
+    socket.on('depositReturn:update', (data: any) => {
+      console.log('[DepositReturn] 실시간 업데이트:', data.depositReturn);
+
+      // 목록 새로고침
+      refetch();
+    });
+
+    return () => {
+      socket.off('depositReturn:update');
+    };
+  }, [refetch]);
 
   // 수동 새로고침
   const handleManualRefresh = () => {
@@ -59,9 +85,15 @@ export default function ReturnsPage() {
     // 검색 쿼리
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
-      const matchesTxHash = returnTx.originalTxHash.toLowerCase().includes(query);
-      const matchesReturnTxHash = returnTx.returnTxHash?.toLowerCase().includes(query);
-      const matchesAddress = returnTx.returnAddress.toLowerCase().includes(query);
+      const matchesTxHash = returnTx.originalTxHash
+        .toLowerCase()
+        .includes(query);
+      const matchesReturnTxHash = returnTx.returnTxHash
+        ?.toLowerCase()
+        .includes(query);
+      const matchesAddress = returnTx.returnAddress
+        .toLowerCase()
+        .includes(query);
 
       if (!matchesTxHash && !matchesReturnTxHash && !matchesAddress) {
         return false;
@@ -89,7 +121,9 @@ export default function ReturnsPage() {
           onClick={handleManualRefresh}
           disabled={loading}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+          />
           새로고침
         </Button>
       </div>
@@ -102,7 +136,8 @@ export default function ReturnsPage() {
         <CardHeader>
           <CardTitle>반환 대기열</CardTitle>
           <CardDescription>
-            총 {filteredReturns.length}개의 반환 요청 (전체 {returns.length}건 중)
+            총 {filteredReturns.length}개의 반환 요청 (전체 {returns.length}건
+            중)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -115,34 +150,8 @@ export default function ReturnsPage() {
               <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <ReturnQueueTable returns={filteredReturns} />
+            <ReturnQueueTable returns={filteredReturns} onRefresh={refetch} />
           )}
-        </CardContent>
-      </Card>
-
-      {/* 안내 메시지 */}
-      <Card className="bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
-        <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-400">
-            반환 처리 프로세스
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-blue-800 dark:text-blue-300 space-y-2">
-          <p>
-            <strong>1. 요청 (Pending)</strong>: 관리자가 미검증 입금에 대해 반환 요청을 생성합니다.
-          </p>
-          <p>
-            <strong>2. 승인 (Approved)</strong>: 권한 있는 관리자가 반환 요청을 검토하고 승인합니다.
-          </p>
-          <p>
-            <strong>3. 실행 (Processing)</strong>: 승인된 반환이 블록체인 트랜잭션으로 실행됩니다.
-          </p>
-          <p>
-            <strong>4. 완료 (Completed)</strong>: 블록체인 컨펌을 받아 반환이 최종 완료됩니다.
-          </p>
-          <p className="pt-2 border-t border-blue-200 dark:border-blue-800 font-semibold">
-            반환 시 네트워크 수수료를 제외한 금액이 지정된 주소로 전송됩니다.
-          </p>
         </CardContent>
       </Card>
     </div>

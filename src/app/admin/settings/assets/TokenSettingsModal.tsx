@@ -45,6 +45,8 @@ export default function TokenSettingsModal({
     minWithdrawalAmount: parseFloat(token.minWithdrawalAmount),
     withdrawalFee: parseFloat(token.withdrawalFee),
     withdrawalFeeType: token.withdrawalFeeType,
+    returnFeeType: token.returnFeeType,
+    returnFeeValue: parseFloat(token.returnFeeValue),
     requiredConfirmations: token.requiredConfirmations,
     isActive: token.isActive,
   });
@@ -56,6 +58,8 @@ export default function TokenSettingsModal({
         minWithdrawalAmount: parseFloat(token.minWithdrawalAmount),
         withdrawalFee: parseFloat(token.withdrawalFee),
         withdrawalFeeType: token.withdrawalFeeType,
+        returnFeeType: token.returnFeeType,
+        returnFeeValue: parseFloat(token.returnFeeValue),
         requiredConfirmations: token.requiredConfirmations,
         isActive: token.isActive,
       });
@@ -107,16 +111,37 @@ export default function TokenSettingsModal({
                 최소 출금 수량 ({token.symbol})
               </label>
               <input
-                type="number"
-                step="0.00000001"
+                type="text"
+                inputMode="decimal"
                 required
                 value={formData.minWithdrawalAmount}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    minWithdrawalAmount: parseFloat(e.target.value),
-                  })
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // 숫자와 소수점만 허용 (입력 중 소수점 유지)
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData({
+                      ...formData,
+                      minWithdrawalAmount: value as any,
+                    });
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === '' || value === '.') {
+                    setFormData({
+                      ...formData,
+                      minWithdrawalAmount: 0,
+                    });
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      setFormData({
+                        ...formData,
+                        minWithdrawalAmount: numValue,
+                      });
+                    }
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder="0.00000000"
               />
@@ -173,16 +198,39 @@ export default function TokenSettingsModal({
                   : '(%)'}
               </label>
               <input
-                type="number"
-                step={formData.withdrawalFeeType === 'fixed' ? '0.00000001' : '0.01'}
+                type="text"
+                inputMode="decimal"
                 required
                 value={formData.withdrawalFee}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    withdrawalFee: parseFloat(e.target.value),
-                  })
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // 숫자와 소수점만 허용 (입력 중 소수점 유지)
+                  if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    setFormData({
+                      ...formData,
+                      withdrawalFee: value as any,
+                    });
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value.trim();
+                  if (value === '' || value === '.') {
+                    setFormData({
+                      ...formData,
+                      withdrawalFee: 0,
+                    });
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && numValue >= 0) {
+                      // 퍼센트 타입인 경우 최대값 80 제한
+                      const maxValue = formData.withdrawalFeeType === 'percentage' ? 80 : Infinity;
+                      setFormData({
+                        ...formData,
+                        withdrawalFee: Math.min(numValue, maxValue),
+                      });
+                    }
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 placeholder={
                   formData.withdrawalFeeType === 'fixed' ? '0.00000000' : '0.00'
@@ -191,8 +239,106 @@ export default function TokenSettingsModal({
               <p className="mt-1 text-xs text-gray-500">
                 {formData.withdrawalFeeType === 'fixed'
                   ? '출금 시 부과되는 고정 수수료입니다.'
-                  : '출금 금액의 퍼센트로 부과되는 수수료입니다.'}
+                  : '출금 금액의 퍼센트로 부과되는 수수료입니다. (최대 80%)'}
               </p>
+            </div>
+
+            {/* 환불 수수료 설정 */}
+            <div className="pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">환불 수수료 설정</h3>
+
+              {/* 환불 수수료 타입 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  환불 수수료 타입
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="fixed"
+                      checked={formData.returnFeeType === 'fixed'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          returnFeeType: e.target.value as 'fixed' | 'percent',
+                        })
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">고정 수수료</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="percent"
+                      checked={formData.returnFeeType === 'percent'}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          returnFeeType: e.target.value as 'fixed' | 'percent',
+                        })
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">퍼센트 수수료</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 환불 수수료 값 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  환불 수수료{' '}
+                  {formData.returnFeeType === 'fixed'
+                    ? `(${token.symbol})`
+                    : '(%)'}
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  value={formData.returnFeeValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // 숫자와 소수점만 허용 (입력 중 소수점 유지)
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({
+                        ...formData,
+                        returnFeeValue: value as any,
+                      });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value.trim();
+                    if (value === '' || value === '.') {
+                      setFormData({
+                        ...formData,
+                        returnFeeValue: 0,
+                      });
+                    } else {
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        // 퍼센트 타입인 경우 최대값 80 제한
+                        const maxValue = formData.returnFeeType === 'percent' ? 80 : Infinity;
+                        setFormData({
+                          ...formData,
+                          returnFeeValue: Math.min(numValue, maxValue),
+                        });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder={
+                    formData.returnFeeType === 'fixed' ? '0.00000000' : '0.00'
+                  }
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {formData.returnFeeType === 'fixed'
+                    ? '미검증 입금 환불 시 부과되는 고정 수수료입니다.'
+                    : '환불 금액의 퍼센트로 부과되는 수수료입니다. (최대 80%)'}
+                </p>
+              </div>
             </div>
 
             {/* 입금 컨펌 수 설정 */}

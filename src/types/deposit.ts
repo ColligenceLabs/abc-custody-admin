@@ -54,6 +54,7 @@ export type MemberType = 'Individual' | 'Corporate';
 export interface DepositTransaction {
   id: string;
   userId: string;
+  organizationId?: string; // 기업회원인 경우 조직 ID
   depositAddressId: string;
   txHash: string;
   asset: string;
@@ -77,6 +78,7 @@ export interface DepositTransaction {
     name: string;
     email: string;
     memberType: string; // 'individual' | 'corporate'
+    organizationName?: string; // 기업회원인 경우 조직명
   };
 
   // 선택적 UI 전용 필드
@@ -291,8 +293,9 @@ export interface ReturnTransaction {
   originalAmount: string;
   networkFee: string | null;
   returnAmount: string;
+  returnFee: string | null; // 환불 수수료 (Treasury Vault로 전송되는 금액)
+  returnFeeTxHash?: string | null; // 환불 수수료 트랜잭션 해시
   asset: string;
-  currency?: string; // asset의 alias (하위 호환성)
   network: string;
   status: ReturnStatus;
   reason: string;
@@ -301,7 +304,6 @@ export interface ReturnTransaction {
   approvedBy?: string | null;
   requestedAt: string;
   approvedAt?: string | null;
-  processedAt?: string | null;
   executedAt?: string | null;
   completedAt?: string | null;
   createdAt?: string;

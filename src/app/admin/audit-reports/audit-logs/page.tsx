@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, ChevronDown, ChevronRight, User, FileText, Globe, AlertCircle } from "lucide-react";
+import {
+  getActionLabel,
+  getResourceLabel,
+  getResultLabel,
+  getRoleLabel,
+  getMemberTypeLabel,
+  getStatusLabel,
+  formatDateTime,
+  formatRelativeTime,
+  parseUserAgent,
+  truncateDynamic,
+  getFieldLabel,
+} from "@/utils/auditLogFormatters";
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState([]);
@@ -168,10 +181,19 @@ export default function AuditLogsPage() {
                         {new Date(log.createdAt).toLocaleString("ko-KR")}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {log.userName || log.userId}
+                        <div>
+                          {log.userRole && log.userName?.includes('@') ? (
+                            <span>{getRoleLabel(log.userRole)}</span>
+                          ) : (
+                            <span>{log.userName || log.userId}</span>
+                          )}
+                        </div>
+                        {log.memberType === 'corporate' && log.organizationName && (
+                          <span className="text-gray-500 text-xs">({log.organizationName})</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-sm">{log.action}</td>
-                      <td className="px-4 py-3 text-sm">{log.resource}</td>
+                      <td className="px-4 py-3 text-sm">{getActionLabel(log.action, log.details)}</td>
+                      <td className="px-4 py-3 text-sm">{getResourceLabel(log.resource)}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${
@@ -180,7 +202,7 @@ export default function AuditLogsPage() {
                               : "bg-red-50 text-red-600"
                           }`}
                         >
-                          {log.result}
+                          {getResultLabel(log.result)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm font-mono">
@@ -190,58 +212,383 @@ export default function AuditLogsPage() {
                     {isExpanded && (
                       <tr key={`${log.id}-details`} className="bg-gray-50">
                         <td colSpan={8} className="px-4 py-4">
-                          <div className="space-y-3 text-sm">
-                            <div className="bg-white p-3 rounded border border-gray-300">
-                              <span className="font-semibold text-gray-900">ID:</span>
-                              <span className="ml-2 text-gray-700 font-mono text-sm break-all">{log.id}</span>
-                            </div>
-                            <div>
-                              <div>
-                                <span className="font-medium text-gray-700">사용자 ID:</span>
-                                <span className="ml-2 text-gray-600">{log.userId}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">역할:</span>
-                                <span className="ml-2 text-gray-600">{log.userRole || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">회원 유형:</span>
-                                <span className="ml-2 text-gray-600">{log.memberType || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">조직 ID:</span>
-                                <span className="ml-2 text-gray-600">{log.organizationId || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">리소스 ID:</span>
-                                <span className="ml-2 text-gray-600">{log.resourceId || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">세션 ID:</span>
-                                <span className="ml-2 text-gray-600 font-mono text-xs">{log.sessionId || '-'}</span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-700">User Agent:</span>
-                                <span className="ml-2 text-gray-600 text-xs break-all">{log.userAgent || '-'}</span>
-                              </div>
-                            </div>
-                            {log.details && (
-                              <div className="mt-3">
-                                <span className="font-medium text-gray-700">상세 정보:</span>
-                                <pre className="mt-1 p-3 bg-white rounded border border-gray-200 text-xs overflow-x-auto">
-                                  {JSON.stringify(log.details, null, 2)}
-                                </pre>
-                              </div>
-                            )}
-                            {log.errorMessage && (
-                              <div className="mt-3">
-                                <span className="font-medium text-red-700">에러 메시지:</span>
-                                <div className="mt-1 p-3 bg-red-50 rounded border border-red-200 text-red-700">
-                                  {log.errorMessage}
+                          {(() => {
+                            const userAgentInfo = parseUserAgent(log.userAgent);
+                            return (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* 기본 정보 */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                    <User className="w-4 h-4 text-sky-600" />
+                                    기본 정보
+                                  </div>
+                                  <div className="pl-6 space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">작업자:</span>
+                                      <span className="text-gray-900 font-medium">
+                                        {log.userId === 'anonymous' && log.details?.targetUser?.name
+                                          ? log.details.targetUser.name
+                                          : log.userRole && log.userName?.includes('@')
+                                          ? getRoleLabel(log.userRole)
+                                          : log.userName || log.userId}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">작업 시간:</span>
+                                      <span className="text-gray-900 font-medium">
+                                        {formatDateTime(log.createdAt)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600"></span>
+                                      <span className="text-gray-500 text-xs">
+                                        {formatRelativeTime(log.createdAt)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">ID:</span>
+                                      <span className="text-gray-900 font-mono text-xs">
+                                        {log.id}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
+
+                                {/* 작업 내용 */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                    <FileText className="w-4 h-4 text-sky-600" />
+                                    작업 내용
+                                  </div>
+                                  <div className="pl-6 space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">작업:</span>
+                                      <span className="text-gray-900 font-medium">
+                                        {getActionLabel(log.action, log.details)}
+                                      </span>
+                                    </div>
+                                    {!["login", "logout", "first_login"].includes(log.action) && (
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">대상:</span>
+                                        <span className="text-gray-900 font-medium">
+                                          {getResourceLabel(log.resource)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {log.details?.targetUser?.roleChange?.previousRole &&
+                                      log.details?.targetUser?.roleChange?.newRole && (
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">역할 변경:</span>
+                                          <span className="text-gray-900 font-medium">
+                                            {getRoleLabel(log.details.targetUser.roleChange.previousRole)}
+                                            {" → "}
+                                            {getRoleLabel(log.details.targetUser.roleChange.newRole)}
+                                          </span>
+                                        </div>
+                                      )}
+                                    {(log.result === "FAILED" || log.errorMessage) && (
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">결과:</span>
+                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                          log.result === "SUCCESS"
+                                            ? "bg-sky-50 text-sky-600"
+                                            : "bg-red-50 text-red-600"
+                                        }`}>
+                                          {getResultLabel(log.result)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {log.errorMessage && (
+                                      <div className="mt-2">
+                                        <span className="text-gray-600 block mb-1">오류 메시지:</span>
+                                        <div className="bg-red-50 border border-red-200 rounded p-2 text-xs text-red-700">
+                                          {log.errorMessage}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* 접속 정보 */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                    <Globe className="w-4 h-4 text-sky-600" />
+                                    접속 정보
+                                  </div>
+                                  <div className="pl-6 space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">IP 주소:</span>
+                                      <span className="text-gray-900 font-mono text-xs">
+                                        {log.ipAddress || "-"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">브라우저:</span>
+                                      <span className="text-gray-900 text-xs">
+                                        {log.userId === "system" ? "-" : userAgentInfo.browser}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">디바이스:</span>
+                                      <span className="text-gray-900 text-xs">
+                                        {log.userId === "system" ? "-" : userAgentInfo.os}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* 상세 내역 */}
+                                {log.details && Object.keys(log.details).length > 0 && (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                      <AlertCircle className="w-4 h-4 text-sky-600" />
+                                      상세 내역
+                                    </div>
+                                    <div className="pl-6 space-y-2 text-sm">
+                                      {/* 로그인 관련 정보 */}
+                                      {log.details.email && ["login", "first_login"].includes(log.action) && (
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">이메일:</span>
+                                          <span className="text-gray-900">{log.details.email}</span>
+                                        </div>
+                                      )}
+                                      {log.details.gaSetupCompleted && (
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">GA 설정:</span>
+                                          <span className="text-gray-900">완료</span>
+                                        </div>
+                                      )}
+                                      {(log.details.loginMethods || log.details.loginMethod) && (
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">인증 방법:</span>
+                                          <span className="text-gray-900">
+                                            {log.details.loginMethods
+                                              ? Array.isArray(log.details.loginMethods)
+                                                ? log.details.loginMethods
+                                                    .map((method: string) => {
+                                                      if (method === "sms_pin") return "SMS PIN";
+                                                      if (method === "google_otp") return "Google 인증";
+                                                      if (method === "password") return "비밀번호";
+                                                      return method;
+                                                    })
+                                                    .join(" + ")
+                                                : log.details.loginMethods
+                                              : log.details.loginMethod === "google_otp"
+                                              ? "SMS PIN + Google 인증"
+                                              : log.details.loginMethod === "password"
+                                              ? "비밀번호"
+                                              : log.details.loginMethod}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {log.details.sessionCount !== undefined && (
+                                        <div className="flex justify-between">
+                                          <span className="text-gray-600">종료된 세션:</span>
+                                          <span className="text-gray-900">{log.details.sessionCount}개</span>
+                                        </div>
+                                      )}
+
+                                      {/* 역할 변경 정보 */}
+                                      {log.details.targetUser?.roleChange && (
+                                        <>
+                                          {log.details.targetUser.roleChange.previousRole &&
+                                            log.details.targetUser.roleChange.newRole && (
+                                              <div className="flex justify-between">
+                                                <span className="text-gray-600">역할 변경:</span>
+                                                <span className="text-gray-900">
+                                                  {getRoleLabel(log.details.targetUser.roleChange.previousRole)}
+                                                  {" → "}
+                                                  {getRoleLabel(log.details.targetUser.roleChange.newRole)}
+                                                </span>
+                                              </div>
+                                            )}
+                                        </>
+                                      )}
+
+                                      {/* 필드 변경 정보 */}
+                                      {log.details.targetUser?.fieldChanges &&
+                                        Object.keys(log.details.targetUser.fieldChanges).length > 0 && (
+                                          <div className="mt-3 pt-3 border-t border-gray-200">
+                                            <div className="text-xs font-semibold text-gray-700 mb-2">
+                                              변경된 필드
+                                            </div>
+                                            {Object.entries(log.details.targetUser.fieldChanges).map(
+                                              ([field, change]: [string, any]) => (
+                                                <div key={field} className="flex justify-between text-xs mb-1">
+                                                  <span className="text-gray-600">{getFieldLabel(field)}:</span>
+                                                  <span className="text-gray-900">
+                                                    <span className="text-red-600 line-through">{change.before || "-"}</span>
+                                                    {" → "}
+                                                    <span className="text-sky-600 font-medium">{change.after || "-"}</span>
+                                                  </span>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+
+                                      {/* 출금 관련 정보 */}
+                                      {log.resource === "withdrawals" && log.details && (
+                                        <>
+                                          {(log.details.amount || log.details.body?.amount) && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">금액:</span>
+                                              <span className="text-gray-900 font-medium">
+                                                {parseFloat(log.details.amount || log.details.body?.amount)}{" "}
+                                                {log.details.currency || log.details.asset || log.details.body?.currency}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {(log.details.krwAmount || log.details.body?.krwAmount) && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">KRW 환산:</span>
+                                              <span className="text-gray-900">
+                                                ₩{parseFloat(log.details.krwAmount || log.details.body?.krwAmount).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {(log.details.status || log.details.body?.status) && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">상태:</span>
+                                              <span className="text-gray-900">
+                                                {getStatusLabel(log.details.status || log.details.body?.status)}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {(log.details.toAddress || log.details.body?.toAddress) && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">출금 주소:</span>
+                                              <span className="text-gray-900 font-mono text-xs">
+                                                {truncateDynamic(log.details.toAddress || log.details.body?.toAddress, 50)}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* 입금 관련 정보 */}
+                                      {log.resource === "deposits" && (
+                                        <>
+                                          {log.details.amount && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">금액:</span>
+                                              <span className="text-gray-900 font-medium">
+                                                {parseFloat(log.details.amount)} {log.details.asset}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {log.details.krwAmount && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">KRW 환산:</span>
+                                              <span className="text-gray-900">
+                                                ₩{parseFloat(log.details.krwAmount).toLocaleString("ko-KR", { maximumFractionDigits: 0 })}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {log.details.status && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">상태:</span>
+                                              <span className="text-gray-900">{getStatusLabel(log.details.status)}</span>
+                                            </div>
+                                          )}
+                                          {log.details.txHash && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">트랜잭션:</span>
+                                              <span className="text-gray-900 font-mono text-xs">
+                                                {truncateDynamic(log.details.txHash, 50)}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* 사용자 생성/수정 관련 정보 */}
+                                      {log.resource !== "groups" && log.details.body && (
+                                        <>
+                                          {log.details.body.name && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">사용자명:</span>
+                                              <span className="text-gray-900">{log.details.body.name}</span>
+                                            </div>
+                                          )}
+                                          {log.details.body.email && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">이메일:</span>
+                                              <span className="text-gray-900">{log.details.body.email}</span>
+                                            </div>
+                                          )}
+                                          {log.details.body.role && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">역할:</span>
+                                              <span className="text-gray-900">{getRoleLabel(log.details.body.role)}</span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* 그룹 관련 정보 */}
+                                      {log.resource === "groups" && (
+                                        <>
+                                          {log.details.groupName && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">그룹명:</span>
+                                              <span className="text-gray-900 font-medium">{log.details.groupName}</span>
+                                            </div>
+                                          )}
+                                          {log.details.approverName && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">승인자:</span>
+                                              <span className="text-gray-900">{log.details.approverName}</span>
+                                            </div>
+                                          )}
+                                          {log.details.approvalProgress && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">승인 진행:</span>
+                                              <span className="text-gray-900">{log.details.approvalProgress}</span>
+                                            </div>
+                                          )}
+                                          {log.details.oldStatus && log.details.newStatus && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">상태 변경:</span>
+                                              <span className="text-gray-900">
+                                                <span className="text-red-600 line-through">{getStatusLabel(log.details.oldStatus)}</span>
+                                                {" → "}
+                                                <span className="text-sky-600 font-medium">{getStatusLabel(log.details.newStatus)}</span>
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* 회사 설정 관련 정보 */}
+                                      {log.resource === "company" && log.details?.changes && (
+                                        <div className="mt-3">
+                                          <div className="text-xs font-semibold text-gray-700 mb-2">변경 내역</div>
+                                          {log.details.changes.map((change: string, idx: number) => (
+                                            <div key={idx} className="text-xs text-gray-600 mb-1">
+                                              - {change}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* 토큰 설정 관련 정보 */}
+                                      {log.resource === "supportedTokens" && log.details?.changes && (
+                                        <div className="mt-3">
+                                          <div className="text-xs font-semibold text-gray-700 mb-2">변경 내역</div>
+                                          {log.details.changes.map((change: string, idx: number) => (
+                                            <div key={idx} className="text-xs text-gray-600 mb-1">
+                                              - {change}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     )}
