@@ -33,10 +33,6 @@ export interface ReturnStats {
     count: number;
     volumeKRW: string;
   };
-  approved: {
-    count: number;
-    volumeKRW: string;
-  };
   processing: {
     count: number;
     volumeKRW: string;
@@ -46,6 +42,10 @@ export interface ReturnStats {
     volumeKRW: string;
   };
   failed: {
+    count: number;
+    volumeKRW: string;
+  };
+  cancelled: {
     count: number;
     volumeKRW: string;
   };
@@ -115,7 +115,7 @@ export async function getReturnById(id: string): Promise<ReturnTransaction> {
 }
 
 /**
- * 반환 통계 조회
+ * 반환 통계 조회 (오늘 날짜 데이터만)
  */
 export async function getReturnStats(): Promise<ReturnStats> {
   // 모든 반환 데이터 조회
@@ -124,6 +124,18 @@ export async function getReturnStats(): Promise<ReturnStats> {
   });
 
   const returns = response.data.data || response.data;
+
+  // 오늘 날짜 범위 설정 (00:00:00 ~ 23:59:59)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // 오늘 데이터만 필터링
+  const todayReturns = (Array.isArray(returns) ? returns : []).filter((returnTx: ReturnTransaction) => {
+    const requestedAt = new Date(returnTx.requestedAt);
+    return requestedAt >= today && requestedAt < tomorrow;
+  });
 
   // KRW 환율 (임시 - 추후 실제 환율 API 사용)
   const exchangeRates: Record<string, number> = {
@@ -137,13 +149,13 @@ export async function getReturnStats(): Promise<ReturnStats> {
   // 상태별 통계 계산
   const stats: ReturnStats = {
     pending: { count: 0, volumeKRW: '0' },
-    approved: { count: 0, volumeKRW: '0' },
     processing: { count: 0, volumeKRW: '0' },
     completed: { count: 0, volumeKRW: '0' },
     failed: { count: 0, volumeKRW: '0' },
+    cancelled: { count: 0, volumeKRW: '0' },
   };
 
-  (Array.isArray(returns) ? returns : []).forEach((returnTx: ReturnTransaction) => {
+  todayReturns.forEach((returnTx: ReturnTransaction) => {
     const status = returnTx.status;
     if (stats[status as keyof ReturnStats]) {
       stats[status as keyof ReturnStats].count++;

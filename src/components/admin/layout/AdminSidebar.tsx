@@ -29,6 +29,7 @@ import {
   FileSignature,
   CheckSquare,
   AlertTriangle,
+  Coins,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -320,13 +321,6 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     ],
   },
   {
-    id: 'settings',
-    label: '설정',
-    href: '/admin/settings',
-    icon: Settings,
-    requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-  },
-  {
     id: 'audit-reports',
     label: '감사 및 리포트',
     href: '/admin/audit-reports',
@@ -362,6 +356,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         href: '/admin/system/admins',
         icon: Users,
         requiredPermissions: [{ resource: AdminResource.ADMIN_USERS, action: AdminAction.READ }],
+      },
+      {
+        id: 'system-assets',
+        label: '자산 관리',
+        href: '/admin/system/assets',
+        icon: Coins,
+        requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
       },
     ],
   },

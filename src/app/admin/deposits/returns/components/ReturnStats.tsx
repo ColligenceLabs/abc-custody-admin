@@ -5,14 +5,10 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowDownUp, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Clock, ArrowDownUp, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 export interface ReturnStatsData {
   pending: {
-    count: number;
-    volumeKRW: string;
-  };
-  approved: {
     count: number;
     volumeKRW: string;
   };
@@ -25,6 +21,10 @@ export interface ReturnStatsData {
     volumeKRW: string;
   };
   failed: {
+    count: number;
+    volumeKRW: string;
+  };
+  cancelled: {
     count: number;
     volumeKRW: string;
   };
@@ -45,14 +45,6 @@ export function ReturnStats({ stats }: ReturnStatsProps) {
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/10',
     },
     {
-      title: '승인됨',
-      count: stats.approved.count,
-      volume: parseFloat(stats.approved.volumeKRW).toLocaleString(),
-      icon: CheckCircle2,
-      iconColor: 'text-sky-600',
-      bgColor: 'bg-sky-50 dark:bg-sky-900/10',
-    },
-    {
       title: '처리중',
       count: stats.processing.count,
       volume: parseFloat(stats.processing.volumeKRW).toLocaleString(),
@@ -65,13 +57,21 @@ export function ReturnStats({ stats }: ReturnStatsProps) {
       count: stats.completed.count,
       volume: parseFloat(stats.completed.volumeKRW).toLocaleString(),
       icon: CheckCircle2,
-      iconColor: 'text-indigo-600',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-900/10',
+      iconColor: 'text-green-600',
+      bgColor: 'bg-green-50 dark:bg-green-900/10',
     },
     {
       title: '실패',
       count: stats.failed.count,
       volume: parseFloat(stats.failed.volumeKRW).toLocaleString(),
+      icon: AlertTriangle,
+      iconColor: 'text-orange-600',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/10',
+    },
+    {
+      title: '취소',
+      count: stats.cancelled.count,
+      volume: parseFloat(stats.cancelled.volumeKRW).toLocaleString(),
       icon: XCircle,
       iconColor: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-900/10',

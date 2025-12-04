@@ -55,15 +55,15 @@ export default function ReturnsPage() {
     const socket = getSocketClient();
 
     // 환불 상태 업데이트 이벤트 수신
-    socket.on('depositReturn:update', (data: any) => {
-      console.log('[DepositReturn] 실시간 업데이트:', data.depositReturn);
+    socket.on("depositReturn:update", (data: any) => {
+      console.log("[DepositReturn] 실시간 업데이트:", data.depositReturn);
 
       // 목록 새로고침
       refetch();
     });
 
     return () => {
-      socket.off('depositReturn:update');
+      socket.off("depositReturn:update");
     };
   }, [refetch]);
 
@@ -75,6 +75,13 @@ export default function ReturnsPage() {
   // 필터링된 환불 목록 (클라이언트 사이드 필터링)
   const returns = returnsData?.data || [];
   const filteredReturns = returns.filter((returnTx) => {
+    // 상태 필터
+    if (filters.status && filters.status.length > 0) {
+      if (!filters.status.includes(returnTx.status as any)) {
+        return false;
+      }
+    }
+
     // 환불 사유 필터
     if (filters.reason && filters.reason.length > 0) {
       if (!filters.reason.includes(returnTx.reason as any)) {
@@ -82,20 +89,54 @@ export default function ReturnsPage() {
       }
     }
 
-    // 검색 쿼리
+    // 날짜 필터
+    if (filters.startDate || filters.endDate) {
+      const requestedAt = new Date(returnTx.requestedAt);
+
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (requestedAt < start) {
+          return false;
+        }
+      }
+
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (requestedAt > end) {
+          return false;
+        }
+      }
+    }
+
+    // 검색 쿼리 (TxHash, 회원사명, 주소)
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
+
+      // TxHash 검색
       const matchesTxHash = returnTx.originalTxHash
         .toLowerCase()
         .includes(query);
       const matchesReturnTxHash = returnTx.returnTxHash
         ?.toLowerCase()
         .includes(query);
+
+      // 주소 검색
       const matchesAddress = returnTx.returnAddress
         .toLowerCase()
         .includes(query);
 
-      if (!matchesTxHash && !matchesReturnTxHash && !matchesAddress) {
+      // 회원사명 검색
+      const user = returnTx.deposit?.user;
+      const matchesOrgName = user?.organizationName
+        ?.toLowerCase()
+        .includes(query) || false;
+      const matchesUserName = user?.name
+        ?.toLowerCase()
+        .includes(query) || false;
+
+      if (!matchesTxHash && !matchesReturnTxHash && !matchesAddress && !matchesOrgName && !matchesUserName) {
         return false;
       }
     }
@@ -134,9 +175,9 @@ export default function ReturnsPage() {
       {/* 반환 대기열 테이블 */}
       <Card>
         <CardHeader>
-          <CardTitle>반환 대기열</CardTitle>
+          <CardTitle>환불 대기</CardTitle>
           <CardDescription>
-            총 {filteredReturns.length}개의 반환 요청 (전체 {returns.length}건
+            총 {filteredReturns.length}개의 환불 대기 (전체 {returns.length}건
             중)
           </CardDescription>
         </CardHeader>
