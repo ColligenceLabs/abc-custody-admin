@@ -4,7 +4,6 @@ import './globals.css'
 
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { QueryProvider } from '@/components/providers/QueryProvider'
-import { initializeTestEnvironment } from '@/utils/testApiServices'
 import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -19,11 +18,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Initialize test environment in development
-  if (typeof window !== 'undefined') {
-    initializeTestEnvironment();
-  }
-
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>

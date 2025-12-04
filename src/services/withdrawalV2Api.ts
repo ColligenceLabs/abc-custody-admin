@@ -33,10 +33,6 @@ import {
   AMLReview
 } from '@/types/withdrawalV2';
 
-// Import existing Phase 4 services for data sharing
-import { vaultApi } from './vaultApi';
-import { mockDb } from './mockDatabase';
-
 // Import API client for backend connection
 import { apiClient, transformApiError } from './api';
 
@@ -77,7 +73,8 @@ class WithdrawalV2ApiService {
     await delay(API_DELAY.MEDIUM);
 
     // 1. 기존 Phase 4 볼트 상태 조회 (데이터 공유)
-    const vaultStatus = await vaultApi.getVaultStatus();
+    // TODO: Mock API removed - implement real vault status API if needed
+    // const vaultStatus = await vaultApi.getVaultStatus();
 
     // 2. 블록체인별 볼트 상태 계산
     const bitcoinVault = this.calculateBlockchainVault('BITCOIN', 'mainnet');
