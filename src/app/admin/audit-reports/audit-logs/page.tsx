@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Download, ChevronDown, ChevronRight, User, FileText, Globe, AlertCircle } from "lucide-react";
+import { Download, ChevronDown, ChevronRight, User, FileText, Globe, AlertCircle, FileDown, Search, X } from "lucide-react";
 import {
   getActionLabel,
   getResourceLabel,
@@ -14,15 +14,27 @@ import {
   parseUserAgent,
   truncateDynamic,
   getFieldLabel,
+  ACTION_OPTIONS,
+  RESOURCE_OPTIONS,
+  RESULT_OPTIONS,
 } from "@/utils/auditLogFormatters";
+import { generateAdminAuditLogPDF, AdminAuditLog } from "@/utils/adminAuditLogPdfGenerator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuditLogsPage() {
+  const { toast } = useToast();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     page: 1,
     limit: 100,
+    startDate: "",
+    endDate: "",
+    action: "",
+    resource: "",
+    result: "",
+    search: "",
   });
 
   useEffect(() => {
@@ -36,6 +48,14 @@ export default function AuditLogsPage() {
         page: filters.page.toString(),
         limit: filters.limit.toString(),
       });
+
+      // 필터 파라미터 추가 (값이 있는 경우에만)
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
+      if (filters.action) params.append("action", filters.action);
+      if (filters.resource) params.append("resource", filters.resource);
+      if (filters.result) params.append("result", filters.result);
+      if (filters.search) params.append("userId", filters.search);
 
       const response = await fetch(
         `${
@@ -95,13 +115,58 @@ export default function AuditLogsPage() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+        toast({ description: "CSV 파일이 다운로드되었습니다." });
       } else {
         console.error("내보내기 실패:", response.status, response.statusText);
+        toast({ variant: "destructive", description: "CSV 내보내기에 실패했습니다." });
       }
     } catch (error) {
       console.error("내보내기 오류:", error);
+      toast({ variant: "destructive", description: "CSV 내보내기 중 오류가 발생했습니다." });
     }
   };
+
+  const handleDownloadPDF = async (log: any) => {
+    try {
+      await generateAdminAuditLogPDF(log as AdminAuditLog);
+      toast({ description: "PDF 파일이 다운로드되었습니다." });
+    } catch (error) {
+      console.error('PDF 다운로드 실패:', error);
+      toast({
+        variant: "destructive",
+        description: "PDF 다운로드에 실패했습니다."
+      });
+    }
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      page: 1, // 필터 변경 시 첫 페이지로 이동
+    }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      page: 1,
+      limit: 100,
+      startDate: "",
+      endDate: "",
+      action: "",
+      resource: "",
+      result: "",
+      search: "",
+    });
+  };
+
+  const hasActiveFilters =
+    filters.startDate ||
+    filters.endDate ||
+    filters.action ||
+    filters.resource ||
+    filters.result ||
+    filters.search;
 
   return (
     <div className="space-y-6">
@@ -119,6 +184,121 @@ export default function AuditLogsPage() {
           <Download className="w-4 h-4" />
           CSV 내보내기
         </button>
+      </div>
+
+      {/* 필터 섹션 */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">필터</h2>
+          {hasActiveFilters && (
+            <button
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              초기화
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 시작 날짜 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              시작 날짜
+            </label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => handleFilterChange("startDate", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* 종료 날짜 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              종료 날짜
+            </label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => handleFilterChange("endDate", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* 작업 유형 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              작업 유형
+            </label>
+            <select
+              value={filters.action}
+              onChange={(e) => handleFilterChange("action", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            >
+              {ACTION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 리소스 유형 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              리소스 유형
+            </label>
+            <select
+              value={filters.resource}
+              onChange={(e) => handleFilterChange("resource", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            >
+              {RESOURCE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 결과 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              결과
+            </label>
+            <select
+              value={filters.result}
+              onChange={(e) => handleFilterChange("result", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            >
+              {RESULT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 사용자/조직 검색 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              사용자/조직 검색
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
+                placeholder="사용자 ID 또는 조직명"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -212,6 +392,16 @@ export default function AuditLogsPage() {
                     {isExpanded && (
                       <tr key={`${log.id}-details`} className="bg-gray-50">
                         <td colSpan={8} className="px-4 py-4">
+                          {/* PDF 다운로드 버튼 */}
+                          <div className="flex justify-end mb-4">
+                            <button
+                              onClick={() => handleDownloadPDF(log)}
+                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg transition-colors"
+                            >
+                              <FileDown className="w-4 h-4" />
+                              PDF 다운로드
+                            </button>
+                          </div>
                           {(() => {
                             const userAgentInfo = parseUserAgent(log.userAgent);
                             return (

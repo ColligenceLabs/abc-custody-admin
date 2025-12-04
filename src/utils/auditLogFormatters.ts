@@ -1,8 +1,8 @@
-// 감사 로그 포맷팅 유틸리티 함수들
-// abc-custody 프론트엔드와 동일한 한글화 적용
+/**
+ * 감사 로그 포맷팅 유틸리티 함수들
+ */
 
 export const getActionLabel = (action: string, details?: any): string => {
-  // 역할 변경 및 다른 필드 변경 확인
   const hasRoleChange =
     details?.targetUser?.roleChange?.previousRole &&
     details?.targetUser?.roleChange?.newRole;
@@ -12,13 +12,9 @@ export const getActionLabel = (action: string, details?: any): string => {
       (field) => field !== "role"
     );
 
-  if (hasRoleChange && hasOtherFieldChanges) {
-    return "권한변경 및 수정";
-  } else if (hasRoleChange) {
-    return "권한변경";
-  }
+  if (hasRoleChange && hasOtherFieldChanges) return "권한변경 및 수정";
+  if (hasRoleChange) return "권한변경";
 
-  // URL 기반으로 더 구체적인 작업 라벨 제공
   if (details?.url || details?.path) {
     const url = details.url || details.path;
     if (url.includes("/send-verification-email")) return "이메일 재발송";
@@ -29,7 +25,7 @@ export const getActionLabel = (action: string, details?: any): string => {
     create: "생성",
     read: "조회",
     update: "수정",
-    delete: "거부",
+    delete: "삭제",
     login: "로그인",
     logout: "로그아웃",
     first_login: "최초 로그인",
@@ -58,21 +54,20 @@ export const getResourceLabel = (resource: string): string => {
     users: "사용자",
     withdrawals: "출금",
     deposits: "입금",
-    "deposit-returns": "입금 환불",
     depositReturns: "입금 환불",
+    "deposit-returns": "입금 환불",
     groups: "그룹",
     company: "회사 설정",
-    supportedTokens: "지원 토큰",
     addresses: "주소",
     balances: "잔액",
     settings: "설정",
-    "/": "사용자", // 이전 잘못된 데이터 호환
+    supportedTokens: "지원 토큰 설정",
+    "/": "사용자",
   };
-
   return resourceMap[resource] || resource;
 };
 
-export const getRoleLabel = (role: string): string => {
+export const getRoleLabel = (roleValue: string): string => {
   const roleMap: Record<string, string> = {
     super_admin: "슈퍼 관리자",
     system_admin: "시스템 관리자",
@@ -82,21 +77,15 @@ export const getRoleLabel = (role: string): string => {
     viewer: "뷰어",
     user: "사용자",
   };
-
-  return roleMap[role] || role;
-};
-
-export const getResultLabel = (result: string): string => {
-  return result === "SUCCESS" ? "성공" : "실패";
+  return roleMap[roleValue] || roleValue;
 };
 
 export const getMemberTypeLabel = (memberType: string): string => {
-  const memberTypeMap: Record<string, string> = {
-    individual: "개인",
-    corporate: "기업",
+  const typeMap: Record<string, string> = {
+    individual: "개인회원",
+    corporate: "법인회원",
   };
-
-  return memberTypeMap[memberType] || memberType;
+  return typeMap[memberType] || memberType || "-";
 };
 
 export const getStatusLabel = (status: string): string => {
@@ -123,13 +112,15 @@ export const getStatusLabel = (status: string): string => {
     blockchain_failed: "블록체인 실패",
     withdrawal_stopped: "출금 중지",
   };
-
   return statusMap[status] || status;
 };
 
+export const getResultLabel = (result: string): string => {
+  return result === "SUCCESS" ? "성공" : "실패";
+};
+
 export const formatDateTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("ko-KR", {
+  return new Date(dateString).toLocaleString("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -137,7 +128,7 @@ export const formatDateTime = (dateString: string): string => {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-  }).format(date);
+  });
 };
 
 export const formatRelativeTime = (dateString: string): string => {
@@ -155,12 +146,9 @@ export const formatRelativeTime = (dateString: string): string => {
   return formatDateTime(dateString);
 };
 
-export const parseUserAgent = (
-  userAgent: string | null
-): { browser: string; os: string } => {
+export const parseUserAgent = (userAgent: string | null | undefined): { browser: string; os: string } => {
   if (!userAgent) return { browser: "-", os: "-" };
 
-  // 브라우저 파싱
   let browser = "Unknown";
   const chromeMatch = userAgent.match(/Chrome\/([\d]+)/);
   const firefoxMatch = userAgent.match(/Firefox\/([\d]+)/);
@@ -177,7 +165,6 @@ export const parseUserAgent = (
     browser = `Safari ${safariMatch[1]}`;
   }
 
-  // OS 파싱
   let os = "Unknown";
   if (userAgent.includes("Windows")) os = "Windows";
   else if (userAgent.includes("Mac")) os = "macOS";
@@ -189,16 +176,12 @@ export const parseUserAgent = (
 };
 
 export const truncateDynamic = (text: string, maxChars: number): string => {
-  if (!text || text.length <= maxChars) {
-    return text;
-  }
-
+  if (!text || text.length <= maxChars) return text;
   const dotsLength = 3;
   const availableChars = maxChars - dotsLength;
   const frontChars = Math.ceil(availableChars * 0.65);
   const backChars = availableChars - frontChars;
-
-  return `${text.slice(0, frontChars)}...${text.slice(-backChars)}`;
+  return text.slice(0, frontChars) + "..." + text.slice(-backChars);
 };
 
 export const getFieldLabel = (field: string): string => {
@@ -211,6 +194,45 @@ export const getFieldLabel = (field: string): string => {
     role: "역할",
     status: "상태",
   };
-
   return fieldLabels[field] || field;
 };
+
+// 필터 옵션 상수
+export const ACTION_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "login", label: "로그인" },
+  { value: "logout", label: "로그아웃" },
+  { value: "first_login", label: "최초 로그인" },
+  { value: "create", label: "생성" },
+  { value: "read", label: "조회" },
+  { value: "update", label: "수정" },
+  { value: "delete", label: "삭제" },
+  { value: "approve", label: "승인" },
+  { value: "reject", label: "반려" },
+  { value: "suspend", label: "정지" },
+  { value: "reactivate", label: "재활성화" },
+  { value: "credit", label: "입금 완료" },
+  { value: "detect", label: "입금 감지" },
+  { value: "complete", label: "출금 완료" },
+  { value: "transfer", label: "전송중" },
+  { value: "aml_review", label: "보안검증" },
+];
+
+export const RESOURCE_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "auth", label: "인증" },
+  { value: "users", label: "사용자" },
+  { value: "withdrawals", label: "출금" },
+  { value: "deposits", label: "입금" },
+  { value: "groups", label: "그룹" },
+  { value: "company", label: "회사 설정" },
+  { value: "addresses", label: "주소" },
+  { value: "balances", label: "잔액" },
+  { value: "settings", label: "설정" },
+];
+
+export const RESULT_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "SUCCESS", label: "성공" },
+  { value: "FAILED", label: "실패" },
+];
