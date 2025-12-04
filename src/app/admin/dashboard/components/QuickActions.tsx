@@ -19,7 +19,7 @@ export function QuickActions() {
       icon: UserPlus,
       label: '회원사 등록',
       description: '새 회원사 등록',
-      onClick: () => router.push('/admin/members/onboarding'),
+      onClick: () => router.push('/admin/members/onboarding-aml'),
       color: 'text-sapphire-600 dark:text-sapphire-400',
     },
     {

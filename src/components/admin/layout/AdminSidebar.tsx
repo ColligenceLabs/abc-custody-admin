@@ -93,13 +93,6 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         icon: Activity,
         requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
       },
-      // {
-      //   id: 'members-list',
-      //   label: '회원사 목록',
-      //   href: '/admin/members/list',
-      //   icon: Users,
-      //   requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.READ }],
-      // },
     ],
   },
   {
@@ -116,27 +109,6 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         icon: ArrowDown,
         requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.READ }],
       },
-      // {
-      //   id: 'deposits-address-verification',
-      //   label: '주소 검증',
-      //   href: '/admin/deposits/address-verification',
-      //   icon: BadgeIcon,
-      //   requiredPermissions: [{ resource: AdminResource.DEPOSITS, action: AdminAction.READ }],
-      // },
-      // {
-      //   id: 'deposits-aml',
-      //   label: 'AML 검토',
-      //   href: '/admin/deposits/aml-screening',
-      //   icon: Shield,
-      //   requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
-      // },
-      // {
-      //   id: 'deposits-travel-rule',
-      //   label: 'Travel Rule 검증',
-      //   href: '/admin/deposits/travel-rule',
-      //   icon: FileText,
-      //   requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
-      // },
       {
         id: 'deposits-returns',
         label: '환불 처리',
@@ -193,13 +165,6 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     icon: ArrowUp,
     requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
     children: [
-      // {
-      //   id: 'withdrawal-v2-dashboard',
-      //   label: '통합 대시보드',
-      //   href: '/admin/withdrawal-v2/dashboard',
-      //   icon: LayoutDashboard,
-      //   requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.READ }],
-      // },
       {
         id: 'withdrawal-v2-requests',
         label: '출금 모니터링',
@@ -207,45 +172,8 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         icon: Activity,
         requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.UPDATE }],
       },
-      // {
-      //   id: 'withdrawal-v2-vault-check',
-      //   label: '볼트 체크 & 리밸런싱',
-      //   href: '/admin/withdrawal-v2/vault-check',
-      //   icon: ArrowDownUp,
-      //   requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
-      // },
-      // {
-      //   id: 'withdrawal-v2-signing',
-      //   label: '통합 서명 센터',
-      //   href: '/admin/withdrawal-v2/signing',
-      //   icon: FileSignature,
-      //   requiredPermissions: [{ resource: AdminResource.WITHDRAWALS, action: AdminAction.APPROVE }],
-      // },
     ],
   },
-  // {
-  //   id: 'vault',
-  //   label: '볼트 관리',
-  //   href: '/admin/vault',
-  //   icon: Vault,
-  //   requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-  //   children: [
-  //     {
-  //       id: 'vault-monitoring',
-  //       label: '모니터링',
-  //       href: '/admin/vault/monitoring',
-  //       icon: LayoutDashboard,
-  //       requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
-  //     },
-  //     {
-  //       id: 'vault-rebalancing',
-  //       label: '리밸런싱',
-  //       href: '/admin/vault/rebalancing',
-  //       icon: ArrowDownUp,
-  //       requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.UPDATE }],
-  //     },
-  //   ],
-  // },
   // {
   //   id: 'compliance',
   //   label: '컴플라이언스',

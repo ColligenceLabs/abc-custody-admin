@@ -691,8 +691,8 @@ class MockDatabase {
         category: NotificationCategory.OPERATIONS,
         title: 'Hot Wallet 리밸런싱 필요',
         message: 'Hot 지갑 비율이 목표치를 3% 초과했습니다. (23% vs 20%)',
-        actionUrl: '/admin/vault/rebalancing',
-        actionLabel: '리밸런싱하기',
+        actionUrl: '/admin/withdrawal-v2/requests',
+        actionLabel: '출금 관리',
         metadata: {
           vaultId: 'vault-main',
           previousStatus: '20%',

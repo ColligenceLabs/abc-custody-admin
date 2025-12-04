@@ -299,13 +299,18 @@ class EmailNotificationService {
     member: Member,
     assignedAdmins: AdminUser[]
   ): Promise<string | null> {
+    // 회원 타입에 따른 대시보드 URL 결정
+    const dashboardPath = member.memberType === 'corporate'
+      ? `members/onboarding-aml/review/corporate/${member.id}`
+      : `members/onboarding-aml/review/${member.id}`;
+
     const variables = {
       companyName: getMemberName(member),
       stageName: this.getStageDisplayName(stage),
       applicationId: member.id,
       overdueHours: this.calculateOverdueHours(stage),
       escalationThreshold: '24시간',
-      dashboardUrl: `https://admin.custody.com/members/onboarding/${member.id}`
+      dashboardUrl: `https://admin.custody.com/${dashboardPath}`
     };
 
     const payload: Omit<EmailNotificationPayload, 'id'> = {
