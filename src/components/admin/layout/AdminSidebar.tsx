@@ -435,22 +435,27 @@ export function AdminSidebar({ collapsed = false, onToggleCollapse }: AdminSideb
       )}
     >
       {/* Logo Section */}
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-r from-sapphire-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Vault className="h-5 w-5 text-white" />
+      <div className={`flex items-center h-16 ${collapsed ? 'justify-center px-2' : 'px-4'}`}>
+        {collapsed ? (
+          <img
+            src="/logo/ABCcw_logo_symbol.png"
+            alt="ABC Logo"
+            className="h-5 w-5 object-contain"
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo/ABCcw_logo_symbol.png"
+              alt="ABC Logo"
+              className="h-6 w-6 object-contain"
+            />
+            <img
+              src="/logo/ABCcw_logo_text.png"
+              alt="ABC Custody Wallet"
+              className="h-4 w-auto object-contain"
+            />
           </div>
-          {!collapsed && (
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Custody Admin
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                관리 시스템
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Navigation Menu */}
