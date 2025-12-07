@@ -122,6 +122,10 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
   const [idCardImageUrl, setIdCardImageUrl] = useState<string | null>(null);
   const [selfieImageUrl, setSelfieImageUrl] = useState<string | null>(null);
 
+  // 이미지 에러 상태 (XSS 방어: innerHTML 대신 React state 사용)
+  const [idCardImageError, setIdCardImageError] = useState(false);
+  const [selfieImageError, setSelfieImageError] = useState(false);
+
   // 이미지 모달 상태
   const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
@@ -253,21 +257,18 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
                   onClick={() => handleOpenImage('idcard')}
                   className="cursor-pointer border rounded-lg overflow-hidden hover:border-primary-500 transition-colors group relative w-32 h-24"
                 >
-                  {idCardImageUrl ? (
+                  {idCardImageError ? (
+                    <div className="w-full h-24 flex items-center justify-center bg-muted text-muted-foreground text-xs border rounded-lg">
+                      이미지 로딩 실패
+                    </div>
+                  ) : idCardImageUrl ? (
                     <>
                       <img
                         src={idCardImageUrl}
                         alt="신분증"
                         className="w-full h-full object-contain bg-gray-50"
                         crossOrigin="anonymous"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent && parent.parentElement) {
-                            parent.parentElement.innerHTML = '<div class="w-full h-24 flex items-center justify-center bg-muted text-muted-foreground text-xs border rounded-lg">이미지 로딩 실패</div>';
-                          }
-                        }}
+                        onError={() => setIdCardImageError(true)}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
                         <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -288,21 +289,18 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
                   onClick={() => handleOpenImage('selfie')}
                   className="cursor-pointer border rounded-lg overflow-hidden hover:border-primary-500 transition-colors group relative w-32 h-24"
                 >
-                  {selfieImageUrl ? (
+                  {selfieImageError ? (
+                    <div className="w-full h-24 flex items-center justify-center bg-muted text-muted-foreground text-xs border rounded-lg">
+                      이미지 로딩 실패
+                    </div>
+                  ) : selfieImageUrl ? (
                     <>
                       <img
                         src={selfieImageUrl}
                         alt="셀피"
                         className="w-full h-full object-cover bg-gray-50"
                         crossOrigin="anonymous"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent && parent.parentElement) {
-                            parent.parentElement.innerHTML = '<div class="w-full h-24 flex items-center justify-center bg-muted text-muted-foreground text-xs border rounded-lg">이미지 로딩 실패</div>';
-                          }
-                        }}
+                        onError={() => setSelfieImageError(true)}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
                         <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

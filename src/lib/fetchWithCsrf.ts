@@ -1,12 +1,22 @@
 /**
  * CSRF 토큰이 자동으로 포함되는 fetch wrapper
+ * 보안 강화: TTL 기반 캐싱으로 토큰 자동 갱신
  */
 
-let csrfTokenCache: string | null = null;
+interface CsrfTokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+let csrfTokenCache: CsrfTokenCache | null = null;
+const CSRF_TOKEN_TTL = 5 * 60 * 1000; // 5분
 
 async function getCsrfToken(): Promise<string> {
-  if (csrfTokenCache) {
-    return csrfTokenCache;
+  const now = Date.now();
+
+  // 캐시된 토큰이 유효한지 확인
+  if (csrfTokenCache && now < csrfTokenCache.expiresAt) {
+    return csrfTokenCache.token;
   }
 
   try {
@@ -18,7 +28,13 @@ async function getCsrfToken(): Promise<string> {
     if (response.ok) {
       const data = await response.json();
       const token = data.csrfToken || '';
-      csrfTokenCache = token;
+
+      // TTL과 함께 캐싱
+      csrfTokenCache = {
+        token,
+        expiresAt: now + CSRF_TOKEN_TTL
+      };
+
       return token;
     }
   } catch (error) {

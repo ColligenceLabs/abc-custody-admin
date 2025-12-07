@@ -11,16 +11,28 @@ export const AUTH_STORAGE_KEY = 'admin-auth';
 export const TOKEN_STORAGE_KEY = 'admin-token';
 export const REFRESH_TOKEN_STORAGE_KEY = 'admin-refresh-token';
 
+// 보안 강화: localStorage에 저장되는 최소 정보만 포함 (XSS 공격 시 노출 최소화)
 export interface StoredAuth {
-  user: AdminUser;
+  userId: string;           // 사용자 ID만 저장
+  role: AdminRole;          // 역할 (권한 체크용)
+  name: string;             // 이름 (UI 표시용)
   expiresAt: number;
   sessionId?: string;
   // accessToken과 refreshToken은 HttpOnly 쿠키로만 관리되므로 localStorage에 저장하지 않음
+  // 상세 정보는 필요 시 getUserInfo() API로 조회
+}
+
+// 하위 호환성을 위한 레거시 인터페이스 (마이그레이션 기간 동안 사용)
+export interface LegacyStoredAuth {
+  user: AdminUser;
+  expiresAt: number;
+  sessionId?: string;
 }
 
 export class AdminAuthManager {
   /**
    * 로컬 스토리지에서 인증 정보 가져오기
+   * 레거시 데이터 형식도 자동 변환 지원
    */
   static getStoredAuth(): StoredAuth | null {
     if (typeof window === 'undefined') return null;
@@ -29,18 +41,60 @@ export class AdminAuthManager {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (!stored) return null;
 
-      const auth: StoredAuth = JSON.parse(stored);
+      const data = JSON.parse(stored);
 
       // 만료 확인
-      if (Date.now() >= auth.expiresAt) {
+      if (Date.now() >= data.expiresAt) {
         this.clearStoredAuth();
         return null;
       }
 
-      return auth;
+      // 레거시 형식 감지 및 변환
+      if (data.user && typeof data.user === 'object') {
+        // 레거시 형식: { user: AdminUser, expiresAt, sessionId }
+        const legacyAuth = data as LegacyStoredAuth;
+        const convertedAuth: StoredAuth = {
+          userId: legacyAuth.user.id,
+          role: legacyAuth.user.role,
+          name: legacyAuth.user.name,
+          expiresAt: legacyAuth.expiresAt,
+          sessionId: legacyAuth.sessionId
+        };
+
+        // 자동으로 새 형식으로 저장 (마이그레이션)
+        this.storeAuth(convertedAuth);
+
+        return convertedAuth;
+      }
+
+      // 새 형식
+      return data as StoredAuth;
     } catch (error) {
       console.error('Failed to parse stored auth:', error);
       this.clearStoredAuth();
+      return null;
+    }
+  }
+
+  /**
+   * API를 통해 전체 사용자 정보 조회
+   * localStorage에는 최소 정보만 저장하고, 상세 정보는 필요 시 API로 조회
+   */
+  static async getUserInfo(userId: string): Promise<AdminUser | null> {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const response = await fetchWithCsrf(`${API_URL}/api/admin/users/${userId}`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch user info:', response.statusText);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user info:', error);
       return null;
     }
   }

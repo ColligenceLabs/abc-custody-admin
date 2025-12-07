@@ -27,6 +27,9 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.development
+.env.production
+.env.test
 
 # vercel
 .vercel
@@ -35,3 +38,27 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.serena
+
+# Security - 보안 민감 파일
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+*.crt
+secrets/
+.secrets/
+credentials.json
+service-account.json
+firebase-adminsdk-*.json
+
+# Backup files
+*.backup
+*.bak
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/settings.json
+.idea/

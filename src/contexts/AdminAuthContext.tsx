@@ -256,14 +256,28 @@ class AdminAuthService {
       throw new Error(data.error || '토큰 갱신에 실패했습니다.');
     }
 
-    // 기존 사용자 정보 유지
+    // 기존 사용자 정보 유지 (최소 정보만 사용)
     const storedAuth = AdminAuthManager.getStoredAuth();
     if (!storedAuth) {
       throw new Error('저장된 인증 정보가 없습니다.');
     }
 
+    // StoredAuth를 AdminUser로 변환 (최소 정보만 포함)
+    const user: AdminUser = {
+      id: storedAuth.userId,
+      email: '', // refresh 시에는 이메일 정보 불필요
+      name: storedAuth.name,
+      role: storedAuth.role,
+      permissions: [],
+      status: 'active' as any,
+      twoFactorEnabled: false,
+      sessionTimeout: 30,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
     return {
-      user: storedAuth.user,
+      user,
       session: {
         expiresAt: new Date(data.expiresAt)
       } as any
@@ -277,14 +291,28 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
 
   // Initialize auth state from storage
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       const storedAuth = AdminAuthManager.getStoredAuth();
 
       if (storedAuth && !AdminAuthManager.isTokenExpired(storedAuth.expiresAt)) {
+        // StoredAuth를 AdminUser로 변환 (상세 정보는 API로 조회 가능)
+        const user: AdminUser = {
+          id: storedAuth.userId,
+          email: '', // 초기화 시에는 이메일 정보 불필요, 필요 시 getUserInfo() 호출
+          name: storedAuth.name,
+          role: storedAuth.role,
+          permissions: [],
+          status: 'active' as any,
+          twoFactorEnabled: false,
+          sessionTimeout: 30,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
         dispatch({
           type: 'AUTH_SUCCESS',
           payload: {
-            user: storedAuth.user,
+            user,
             expiresAt: storedAuth.expiresAt,
           },
         });
@@ -341,12 +369,15 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       }
 
       // Store auth info (토큰은 HttpOnly 쿠키로 관리되므로 localStorage에 저장하지 않음)
+      // 보안 강화: 최소 정보만 localStorage에 저장
       const expiresAt = typeof response.session.expiresAt === 'string'
         ? new Date(response.session.expiresAt).getTime()
         : response.session.expiresAt.getTime();
 
       const authData = {
-        user: response.user,
+        userId: response.user.id,
+        role: response.user.role,
+        name: response.user.name,
         expiresAt,
         sessionId: response.session.id,
       };
@@ -401,12 +432,15 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       const response = await AdminAuthService.verify2FA(state.tempToken, code);
 
       // Store auth info (토큰은 HttpOnly 쿠키로 관리되므로 localStorage에 저장하지 않음)
+      // 보안 강화: 최소 정보만 localStorage에 저장
       const expiresAt = typeof response.session.expiresAt === 'string'
         ? new Date(response.session.expiresAt).getTime()
         : response.session.expiresAt.getTime();
 
       const authData = {
-        user: response.user,
+        userId: response.user.id,
+        role: response.user.role,
+        name: response.user.name,
         expiresAt,
         sessionId: response.session.id,
       };
@@ -487,7 +521,9 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
       const response = await AdminAuthService.refreshToken('');
 
       const authData = {
-        user: response.user,
+        userId: response.user.id,
+        role: response.user.role,
+        name: response.user.name,
         expiresAt: response.session.expiresAt.getTime(),
         sessionId: storedAuth.sessionId,
       };
