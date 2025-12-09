@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Next.js UI/UX Template',
   description: 'Next.js project with Shadcn UI and Sapphire theme',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
