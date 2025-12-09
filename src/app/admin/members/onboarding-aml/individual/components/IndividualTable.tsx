@@ -73,7 +73,7 @@ export function IndividualTable({
       <Card>
         <CardContent className="p-12">
           <div className="text-center text-muted-foreground">
-            <p>조회된 신청이 없습니다.</p>
+            <p>조회된 회원이 없습니다.</p>
           </div>
         </CardContent>
       </Card>
