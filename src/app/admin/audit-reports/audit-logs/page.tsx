@@ -766,6 +766,49 @@ export default function AuditLogsPage() {
                                         </>
                                       )}
 
+                                      {/* 주소 관련 정보 */}
+                                      {log.resource === "addresses" && log.details?.body && (
+                                        <>
+                                          {log.details.body.address && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">주소:</span>
+                                              <span className="text-gray-900 font-mono text-xs">
+                                                {truncateDynamic(log.details.body.address, 50)}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {log.details.body.coin && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">자산:</span>
+                                              <span className="text-gray-900">{log.details.body.coin}</span>
+                                            </div>
+                                          )}
+                                          {log.details.body.coin && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">네트워크:</span>
+                                              <span className="text-gray-900">
+                                                {log.details.body.coin === 'BTC' ? 'Bitcoin' :
+                                                 log.details.body.coin === 'ETH' ? 'Ethereum (ERC20)' :
+                                                 log.details.body.coin === 'USDT' ? 'Ethereum (ERC20)' :
+                                                 log.details.body.coin === 'USDC' ? 'Ethereum (ERC20)' :
+                                                 log.details.body.coin === 'SOL' ? 'Solana' :
+                                                 log.details.body.coin}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {log.details.body.permissions && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">권한:</span>
+                                              <span className="text-gray-900 text-xs">
+                                                {log.details.body.permissions.canDeposit && "입금 가능"}
+                                                {log.details.body.permissions.canDeposit && log.details.body.permissions.canWithdraw && " / "}
+                                                {log.details.body.permissions.canWithdraw && "출금 가능"}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
                                       {/* 회사 설정 관련 정보 */}
                                       {log.resource === "company" && log.details?.changes && (
                                         <div className="mt-3">
@@ -788,6 +831,114 @@ export default function AuditLogsPage() {
                                             </div>
                                           ))}
                                         </div>
+                                      )}
+
+                                      {/* IP 화이트리스트 관련 정보 */}
+                                      {log.resource === "ip-whitelist" && (
+                                        <>
+                                          {/* CREATE 작업 */}
+                                          {log.action === "create" && log.details?.body && (
+                                            <>
+                                              {log.details.body.ipRange && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">IP 대역:</span>
+                                                  <span className="text-gray-900 font-mono text-xs">{log.details.body.ipRange}</span>
+                                                </div>
+                                              )}
+                                              {log.details.body.type && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">유형:</span>
+                                                  <span className="text-gray-900">
+                                                    {log.details.body.type === 'single' ? '단일 IP' :
+                                                     log.details.body.type === 'range' ? 'IP 범위' :
+                                                     log.details.body.type === 'cidr' ? 'CIDR 표기' :
+                                                     log.details.body.type}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {log.details.body.description && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">설명:</span>
+                                                  <span className="text-gray-900">{log.details.body.description}</span>
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
+
+                                          {/* UPDATE 작업 (toggle) */}
+                                          {log.action === "update" && log.details?.changes && (
+                                            <>
+                                              {log.details.changes.ipInfo?.ipRange && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">IP 대역:</span>
+                                                  <span className="text-gray-900 font-mono text-xs">{log.details.changes.ipInfo.ipRange}</span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.ipInfo?.type && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">유형:</span>
+                                                  <span className="text-gray-900">
+                                                    {log.details.changes.ipInfo.type === 'single' ? '단일 IP' :
+                                                     log.details.changes.ipInfo.type === 'range' ? 'IP 범위' :
+                                                     log.details.changes.ipInfo.type === 'cidr' ? 'CIDR 표기' :
+                                                     log.details.changes.ipInfo.type}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.ipInfo?.description && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">설명:</span>
+                                                  <span className="text-gray-900">{log.details.changes.ipInfo.description}</span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.statusChange && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">상태 변경:</span>
+                                                  <span className="text-gray-900">
+                                                    <span className="text-red-600 line-through">{log.details.changes.statusChange.before}</span>
+                                                    {" → "}
+                                                    <span className="text-sky-600 font-medium">{log.details.changes.statusChange.after}</span>
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
+
+                                          {/* DELETE 작업 */}
+                                          {log.action === "delete" && log.details?.changes?.deletedIPInfo && (
+                                            <>
+                                              {log.details.changes.deletedIPInfo.ipRange && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">삭제된 IP 대역:</span>
+                                                  <span className="text-gray-900 font-mono text-xs">{log.details.changes.deletedIPInfo.ipRange}</span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.deletedIPInfo.type && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">유형:</span>
+                                                  <span className="text-gray-900">
+                                                    {log.details.changes.deletedIPInfo.type === 'single' ? '단일 IP' :
+                                                     log.details.changes.deletedIPInfo.type === 'range' ? 'IP 범위' :
+                                                     log.details.changes.deletedIPInfo.type === 'cidr' ? 'CIDR 표기' :
+                                                     log.details.changes.deletedIPInfo.type}
+                                                  </span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.deletedIPInfo.description && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">설명:</span>
+                                                  <span className="text-gray-900">{log.details.changes.deletedIPInfo.description}</span>
+                                                </div>
+                                              )}
+                                              {log.details.changes.deletedIPInfo.isActive !== undefined && (
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">삭제 시 상태:</span>
+                                                  <span className="text-gray-900">{log.details.changes.deletedIPInfo.isActive ? '활성' : '비활성'}</span>
+                                                </div>
+                                              )}
+                                            </>
+                                          )}
+                                        </>
                                       )}
                                     </div>
                                   </div>

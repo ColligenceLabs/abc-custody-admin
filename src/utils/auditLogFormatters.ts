@@ -15,10 +15,16 @@ export const getActionLabel = (action: string, details?: any): string => {
   if (hasRoleChange && hasOtherFieldChanges) return "권한변경 및 수정";
   if (hasRoleChange) return "권한변경";
 
+  // IP 화이트리스트 상태 변경 감지
+  if (action === "update" && details?.changes?.statusChange) {
+    return "상태 변경";
+  }
+
   if (details?.url || details?.path) {
     const url = details.url || details.path;
     if (url.includes("/send-verification-email")) return "이메일 재발송";
     if (url.includes("/resend-verification")) return "이메일 재발송";
+    if (url.includes("/toggle")) return "상태 변경";
   }
 
   const actionMap: Record<string, string> = {
@@ -29,6 +35,7 @@ export const getActionLabel = (action: string, details?: any): string => {
     login: "로그인",
     logout: "로그아웃",
     first_login: "최초 로그인",
+    verify: "검증",
     verify_sms: "SMS 인증",
     verify_otp: "OTP 인증",
     upload_logo: "로고 업로드",
@@ -62,6 +69,7 @@ export const getResourceLabel = (resource: string): string => {
     balances: "잔액",
     settings: "설정",
     supportedTokens: "지원 토큰 설정",
+    "ip-whitelist": "IP 화이트리스트",
     "/": "사용자",
   };
   return resourceMap[resource] || resource;
@@ -203,9 +211,10 @@ export const ACTION_OPTIONS = [
   { value: "login", label: "로그인" },
   { value: "logout", label: "로그아웃" },
   { value: "first_login", label: "최초 로그인" },
+  { value: "verify", label: "검증" },
   { value: "create", label: "생성" },
   { value: "read", label: "조회" },
-  { value: "update", label: "수정" },
+  { value: "update", label: "설정 수정 / 상태 변경" },
   { value: "delete", label: "삭제" },
   { value: "approve", label: "승인" },
   { value: "reject", label: "반려" },
@@ -229,6 +238,7 @@ export const RESOURCE_OPTIONS = [
   { value: "addresses", label: "주소" },
   { value: "balances", label: "잔액" },
   { value: "settings", label: "설정" },
+  { value: "ip-whitelist", label: "IP 화이트리스트" },
 ];
 
 export const RESULT_OPTIONS = [
