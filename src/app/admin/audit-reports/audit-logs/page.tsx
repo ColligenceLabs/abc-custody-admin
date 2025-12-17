@@ -63,6 +63,9 @@ export default function AuditLogsPage() {
         }/api/reports/audit-logs?${params}`,
         {
           credentials: 'include', // 쿠키 기반 인증
+          headers: {
+            'X-Request-Source': 'admin', // 관리자 요청임을 명시
+          },
         }
       );
 
@@ -102,6 +105,9 @@ export default function AuditLogsPage() {
         }/api/reports/audit-logs/export`,
         {
           credentials: 'include', // 쿠키 기반 인증
+          headers: {
+            'X-Request-Source': 'admin', // 관리자 요청임을 명시
+          },
         }
       );
 
