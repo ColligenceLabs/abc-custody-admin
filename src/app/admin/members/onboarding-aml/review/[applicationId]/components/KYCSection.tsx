@@ -141,7 +141,7 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
         return;
       }
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
       // 신분증 이미지 URL (쿠키로 자동 인증)
       try {

@@ -3,7 +3,7 @@
  * Presigned Upload URL을 사용하여 S3에 직접 업로드
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const API_URL = `${API_BASE}/api`; // /api 경로 추가
 
 /**

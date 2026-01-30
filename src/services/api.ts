@@ -7,7 +7,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // API 기본 URL 설정 (항상 /api 프리픽스 추가)
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api`;
 
 // CSRF 토큰 캐시
 let csrfTokenCache: string | null = null;
@@ -19,7 +19,7 @@ async function getCsrfToken(): Promise<string> {
   }
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/csrf-token`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/csrf-token`, {
       credentials: 'include'
     });
 

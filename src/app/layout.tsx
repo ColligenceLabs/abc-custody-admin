@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>
         <QueryProvider>
-          <ThemeProvider defaultTheme="system">
+          <ThemeProvider defaultTheme="light">
             {children}
             <Toaster />
           </ThemeProvider>

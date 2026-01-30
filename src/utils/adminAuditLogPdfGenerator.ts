@@ -34,7 +34,7 @@ export interface AdminAuditLog {
 export const generateAdminAuditLogPDF = async (log: AdminAuditLog): Promise<void> => {
   try {
     // 관리자 전용 API를 통해 PDF 생성 및 다운로드
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     const response = await fetch(
       `${API_URL}/api/reports/audit-logs/${log.id}/admin-pdf`,
       {

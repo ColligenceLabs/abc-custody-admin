@@ -45,7 +45,7 @@ import {
 import { applyEDDAutoAssignment } from './helpers/eddAutoAssignment';
 
 // API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 // Mock 데이터 사용 여부 (환경 변수로 제어)
 const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';

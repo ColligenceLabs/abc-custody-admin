@@ -21,7 +21,7 @@ async function getCsrfToken(): Promise<string> {
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/csrf-token`,
+      `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/api/csrf-token`,
       { credentials: 'include' }
     );
 

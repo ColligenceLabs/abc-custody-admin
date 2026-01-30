@@ -194,7 +194,7 @@ export async function getWithdrawalQueue(
 ): Promise<WithdrawalQueueResponse> {
   try {
     // 백엔드 API 호출
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     const response = await fetch(`${API_URL}/api/withdrawals`);
 
     if (!response.ok) {

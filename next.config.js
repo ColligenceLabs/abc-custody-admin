@@ -2,6 +2,21 @@
 const nextConfig = {
   // Remove deprecated appDir configuration
 
+  // API 프록시 설정 - 프론트엔드와 백엔드를 same-origin으로 처리
+  async rewrites() {
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const apiUrl = isDevelopment
+      ? 'http://localhost:4000'  // 개발 환경
+      : process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.example.com'  // 프로덕션 환경
+
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${apiUrl}/api/:path*`
+      }
+    ]
+  },
+
   // 보안 헤더 설정
   async headers() {
     return [
@@ -37,7 +52,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' http://localhost:4000 ws://localhost:4000",
+              "connect-src 'self' http://localhost:4000 ws://localhost:4000 http://192.168.0.9:4000 ws://192.168.0.9:4000",
               "frame-ancestors 'none'",
             ].join('; '),
           },
