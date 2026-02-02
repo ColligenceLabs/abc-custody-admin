@@ -118,7 +118,7 @@ export default function AuditDashboardPage() {
           {/* 빠른 접근 */}
           <div>
             <h2 className="text-xl font-semibold mb-4">빠른 접근</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <QuickAccessCard
                 title="거래 리포트"
                 href="/admin/audit-reports/transactions"
@@ -132,8 +132,12 @@ export default function AuditDashboardPage() {
                 href="/admin/audit-reports/approvals"
               />
               <QuickAccessCard
-                title="감사 로그"
+                title="사용자 감사 로그"
                 href="/admin/audit-reports/audit-logs"
+              />
+              <QuickAccessCard
+                title="관리자 감사 로그"
+                href="/admin/audit-reports/admin-audit-logs"
               />
             </div>
           </div>
