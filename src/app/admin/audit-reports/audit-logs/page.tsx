@@ -584,6 +584,38 @@ export default function AuditLogsPage() {
                                         </div>
                                       )}
 
+                                      {/* 탈퇴 관련 정보 */}
+                                      {log.action === "withdraw" && log.details && (
+                                        <>
+                                          {log.details.email && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">이메일:</span>
+                                              <span className="text-gray-900">{log.details.email}</span>
+                                            </div>
+                                          )}
+                                          {log.details.ipAddress && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">접속 IP:</span>
+                                              <span className="text-gray-900 font-mono text-xs">{log.details.ipAddress}</span>
+                                            </div>
+                                          )}
+                                          {log.details.organizationName && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">법인명:</span>
+                                              <span className="text-gray-900">{log.details.organizationName}</span>
+                                            </div>
+                                          )}
+                                          {log.details.forceWithdraw !== undefined && (
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">탈퇴 유형:</span>
+                                              <span className="text-gray-900">
+                                                {log.details.forceWithdraw ? '보유자산 포기' : '일반 탈퇴'}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+
                                       {/* 역할 변경 정보 */}
                                       {log.details.targetUser?.roleChange && (
                                         <>

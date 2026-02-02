@@ -32,6 +32,7 @@ export const getActionLabel = (action: string, details?: any): string => {
     read: "조회",
     update: "수정",
     delete: "삭제",
+    withdraw: "탈퇴",
     login: "로그인",
     logout: "로그아웃",
     first_login: "최초 로그인",
@@ -58,7 +59,9 @@ export const getActionLabel = (action: string, details?: any): string => {
 export const getResourceLabel = (resource: string): string => {
   const resourceMap: Record<string, string> = {
     auth: "인증",
+    user: "사용자",
     users: "사용자",
+    organization: "법인",
     withdrawals: "출금",
     deposits: "입금",
     depositReturns: "입금 환불",
@@ -216,6 +219,7 @@ export const ACTION_OPTIONS = [
   { value: "read", label: "조회" },
   { value: "update", label: "설정 수정 / 상태 변경" },
   { value: "delete", label: "삭제" },
+  { value: "withdraw", label: "탈퇴" },
   { value: "approve", label: "승인" },
   { value: "reject", label: "반려" },
   { value: "suspend", label: "정지" },
@@ -230,7 +234,9 @@ export const ACTION_OPTIONS = [
 export const RESOURCE_OPTIONS = [
   { value: "", label: "전체" },
   { value: "auth", label: "인증" },
+  { value: "user", label: "사용자" },
   { value: "users", label: "사용자" },
+  { value: "organization", label: "법인" },
   { value: "withdrawals", label: "출금" },
   { value: "deposits", label: "입금" },
   { value: "groups", label: "그룹" },
