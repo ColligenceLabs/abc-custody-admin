@@ -292,6 +292,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         icon: Coins,
         requiredPermissions: [{ resource: AdminResource.VAULT, action: AdminAction.READ }],
       },
+      {
+        id: 'system-terms',
+        label: '약관 관리',
+        href: '/admin/system/terms',
+        icon: FileText,
+        requiredPermissions: [{ resource: AdminResource.ADMIN_USERS, action: AdminAction.READ }],
+      },
     ],
   },
 ];
