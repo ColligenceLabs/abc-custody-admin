@@ -28,7 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getTermsById, updateTerms, Terms } from '@/lib/termsApi';
+import { getTermsById, updateTerms, Terms, type TermsSummaryItem } from '@/lib/termsApi';
 
 const CONTENT_FORMATS = [
   { value: 'markdown', label: 'Markdown' },
@@ -58,7 +58,9 @@ export default function EditTermsPage() {
 
   const [formData, setFormData] = useState({
     title: '',
+    titleEn: '',
     content: '',
+    contentEn: '',
     contentFormat: 'markdown' as 'markdown' | 'html' | 'plain',
     isRequired: true,
     isActive: true,
@@ -69,6 +71,26 @@ export default function EditTermsPage() {
     individual: true,
     corporate: true
   });
+
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryItems, setSummaryItems] = useState<TermsSummaryItem[]>([]);
+
+  // 요약 항목 추가
+  const addSummaryItem = () => {
+    setSummaryItems([...summaryItems, { label: '', value: '' }]);
+  };
+
+  // 요약 항목 수정
+  const updateSummaryItem = (index: number, field: 'label' | 'value', value: string) => {
+    const updated = [...summaryItems];
+    updated[index][field] = value;
+    setSummaryItems(updated);
+  };
+
+  // 요약 항목 삭제
+  const removeSummaryItem = (index: number) => {
+    setSummaryItems(summaryItems.filter((_, i) => i !== index));
+  };
 
   // 약관 정보 로드
   useEffect(() => {
@@ -83,7 +105,9 @@ export default function EditTermsPage() {
 
           setFormData({
             title: terms.title,
+            titleEn: terms.titleEn || '',
             content: terms.content,
+            contentEn: terms.contentEn || '',
             contentFormat: terms.contentFormat,
             isRequired: terms.isRequired,
             isActive: terms.isActive,
@@ -94,6 +118,9 @@ export default function EditTermsPage() {
             individual: terms.applicableMemberTypes.includes('individual'),
             corporate: terms.applicableMemberTypes.includes('corporate')
           });
+
+          setShowSummary(terms.showSummary || false);
+          setSummaryItems(terms.summaryItems || []);
         }
       } catch (error: any) {
         console.error('약관 조회 실패:', error);
@@ -141,12 +168,16 @@ export default function EditTermsPage() {
 
       const response = await updateTerms(id, {
         title: formData.title,
+        titleEn: formData.titleEn || undefined,
         content: formData.content,
+        contentEn: formData.contentEn || undefined,
         contentFormat: formData.contentFormat,
         applicableMemberTypes: selectedMemberTypes,
         isRequired: formData.isRequired,
         isActive: formData.isActive,
-        effectiveDate: formData.effectiveDate
+        effectiveDate: formData.effectiveDate,
+        showSummary: showSummary,
+        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : null
       });
 
       if (response.success) {
@@ -237,15 +268,27 @@ export default function EditTermsPage() {
               />
             </div>
 
-            {/* 제목 */}
+            {/* 제목 (한글) */}
             <div className="space-y-2">
-              <Label htmlFor="title">제목 *</Label>
+              <Label htmlFor="title">제목 (한글) *</Label>
               <Input
                 id="title"
                 placeholder="약관 제목"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
+            </div>
+
+            {/* 제목 (영문) */}
+            <div className="space-y-2">
+              <Label htmlFor="titleEn">제목 (영문)</Label>
+              <Input
+                id="titleEn"
+                placeholder="Terms Title (English)"
+                value={formData.titleEn}
+                onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
+              />
+              <p className="text-sm text-gray-500">영문 사이트에 표시될 제목을 입력하세요</p>
             </div>
 
             {/* 내용 형식 */}
@@ -270,9 +313,9 @@ export default function EditTermsPage() {
               </Select>
             </div>
 
-            {/* 내용 */}
+            {/* 내용 (한글) */}
             <div className="space-y-2">
-              <Label htmlFor="content">약관 내용 *</Label>
+              <Label htmlFor="content">약관 내용 (한글) *</Label>
               <Textarea
                 id="content"
                 placeholder="약관 내용을 입력하세요"
@@ -281,6 +324,20 @@ export default function EditTermsPage() {
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 className="font-mono text-sm"
               />
+            </div>
+
+            {/* 내용 (영문) */}
+            <div className="space-y-2">
+              <Label htmlFor="contentEn">약관 내용 (영문)</Label>
+              <Textarea
+                id="contentEn"
+                placeholder="Enter terms content in English"
+                rows={15}
+                value={formData.contentEn}
+                onChange={(e) => setFormData({ ...formData, contentEn: e.target.value })}
+                className="font-mono text-sm"
+              />
+              <p className="text-sm text-gray-500">영문 사이트에 표시될 약관 내용을 입력하세요</p>
             </div>
 
             {/* 시행일 */}
@@ -358,6 +415,111 @@ export default function EditTermsPage() {
                 활성 상태
               </Label>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* 핵심 정보 요약 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>핵심 정보 요약</CardTitle>
+            <CardDescription>
+              회원가입 약관 동의 화면에 표시할 핵심 정보를 입력하세요 (법적 요건 충족용)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 요약 표시 여부 */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="showSummary"
+                checked={showSummary}
+                onCheckedChange={(checked) => setShowSummary(checked as boolean)}
+              />
+              <Label htmlFor="showSummary" className="font-normal cursor-pointer">
+                핵심 정보 요약 표시
+              </Label>
+            </div>
+
+            {/* 요약 항목 입력 */}
+            {showSummary && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>요약 항목</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addSummaryItem}
+                  >
+                    항목 추가
+                  </Button>
+                </div>
+
+                {summaryItems.length === 0 && (
+                  <p className="text-sm text-gray-500">
+                    항목 추가 버튼을 클릭하여 핵심 정보를 입력하세요
+                  </p>
+                )}
+
+                {summaryItems.map((item, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        항목 {index + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSummaryItem(index)}
+                      >
+                        삭제
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`label-${index}`}>라벨</Label>
+                      <Input
+                        id={`label-${index}`}
+                        placeholder="예: 수집 항목, 이용 목적, 보유 기간"
+                        value={item.label}
+                        onChange={(e) =>
+                          updateSummaryItem(index, 'label', e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`value-${index}`}>내용</Label>
+                      <Textarea
+                        id={`value-${index}`}
+                        placeholder="예: 이메일, 이름, 휴대전화번호, 주민등록번호"
+                        rows={2}
+                        value={item.value}
+                        onChange={(e) =>
+                          updateSummaryItem(index, 'value', e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {summaryItems.length > 0 && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>미리보기:</strong> 회원가입 약관 동의 화면에 다음과 같이 표시됩니다
+                    </p>
+                    <div className="mt-2 space-y-1 text-xs text-gray-600">
+                      {summaryItems.map((item, idx) => (
+                        <div key={idx}>
+                          <span className="font-medium">· {item.label || '(라벨)'}:</span>{' '}
+                          <span>{item.value || '(내용)'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

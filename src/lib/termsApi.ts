@@ -1,16 +1,27 @@
 import apiClient from './api-client';
 
+export interface TermsSummaryItem {
+  label: string;
+  value: string;
+  labelEn?: string;
+  valueEn?: string;
+}
+
 export interface Terms {
   id: string;
   type: string;
   version: string;
   title: string;
+  titleEn?: string;
   content: string;
+  contentEn?: string;
   contentFormat: 'markdown' | 'html' | 'plain';
   applicableMemberTypes: ('individual' | 'corporate')[];
   isRequired: boolean;
   isActive: boolean;
   effectiveDate: string;
+  showSummary: boolean;
+  summaryItems: TermsSummaryItem[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,22 +62,30 @@ export interface CreateTermsRequest {
   type: string;
   version: string;
   title: string;
+  titleEn?: string;
   content: string;
+  contentEn?: string;
   contentFormat?: 'markdown' | 'html' | 'plain';
   applicableMemberTypes?: ('individual' | 'corporate')[];
   isRequired?: boolean;
   isActive?: boolean;
   effectiveDate: string;
+  showSummary?: boolean;
+  summaryItems?: TermsSummaryItem[] | null;
 }
 
 export interface UpdateTermsRequest {
   title?: string;
+  titleEn?: string;
   content?: string;
+  contentEn?: string;
   contentFormat?: 'markdown' | 'html' | 'plain';
   applicableMemberTypes?: ('individual' | 'corporate')[];
   isRequired?: boolean;
   isActive?: boolean;
   effectiveDate?: string;
+  showSummary?: boolean;
+  summaryItems?: TermsSummaryItem[] | null;
 }
 
 /**
