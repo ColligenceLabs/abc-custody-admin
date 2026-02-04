@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { AssetType } from '@/types/withdrawalV2';
 import { getAssetWalletRatios, AssetWalletInfo as ApiAssetWalletInfo } from '@/services/walletApi';
+import { getDashboardStats } from '@/services/dashboardApi';
 
 export interface DashboardStats {
   totalMembers: number;
@@ -200,6 +201,7 @@ const MOCK_ALERTS: Alert[] = [
 ];
 
 export function useDashboardData() {
+  const [stats, setStats] = useState<DashboardStats>(MOCK_STATS);
   const [assetWalletInfo, setAssetWalletInfo] = useState<AssetWalletInfo[]>([]);
   const [assetDistributionHot, setAssetDistributionHot] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_HOT);
   const [assetDistributionCold, setAssetDistributionCold] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_COLD);
@@ -207,13 +209,19 @@ export function useDashboardData() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAssetRatios = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // API에서 실제 데이터 가져오기
-        const ratios = await getAssetWalletRatios();
+        // API에서 실제 데이터 가져오기 (병렬 처리)
+        const [statsData, ratios] = await Promise.all([
+          getDashboardStats(),
+          getAssetWalletRatios()
+        ]);
+
+        // 통계 데이터 설정
+        setStats(statsData);
 
         // API 응답을 AssetWalletInfo 타입으로 변환
         const walletInfo: AssetWalletInfo[] = ratios.map((ratio) => ({
@@ -263,20 +271,21 @@ export function useDashboardData() {
         setAssetDistributionHot(hotDistribution);
         setAssetDistributionCold(coldDistribution);
       } catch (err) {
-        console.error('자산 비율 조회 실패:', err);
-        setError('자산 비율 조회에 실패했습니다.');
+        console.error('대시보드 데이터 조회 실패:', err);
+        setError('대시보드 데이터 조회에 실패했습니다.');
         // 에러 시 Mock 데이터 사용
+        setStats(MOCK_STATS);
         setAssetWalletInfo(generateMockAssetWalletInfo());
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAssetRatios();
+    fetchDashboardData();
   }, []);
 
   return {
-    stats: MOCK_STATS,
+    stats,
     assetDistributionHot,
     assetDistributionCold,
     assetWalletInfo,
