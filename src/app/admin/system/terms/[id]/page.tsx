@@ -10,7 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeftIcon, Edit, Trash2, Loader2, FileText, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeftIcon, Edit, Loader2, FileText, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -18,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getTermsById, deleteTerms, toggleTermsActive, Terms } from '@/lib/termsApi';
+import { getTermsById, toggleTermsActive, Terms } from '@/lib/termsApi';
 
 const TERM_TYPE_LABELS: Record<string, string> = {
   service_terms: '서비스 이용약관',
@@ -45,7 +45,6 @@ export default function TermsDetailPage() {
   const [terms, setTerms] = useState<Terms | null>(null);
   const [stats, setStats] = useState<{ totalAgreements: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
   // 약관 정보 로드
@@ -72,33 +71,6 @@ export default function TermsDetailPage() {
   useEffect(() => {
     loadTerms();
   }, [id]);
-
-  // 삭제 처리
-  const handleDelete = async () => {
-    if (!confirm('이 약관을 삭제하시겠습니까? (비활성화됩니다)')) {
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      const response = await deleteTerms(id, false);
-
-      if (response.success) {
-        toast({
-          description: '약관이 비활성화되었습니다.'
-        });
-        router.push('/admin/system/terms');
-      }
-    } catch (error: any) {
-      console.error('약관 삭제 실패:', error);
-      toast({
-        variant: 'destructive',
-        description: error.response?.data?.error || '약관 삭제에 실패했습니다.'
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   // 활성화 토글
   const handleToggleActive = async () => {
@@ -185,24 +157,10 @@ export default function TermsDetailPage() {
           <Button
             variant="outline"
             onClick={() => router.push(`/admin/system/terms/${id}/edit`)}
+            disabled={!terms.isActive}
           >
             <Edit className="h-4 w-4 mr-2" />
             수정
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="text-red-600 hover:bg-red-50"
-          >
-            {isDeleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="h-4 w-4 mr-2" />
-                삭제
-              </>
-            )}
           </Button>
         </div>
       </div>
