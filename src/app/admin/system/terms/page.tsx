@@ -202,9 +202,13 @@ export default function TermsManagementPage() {
                         필수
                       </Badge>
                     )}
-                    {term.isActive && (
-                      <Badge className="text-xs bg-sapphire-100 text-sapphire-700">
+                    {term.isActive ? (
+                      <Badge className="text-xs bg-sky-100 text-sky-700 border border-sky-200">
                         활성
+                      </Badge>
+                    ) : (
+                      <Badge className="text-xs bg-gray-100 text-gray-600 border border-gray-300">
+                        비활성
                       </Badge>
                     )}
                   </div>
