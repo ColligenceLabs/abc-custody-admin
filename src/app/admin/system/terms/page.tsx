@@ -20,6 +20,7 @@ export default function TermsManagementPage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [terms, setTerms] = useState<Terms[]>([]);
   const [pagination, setPagination] = useState({
@@ -29,6 +30,18 @@ export default function TermsManagementPage() {
     totalPages: 0
   });
 
+  // 약관 타입 옵션
+  const termTypes = [
+    { value: 'all', label: '전체' },
+    { value: 'service_terms', label: '서비스 이용약관' },
+    { value: 'personal_info', label: '개인정보 처리방침' },
+    { value: 'corporate_info', label: '법인정보 처리방침' },
+    { value: 'marketing', label: '마케팅 정보 수신 동의' },
+    { value: 'unique_id', label: '고유식별정보 처리 동의' },
+    { value: 'certification_service', label: '본인확인서비스 이용 동의' },
+    { value: 'telecom_service', label: '통신사 이용약관 동의' }
+  ];
+
   // 약관 목록 로드
   const loadTerms = async () => {
     try {
@@ -36,7 +49,8 @@ export default function TermsManagementPage() {
       const response = await getTermsList({
         page: pagination.page,
         limit: pagination.limit,
-        search: searchTerm || undefined
+        search: searchTerm || undefined,
+        type: selectedType !== 'all' ? selectedType : undefined
       });
 
       if (response.success) {
@@ -56,7 +70,7 @@ export default function TermsManagementPage() {
 
   useEffect(() => {
     loadTerms();
-  }, [pagination.page]);
+  }, [pagination.page, selectedType]);
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -125,7 +139,7 @@ export default function TermsManagementPage() {
         </Button>
       </div>
 
-      {/* 필터 및 검색 */}
+      {/* 검색 */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4">
@@ -142,6 +156,25 @@ export default function TermsManagementPage() {
             <Button onClick={handleSearch} variant="outline">
               검색
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 타입 필터 버튼 */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-2">
+            {termTypes.map((type) => (
+              <Button
+                key={type.value}
+                variant={selectedType === type.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedType(type.value)}
+                className={selectedType === type.value ? 'bg-sky-600 hover:bg-sky-700' : ''}
+              >
+                {type.label}
+              </Button>
+            ))}
           </div>
         </CardContent>
       </Card>
