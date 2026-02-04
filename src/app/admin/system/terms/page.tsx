@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon, Search, FileText, Eye, Edit, Trash2, Loader2 } from 'lucide-react';
+import { PlusIcon, Search, FileText, Eye, Edit, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getTermsList, deleteTerms, Terms } from '@/lib/termsApi';
+import { getTermsList, Terms } from '@/lib/termsApi';
 
 export default function TermsManagementPage() {
   const router = useRouter();
@@ -87,29 +87,6 @@ export default function TermsManagementPage() {
 
   const handleEdit = (termId: string) => {
     router.push(`/admin/system/terms/${termId}/edit`);
-  };
-
-  const handleDelete = async (termId: string) => {
-    if (!confirm('이 약관을 삭제하시겠습니까?')) {
-      return;
-    }
-
-    try {
-      const response = await deleteTerms(termId, false);
-
-      if (response.success) {
-        toast({
-          description: '약관이 비활성화되었습니다.'
-        });
-        loadTerms();
-      }
-    } catch (error: any) {
-      console.error('약관 삭제 실패:', error);
-      toast({
-        variant: 'destructive',
-        description: error.response?.data?.error || '약관 삭제에 실패했습니다.'
-      });
-    }
   };
 
   const getTypeLabel = (type: string) => {
@@ -190,13 +167,15 @@ export default function TermsManagementPage() {
       {!isLoading && (
         <div className="grid gap-4">
           {terms.map((term) => (
-          <Card key={term.id}>
+          <Card key={term.id} className={!term.isActive ? 'bg-gray-50 opacity-60' : ''}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <FileText className="h-5 w-5 text-sapphire-600" />
-                    <h3 className="text-lg font-semibold">{term.title}</h3>
+                    <FileText className={`h-5 w-5 ${term.isActive ? 'text-sapphire-600' : 'text-gray-400'}`} />
+                    <h3 className={`text-lg font-semibold ${term.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {term.title}
+                    </h3>
                     {term.isRequired && (
                       <Badge variant="destructive" className="text-xs">
                         필수
@@ -212,7 +191,7 @@ export default function TermsManagementPage() {
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className={`flex items-center gap-4 text-sm ${term.isActive ? 'text-gray-600' : 'text-gray-400'}`}>
                     <span>유형: {getTypeLabel(term.type)}</span>
                     <span>버전: {term.version}</span>
                     <span>시행일: {new Date(term.effectiveDate).toLocaleDateString('ko-KR')}</span>
@@ -232,19 +211,11 @@ export default function TermsManagementPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(term.id)}
-                    className="gap-2"
+                    disabled={!term.isActive}
+                    className={`gap-2 ${!term.isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Edit className="h-4 w-4" />
                     수정
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(term.id)}
-                    className="gap-2 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    삭제
                   </Button>
                 </div>
               </div>
