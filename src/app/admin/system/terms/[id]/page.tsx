@@ -186,16 +186,21 @@ export default function TermsDetailPage() {
             </Button>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/admin/system/terms/${id}/edit`)}
-                    disabled={!canEdit}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    수정
-                  </Button>
-                </span>
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    if (!canEdit) {
+                      e.preventDefault();
+                      return;
+                    }
+                    router.push(`/admin/system/terms/${id}/edit`);
+                  }}
+                  aria-disabled={!canEdit}
+                  className={!canEdit ? 'opacity-50 cursor-not-allowed' : ''}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  수정
+                </Button>
               </TooltipTrigger>
               {editDisabledReason && (
                 <TooltipContent>

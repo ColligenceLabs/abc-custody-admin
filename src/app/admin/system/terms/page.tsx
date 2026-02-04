@@ -240,18 +240,22 @@ export default function TermsManagementPage() {
                         </Button>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(term.id)}
-                                disabled={!canEdit}
-                                className={`gap-2 ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              >
-                                <Edit className="h-4 w-4" />
-                                수정
-                              </Button>
-                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                if (!canEdit) {
+                                  e.preventDefault();
+                                  return;
+                                }
+                                handleEdit(term.id);
+                              }}
+                              aria-disabled={!canEdit}
+                              className={`gap-2 ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                              수정
+                            </Button>
                           </TooltipTrigger>
                           {editDisabledReason && (
                             <TooltipContent>
