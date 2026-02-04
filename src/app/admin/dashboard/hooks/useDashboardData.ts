@@ -1,10 +1,12 @@
 /**
  * useDashboardData Hook
  *
- * 대시보드 Mock 데이터 제공
+ * 대시보드 데이터 제공 (API 연동)
  */
 
+import { useEffect, useState } from 'react';
 import { AssetType } from '@/types/withdrawalV2';
+import { getAssetWalletRatios, AssetWalletInfo as ApiAssetWalletInfo } from '@/services/walletApi';
 
 export interface DashboardStats {
   totalMembers: number;
@@ -198,8 +200,109 @@ const MOCK_ALERTS: Alert[] = [
 ];
 
 export function useDashboardData() {
-  // Hot/Cold 데이터를 조합하여 AssetWalletInfo 생성
-  const assetWalletInfo: AssetWalletInfo[] = MOCK_ASSET_DISTRIBUTION_HOT.map((hotAsset, index) => {
+  const [assetWalletInfo, setAssetWalletInfo] = useState<AssetWalletInfo[]>([]);
+  const [assetDistributionHot, setAssetDistributionHot] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_HOT);
+  const [assetDistributionCold, setAssetDistributionCold] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_COLD);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAssetRatios = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // API에서 실제 데이터 가져오기
+        const ratios = await getAssetWalletRatios();
+
+        // API 응답을 AssetWalletInfo 타입으로 변환
+        const walletInfo: AssetWalletInfo[] = ratios.map((ratio) => ({
+          asset: ratio.asset as AssetType,
+          hotBalance: ratio.hotBalance,
+          coldBalance: ratio.coldBalance,
+          totalBalance: ratio.totalBalance,
+          hotRatio: ratio.hotRatio,
+          coldRatio: ratio.coldRatio,
+          targetHotRatio: ratio.targetHotRatio,
+          targetColdRatio: ratio.targetColdRatio,
+          deviation: ratio.deviation,
+          needsRebalancing: ratio.needsRebalancing,
+        }));
+
+        setAssetWalletInfo(walletInfo);
+
+        // Hot/Cold 자산 분포 차트 데이터 생성
+        const hotDistribution: AssetDistribution[] = walletInfo.map((info) => {
+          const hotValue = parseFloat(info.hotBalance) || 0;
+          const totalValue = parseFloat(info.totalBalance) || 1;
+          const percentage = (hotValue / totalValue) * 100;
+
+          return {
+            asset: info.asset as 'BTC' | 'ETH' | 'USDT' | 'USDC' | 'SOL',
+            amount: info.hotBalance,
+            value: hotValue * 100000000, // 임시 KRW 환산 (실제로는 가격 API 필요)
+            percentage: parseFloat(percentage.toFixed(2)),
+            color: getAssetColor(info.asset),
+          };
+        });
+
+        const coldDistribution: AssetDistribution[] = walletInfo.map((info) => {
+          const coldValue = parseFloat(info.coldBalance) || 0;
+          const totalValue = parseFloat(info.totalBalance) || 1;
+          const percentage = (coldValue / totalValue) * 100;
+
+          return {
+            asset: info.asset as 'BTC' | 'ETH' | 'USDT' | 'USDC' | 'SOL',
+            amount: info.coldBalance,
+            value: coldValue * 100000000, // 임시 KRW 환산
+            percentage: parseFloat(percentage.toFixed(2)),
+            color: getAssetColor(info.asset),
+          };
+        });
+
+        setAssetDistributionHot(hotDistribution);
+        setAssetDistributionCold(coldDistribution);
+      } catch (err) {
+        console.error('자산 비율 조회 실패:', err);
+        setError('자산 비율 조회에 실패했습니다.');
+        // 에러 시 Mock 데이터 사용
+        setAssetWalletInfo(generateMockAssetWalletInfo());
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetRatios();
+  }, []);
+
+  return {
+    stats: MOCK_STATS,
+    assetDistributionHot,
+    assetDistributionCold,
+    assetWalletInfo,
+    walletStatus: MOCK_WALLET_STATUS,
+    recentTransactions: MOCK_RECENT_TRANSACTIONS,
+    alerts: MOCK_ALERTS,
+    loading,
+    error,
+  };
+}
+
+// 자산별 색상 매핑
+function getAssetColor(asset: string): string {
+  const colorMap: Record<string, string> = {
+    BTC: '#F7931A',
+    ETH: '#627EEA',
+    USDT: '#26A17B',
+    USDC: '#2775CA',
+    SOL: '#00FFA3',
+  };
+  return colorMap[asset] || '#6B7280';
+}
+
+// Mock AssetWalletInfo 생성 (Fallback용)
+function generateMockAssetWalletInfo(): AssetWalletInfo[] {
+  return MOCK_ASSET_DISTRIBUTION_HOT.map((hotAsset, index) => {
     const coldAsset = MOCK_ASSET_DISTRIBUTION_COLD[index];
     const hotBalance = parseFloat(hotAsset.amount.replace(/,/g, ''));
     const coldBalance = parseFloat(coldAsset.amount.replace(/,/g, ''));
@@ -227,14 +330,4 @@ export function useDashboardData() {
       needsRebalancing: hotRatio > 20,
     };
   });
-
-  return {
-    stats: MOCK_STATS,
-    assetDistributionHot: MOCK_ASSET_DISTRIBUTION_HOT,
-    assetDistributionCold: MOCK_ASSET_DISTRIBUTION_COLD,
-    assetWalletInfo,
-    walletStatus: MOCK_WALLET_STATUS,
-    recentTransactions: MOCK_RECENT_TRANSACTIONS,
-    alerts: MOCK_ALERTS,
-  };
 }

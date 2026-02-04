@@ -15,8 +15,14 @@ import { formatCompactCurrency, formatFullCurrency } from '@/lib/utils';
 import { AssetWalletRatioSection } from '@/app/admin/withdrawal-v2/requests/components/AssetWalletRatioSection';
 
 export default function AdminDashboardPage() {
-  const { stats, assetDistributionHot, assetDistributionCold, assetWalletInfo } =
-    useDashboardData();
+  const {
+    stats,
+    assetDistributionHot,
+    assetDistributionCold,
+    assetWalletInfo,
+    loading,
+    error
+  } = useDashboardData();
 
   return (
     <div className="space-y-6">
@@ -71,13 +77,25 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* 자산별 Hot/Cold 지갑 밸런스 상태 */}
-      <AssetWalletRatioSection />
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="text-gray-500">로딩 중...</div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="text-red-500">{error}</div>
+        </div>
+      ) : (
+        <>
+          <AssetWalletRatioSection />
 
-      {/* 2열 레이아웃: 자산 분포 Hot + Cold */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AssetDistributionChart data={assetDistributionHot} title="Hot 지갑 자산 분포" />
-        <AssetDistributionChart data={assetDistributionCold} title="Cold 지갑 자산 분포" />
-      </div>
+          {/* 2열 레이아웃: 자산 분포 Hot + Cold */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AssetDistributionChart data={assetDistributionHot} title="Hot 지갑 자산 분포" />
+            <AssetDistributionChart data={assetDistributionCold} title="Cold 지갑 자산 분포" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
