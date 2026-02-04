@@ -11,6 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { PlusIcon, Search, FileText, Eye, Edit, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTermsList, Terms } from '@/lib/termsApi';
@@ -102,6 +108,26 @@ export default function TermsManagementPage() {
     return typeMap[type] || type;
   };
 
+  // 시행일이 지났는지 확인
+  const isEffectiveDatePassed = (effectiveDate: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const effective = new Date(effectiveDate);
+    effective.setHours(0, 0, 0, 0);
+    return effective <= today;
+  };
+
+  // 수정 불가능 사유 반환
+  const getEditDisabledReason = (term: Terms) => {
+    if (!term.isActive) {
+      return '비활성 약관은 수정할 수 없습니다';
+    }
+    if (isEffectiveDatePassed(term.effectiveDate)) {
+      return '시행일이 지나서 수정할 수 없습니다';
+    }
+    return null;
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* 헤더 */}
@@ -165,64 +191,82 @@ export default function TermsManagementPage() {
 
       {/* 약관 목록 */}
       {!isLoading && (
-        <div className="grid gap-4">
-          {terms.map((term) => (
-          <Card key={term.id} className={!term.isActive ? 'bg-gray-50 opacity-60' : ''}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <FileText className={`h-5 w-5 ${term.isActive ? 'text-sapphire-600' : 'text-gray-400'}`} />
-                    <h3 className={`text-lg font-semibold ${term.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {term.title}
-                    </h3>
-                    {term.isRequired && (
-                      <Badge variant="destructive" className="text-xs">
-                        필수
-                      </Badge>
-                    )}
-                    {term.isActive ? (
-                      <Badge className="text-xs bg-sky-100 text-sky-700 border border-sky-200">
-                        활성
-                      </Badge>
-                    ) : (
-                      <Badge className="text-xs bg-gray-100 text-gray-600 border border-gray-300">
-                        비활성
-                      </Badge>
-                    )}
-                  </div>
-                  <div className={`flex items-center gap-4 text-sm ${term.isActive ? 'text-gray-600' : 'text-gray-400'}`}>
-                    <span>유형: {getTypeLabel(term.type)}</span>
-                    <span>버전: {term.version}</span>
-                    <span>시행일: {new Date(term.effectiveDate).toLocaleDateString('ko-KR')}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleView(term.id)}
-                    className="gap-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                    보기
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(term.id)}
-                    disabled={!term.isActive}
-                    className={`gap-2 ${!term.isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <Edit className="h-4 w-4" />
-                    수정
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          ))}
-        </div>
+        <TooltipProvider>
+          <div className="grid gap-4">
+            {terms.map((term) => {
+              const editDisabledReason = getEditDisabledReason(term);
+              const canEdit = !editDisabledReason;
+
+              return (
+                <Card key={term.id} className={!term.isActive ? 'bg-gray-50 opacity-60' : ''}>
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <FileText className={`h-5 w-5 ${term.isActive ? 'text-sapphire-600' : 'text-gray-400'}`} />
+                          <h3 className={`text-lg font-semibold ${term.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {term.title}
+                          </h3>
+                          {term.isRequired && (
+                            <Badge variant="destructive" className="text-xs">
+                              필수
+                            </Badge>
+                          )}
+                          {term.isActive ? (
+                            <Badge className="text-xs bg-sky-100 text-sky-700 border border-sky-200">
+                              활성
+                            </Badge>
+                          ) : (
+                            <Badge className="text-xs bg-gray-100 text-gray-600 border border-gray-300">
+                              비활성
+                            </Badge>
+                          )}
+                        </div>
+                        <div className={`flex items-center gap-4 text-sm ${term.isActive ? 'text-gray-600' : 'text-gray-400'}`}>
+                          <span>유형: {getTypeLabel(term.type)}</span>
+                          <span>버전: {term.version}</span>
+                          <span>시행일: {new Date(term.effectiveDate).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(term.id)}
+                          className="gap-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          보기
+                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(term.id)}
+                                disabled={!canEdit}
+                                className={`gap-2 ${!canEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                                수정
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {editDisabledReason && (
+                            <TooltipContent>
+                              <p>{editDisabledReason}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       )}
 
       {/* 빈 상태 */}

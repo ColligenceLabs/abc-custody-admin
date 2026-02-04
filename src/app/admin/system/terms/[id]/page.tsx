@@ -9,6 +9,12 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeftIcon, Edit, Loader2, FileText, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';
 import {
@@ -72,6 +78,26 @@ export default function TermsDetailPage() {
     loadTerms();
   }, [id]);
 
+  // 시행일이 지났는지 확인
+  const isEffectiveDatePassed = (effectiveDate: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const effective = new Date(effectiveDate);
+    effective.setHours(0, 0, 0, 0);
+    return effective <= today;
+  };
+
+  // 수정 불가능 사유 반환
+  const getEditDisabledReason = (term: Terms) => {
+    if (!term.isActive) {
+      return '비활성 약관은 수정할 수 없습니다';
+    }
+    if (isEffectiveDatePassed(term.effectiveDate)) {
+      return '시행일이 지나서 수정할 수 없습니다';
+    }
+    return null;
+  };
+
   // 활성화 토글
   const handleToggleActive = async () => {
     try {
@@ -116,54 +142,69 @@ export default function TermsDetailPage() {
     );
   }
 
+  const editDisabledReason = terms ? getEditDisabledReason(terms) : null;
+  const canEdit = !editDisabledReason;
+
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">약관 상세 정보</h1>
-            <p className="text-gray-600 mt-1">약관의 상세 정보를 확인합니다</p>
+    <TooltipProvider>
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">약관 상세 정보</h1>
+              <p className="text-gray-600 mt-1">약관의 상세 정보를 확인합니다</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleToggleActive}
+              disabled={isToggling}
+            >
+              {isToggling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : terms.isActive ? (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  비활성화
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  활성화
+                </>
+              )}
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/admin/system/terms/${id}/edit`)}
+                    disabled={!canEdit}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    수정
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {editDisabledReason && (
+                <TooltipContent>
+                  <p>{editDisabledReason}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleToggleActive}
-            disabled={isToggling}
-          >
-            {isToggling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : terms.isActive ? (
-              <>
-                <XCircle className="h-4 w-4 mr-2" />
-                비활성화
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                활성화
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/admin/system/terms/${id}/edit`)}
-            disabled={!terms.isActive}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            수정
-          </Button>
-        </div>
-      </div>
 
       {/* 기본 정보 */}
       <Card>
@@ -255,6 +296,7 @@ export default function TermsDetailPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
