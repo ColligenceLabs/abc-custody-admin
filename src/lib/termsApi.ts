@@ -3,8 +3,6 @@ import apiClient from './api-client';
 export interface TermsSummaryItem {
   label: string;
   value: string;
-  labelEn?: string;
-  valueEn?: string;
 }
 
 export interface Terms {
@@ -18,10 +16,11 @@ export interface Terms {
   contentFormat: 'markdown' | 'html' | 'plain';
   applicableMemberTypes: ('individual' | 'corporate')[];
   isRequired: boolean;
-  isActive: boolean;
+  status: 'pending' | 'active' | 'inactive';
   effectiveDate: string;
   showSummary: boolean;
   summaryItems: TermsSummaryItem[] | null;
+  summaryItemsEn: TermsSummaryItem[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,7 +29,7 @@ export interface TermsListParams {
   page?: number;
   limit?: number;
   type?: string;
-  isActive?: boolean;
+  status?: 'pending' | 'active' | 'inactive';
   isRequired?: boolean;
   search?: string;
   sortBy?: string;
@@ -68,10 +67,11 @@ export interface CreateTermsRequest {
   contentFormat?: 'markdown' | 'html' | 'plain';
   applicableMemberTypes?: ('individual' | 'corporate')[];
   isRequired?: boolean;
-  isActive?: boolean;
+  status?: 'pending' | 'active' | 'inactive';
   effectiveDate: string;
   showSummary?: boolean;
   summaryItems?: TermsSummaryItem[] | null;
+  summaryItemsEn?: TermsSummaryItem[] | null;
 }
 
 export interface UpdateTermsRequest {
@@ -82,10 +82,11 @@ export interface UpdateTermsRequest {
   contentFormat?: 'markdown' | 'html' | 'plain';
   applicableMemberTypes?: ('individual' | 'corporate')[];
   isRequired?: boolean;
-  isActive?: boolean;
+  status?: 'pending' | 'active' | 'inactive';
   effectiveDate?: string;
   showSummary?: boolean;
   summaryItems?: TermsSummaryItem[] | null;
+  summaryItemsEn?: TermsSummaryItem[] | null;
 }
 
 /**
@@ -131,9 +132,9 @@ export const deleteTerms = async (id: string, force?: boolean): Promise<{ succes
 };
 
 /**
- * 약관 활성화/비활성화 토글
+ * 약관 상태 변경
  */
-export const toggleTermsActive = async (id: string): Promise<{ success: boolean; data: Terms }> => {
-  const response = await apiClient.patch(`/admin/terms/${id}/toggle-active`);
+export const updateTermsStatus = async (id: string, status: 'pending' | 'active' | 'inactive'): Promise<{ success: boolean; data: Terms }> => {
+  const response = await apiClient.patch(`/admin/terms/${id}/status`, { status });
   return response.data;
 };

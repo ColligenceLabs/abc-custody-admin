@@ -63,7 +63,7 @@ export default function EditTermsPage() {
     contentEn: '',
     contentFormat: 'markdown' as 'markdown' | 'html' | 'plain',
     isRequired: true,
-    isActive: true,
+    status: 'pending' as 'pending' | 'active' | 'inactive',
     effectiveDate: ''
   });
 
@@ -74,22 +74,40 @@ export default function EditTermsPage() {
 
   const [showSummary, setShowSummary] = useState(false);
   const [summaryItems, setSummaryItems] = useState<TermsSummaryItem[]>([]);
+  const [summaryItemsEn, setSummaryItemsEn] = useState<TermsSummaryItem[]>([]);
 
-  // 요약 항목 추가
+  // 요약 항목 추가 (한글)
   const addSummaryItem = () => {
     setSummaryItems([...summaryItems, { label: '', value: '' }]);
   };
 
-  // 요약 항목 수정
+  // 요약 항목 수정 (한글)
   const updateSummaryItem = (index: number, field: 'label' | 'value', value: string) => {
     const updated = [...summaryItems];
     updated[index][field] = value;
     setSummaryItems(updated);
   };
 
-  // 요약 항목 삭제
+  // 요약 항목 삭제 (한글)
   const removeSummaryItem = (index: number) => {
     setSummaryItems(summaryItems.filter((_, i) => i !== index));
+  };
+
+  // 요약 항목 추가 (영문)
+  const addSummaryItemEn = () => {
+    setSummaryItemsEn([...summaryItemsEn, { label: '', value: '' }]);
+  };
+
+  // 요약 항목 수정 (영문)
+  const updateSummaryItemEn = (index: number, field: 'label' | 'value', value: string) => {
+    const updated = [...summaryItemsEn];
+    updated[index][field] = value;
+    setSummaryItemsEn(updated);
+  };
+
+  // 요약 항목 삭제 (영문)
+  const removeSummaryItemEn = (index: number) => {
+    setSummaryItemsEn(summaryItemsEn.filter((_, i) => i !== index));
   };
 
   // 약관 정보 로드
@@ -110,7 +128,7 @@ export default function EditTermsPage() {
             contentEn: terms.contentEn || '',
             contentFormat: terms.contentFormat,
             isRequired: terms.isRequired,
-            isActive: terms.isActive,
+            status: terms.status,
             effectiveDate: terms.effectiveDate.split('T')[0]
           });
 
@@ -121,6 +139,7 @@ export default function EditTermsPage() {
 
           setShowSummary(terms.showSummary || false);
           setSummaryItems(terms.summaryItems || []);
+          setSummaryItemsEn(terms.summaryItemsEn || []);
         }
       } catch (error: any) {
         console.error('약관 조회 실패:', error);
@@ -168,16 +187,17 @@ export default function EditTermsPage() {
 
       const response = await updateTerms(id, {
         title: formData.title,
-        titleEn: formData.titleEn || undefined,
+        titleEn: formData.titleEn.trim() || null,
         content: formData.content,
-        contentEn: formData.contentEn || undefined,
+        contentEn: formData.contentEn.trim() || null,
         contentFormat: formData.contentFormat,
         applicableMemberTypes: selectedMemberTypes,
         isRequired: formData.isRequired,
-        isActive: formData.isActive,
+        status: formData.status,
         effectiveDate: formData.effectiveDate,
         showSummary: showSummary,
-        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : null
+        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : null,
+        summaryItemsEn: showSummary && summaryItemsEn.length > 0 ? summaryItemsEn : null
       });
 
       if (response.success) {
@@ -402,18 +422,27 @@ export default function EditTermsPage() {
               </Label>
             </div>
 
-            {/* 활성 여부 */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isActive: checked as boolean })
+            {/* 약관 상태 */}
+            <div className="space-y-2">
+              <Label htmlFor="status">약관 상태</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: 'pending' | 'active' | 'inactive') =>
+                  setFormData({ ...formData, status: value })
                 }
-              />
-              <Label htmlFor="isActive" className="font-normal cursor-pointer">
-                활성 상태
-              </Label>
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">시행 대기</SelectItem>
+                  <SelectItem value="active">시행 중</SelectItem>
+                  <SelectItem value="inactive">비활성</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500">
+                약관의 현재 상태를 선택하세요. 시행 대기 또는 시행 중 상태는 수정 가능합니다.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -439,85 +468,135 @@ export default function EditTermsPage() {
               </Label>
             </div>
 
-            {/* 요약 항목 입력 */}
+            {/* 요약 항목 입력 (한글) */}
             {showSummary && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>요약 항목</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addSummaryItem}
-                  >
-                    항목 추가
-                  </Button>
+              <div className="space-y-6">
+                <div className="space-y-4 p-4 border-2 border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">요약 항목 (한글)</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSummaryItem}
+                    >
+                      항목 추가
+                    </Button>
+                  </div>
+
+                  {summaryItems.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      항목 추가 버튼을 클릭하여 핵심 정보를 입력하세요
+                    </p>
+                  )}
+
+                  {summaryItems.map((item, index) => (
+                    <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          항목 {index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSummaryItem(index)}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`label-${index}`}>라벨</Label>
+                        <Input
+                          id={`label-${index}`}
+                          placeholder="예: 수집 항목, 이용 목적, 보유 기간"
+                          value={item.label}
+                          onChange={(e) =>
+                            updateSummaryItem(index, 'label', e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`value-${index}`}>내용</Label>
+                        <Textarea
+                          id={`value-${index}`}
+                          placeholder="예: 이메일, 이름, 휴대전화번호, 주민등록번호"
+                          rows={2}
+                          value={item.value}
+                          onChange={(e) =>
+                            updateSummaryItem(index, 'value', e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {summaryItems.length === 0 && (
-                  <p className="text-sm text-gray-500">
-                    항목 추가 버튼을 클릭하여 핵심 정보를 입력하세요
-                  </p>
-                )}
-
-                {summaryItems.map((item, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
-                        항목 {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSummaryItem(index)}
-                      >
-                        삭제
-                      </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`label-${index}`}>라벨</Label>
-                      <Input
-                        id={`label-${index}`}
-                        placeholder="예: 수집 항목, 이용 목적, 보유 기간"
-                        value={item.label}
-                        onChange={(e) =>
-                          updateSummaryItem(index, 'label', e.target.value)
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor={`value-${index}`}>내용</Label>
-                      <Textarea
-                        id={`value-${index}`}
-                        placeholder="예: 이메일, 이름, 휴대전화번호, 주민등록번호"
-                        rows={2}
-                        value={item.value}
-                        onChange={(e) =>
-                          updateSummaryItem(index, 'value', e.target.value)
-                        }
-                      />
-                    </div>
+                {/* 요약 항목 입력 (영문) */}
+                <div className="space-y-4 p-4 border-2 border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">요약 항목 (영문)</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSummaryItemEn}
+                    >
+                      항목 추가
+                    </Button>
                   </div>
-                ))}
 
-                {summaryItems.length > 0 && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      <strong>미리보기:</strong> 회원가입 약관 동의 화면에 다음과 같이 표시됩니다
+                  {summaryItemsEn.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      영문 버전의 핵심 정보를 입력하세요 (선택사항)
                     </p>
-                    <div className="mt-2 space-y-1 text-xs text-gray-600">
-                      {summaryItems.map((item, idx) => (
-                        <div key={idx}>
-                          <span className="font-medium">· {item.label || '(라벨)'}:</span>{' '}
-                          <span>{item.value || '(내용)'}</span>
-                        </div>
-                      ))}
+                  )}
+
+                  {summaryItemsEn.map((item, index) => (
+                    <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">
+                          Item {index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSummaryItemEn(index)}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`label-en-${index}`}>Label</Label>
+                        <Input
+                          id={`label-en-${index}`}
+                          placeholder="e.g., Collection Items, Purpose, Retention Period"
+                          value={item.label}
+                          onChange={(e) =>
+                            updateSummaryItemEn(index, 'label', e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`value-en-${index}`}>Content</Label>
+                        <Textarea
+                          id={`value-en-${index}`}
+                          placeholder="e.g., Email, Name, Phone Number, ID Number"
+                          rows={2}
+                          value={item.value}
+                          onChange={(e) =>
+                            updateSummaryItemEn(index, 'value', e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>

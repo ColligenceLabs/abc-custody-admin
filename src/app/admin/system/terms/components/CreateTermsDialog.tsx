@@ -1,16 +1,17 @@
-/**
- * 약관 생성 페이지
- * /admin/system/terms/new
- */
-
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -20,14 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeftIcon, Loader2 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { createTerms, type TermsSummaryItem } from '@/lib/termsApi';
 
 const TERM_TYPES = [
@@ -46,8 +40,13 @@ const CONTENT_FORMATS = [
   { value: 'plain', label: 'Plain Text' }
 ];
 
-export default function NewTermsPage() {
-  const router = useRouter();
+interface CreateTermsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export default function CreateTermsDialog({ open, onOpenChange, onSuccess }: CreateTermsDialogProps) {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -71,44 +70,59 @@ export default function NewTermsPage() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryItems, setSummaryItems] = useState<TermsSummaryItem[]>([]);
   const [summaryItemsEn, setSummaryItemsEn] = useState<TermsSummaryItem[]>([]);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 요약 항목 추가 (한글)
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      type: '',
+      version: '',
+      title: '',
+      titleEn: '',
+      content: '',
+      contentEn: '',
+      contentFormat: 'markdown',
+      isRequired: true,
+      status: 'pending',
+      effectiveDate: ''
+    });
+    setApplicableMemberTypes({ individual: true, corporate: true });
+    setShowSummary(false);
+    setSummaryItems([]);
+    setSummaryItemsEn([]);
+  };
+
+  // Summary item functions (Korean)
   const addSummaryItem = () => {
     setSummaryItems([...summaryItems, { label: '', value: '' }]);
   };
 
-  // 요약 항목 수정 (한글)
   const updateSummaryItem = (index: number, field: 'label' | 'value', value: string) => {
     const updated = [...summaryItems];
     updated[index][field] = value;
     setSummaryItems(updated);
   };
 
-  // 요약 항목 삭제 (한글)
   const removeSummaryItem = (index: number) => {
     setSummaryItems(summaryItems.filter((_, i) => i !== index));
   };
 
-  // 요약 항목 추가 (영문)
+  // Summary item functions (English)
   const addSummaryItemEn = () => {
     setSummaryItemsEn([...summaryItemsEn, { label: '', value: '' }]);
   };
 
-  // 요약 항목 수정 (영문)
   const updateSummaryItemEn = (index: number, field: 'label' | 'value', value: string) => {
     const updated = [...summaryItemsEn];
     updated[index][field] = value;
     setSummaryItemsEn(updated);
   };
 
-  // 요약 항목 삭제 (영문)
   const removeSummaryItemEn = (index: number) => {
     setSummaryItemsEn(summaryItemsEn.filter((_, i) => i !== index));
   };
 
-  // 폼 제출
+  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -158,7 +172,9 @@ export default function NewTermsPage() {
         toast({
           description: '약관이 생성되었습니다.'
         });
-        router.push('/admin/system/terms');
+        resetForm();
+        onOpenChange(false);
+        onSuccess?.();
       }
     } catch (error: any) {
       console.error('약관 생성 실패:', error);
@@ -173,30 +189,21 @@ export default function NewTermsPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">새 약관 등록</h1>
-          <p className="text-gray-600 mt-1">약관 정보를 입력하여 새 약관을 등록합니다</p>
-        </div>
-      </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <DialogTitle>새 약관 등록</DialogTitle>
+          <DialogDescription>
+            약관 정보를 입력하여 새 약관을 등록합니다
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* 폼 */}
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>약관 기본 정보</CardTitle>
-            <CardDescription>약관의 기본 정보를 입력해주세요</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* 기본 정보 */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">약관 기본 정보</h3>
+
             {/* 약관 타입 */}
             <div className="space-y-2">
               <Label htmlFor="type">약관 타입 *</Label>
@@ -226,7 +233,6 @@ export default function NewTermsPage() {
                 value={formData.version}
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
               />
-              <p className="text-sm text-gray-500">약관의 버전을 입력하세요 (예: 1.0)</p>
             </div>
 
             {/* 제목 (한글) */}
@@ -249,7 +255,6 @@ export default function NewTermsPage() {
                 value={formData.titleEn}
                 onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
               />
-              <p className="text-sm text-gray-500">영문 사이트에 표시될 제목을 입력하세요</p>
             </div>
 
             {/* 내용 형식 */}
@@ -280,7 +285,7 @@ export default function NewTermsPage() {
               <Textarea
                 id="content"
                 placeholder="약관 내용을 입력하세요"
-                rows={15}
+                rows={8}
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 className="font-mono text-sm"
@@ -293,12 +298,11 @@ export default function NewTermsPage() {
               <Textarea
                 id="contentEn"
                 placeholder="Enter terms content in English"
-                rows={15}
+                rows={8}
                 value={formData.contentEn}
                 onChange={(e) => setFormData({ ...formData, contentEn: e.target.value })}
                 className="font-mono text-sm"
               />
-              <p className="text-sm text-gray-500">영문 사이트에 표시될 약관 내용을 입력하세요</p>
             </div>
 
             {/* 시행일 */}
@@ -381,23 +385,11 @@ export default function NewTermsPage() {
                   <SelectItem value="inactive">비활성</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm text-gray-500">
-                약관의 현재 상태를 선택하세요. 시행 대기 또는 시행 중 상태는 수정 가능합니다.
-              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 핵심 정보 요약 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>핵심 정보 요약</CardTitle>
-            <CardDescription>
-              회원가입 약관 동의 화면에 표시할 핵심 정보를 입력하세요 (법적 요건 충족용)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* 요약 표시 여부 */}
+          {/* 핵심 정보 요약 */}
+          <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="showSummary"
@@ -409,9 +401,9 @@ export default function NewTermsPage() {
               </Label>
             </div>
 
-            {/* 요약 항목 입력 (한글) */}
             {showSummary && (
               <div className="space-y-6">
+                {/* 한글 요약 */}
                 <div className="space-y-4 p-4 border-2 border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">요약 항목 (한글)</Label>
@@ -425,18 +417,10 @@ export default function NewTermsPage() {
                     </Button>
                   </div>
 
-                  {summaryItems.length === 0 && (
-                    <p className="text-sm text-gray-500">
-                      항목 추가 버튼을 클릭하여 핵심 정보를 입력하세요
-                    </p>
-                  )}
-
                   {summaryItems.map((item, index) => (
                     <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          항목 {index + 1}
-                        </span>
+                        <span className="text-sm font-medium">항목 {index + 1}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -446,36 +430,22 @@ export default function NewTermsPage() {
                           삭제
                         </Button>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`label-${index}`}>라벨</Label>
-                        <Input
-                          id={`label-${index}`}
-                          placeholder="예: 수집 항목, 이용 목적, 보유 기간"
-                          value={item.label}
-                          onChange={(e) =>
-                            updateSummaryItem(index, 'label', e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`value-${index}`}>내용</Label>
-                        <Textarea
-                          id={`value-${index}`}
-                          placeholder="예: 이메일, 이름, 휴대전화번호, 주민등록번호"
-                          rows={2}
-                          value={item.value}
-                          onChange={(e) =>
-                            updateSummaryItem(index, 'value', e.target.value)
-                          }
-                        />
-                      </div>
+                      <Input
+                        placeholder="라벨 (예: 수집 항목)"
+                        value={item.label}
+                        onChange={(e) => updateSummaryItem(index, 'label', e.target.value)}
+                      />
+                      <Textarea
+                        placeholder="내용"
+                        rows={2}
+                        value={item.value}
+                        onChange={(e) => updateSummaryItem(index, 'value', e.target.value)}
+                      />
                     </div>
                   ))}
                 </div>
 
-                {/* 요약 항목 입력 (영문) */}
+                {/* 영문 요약 */}
                 <div className="space-y-4 p-4 border-2 border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">요약 항목 (영문)</Label>
@@ -489,18 +459,10 @@ export default function NewTermsPage() {
                     </Button>
                   </div>
 
-                  {summaryItemsEn.length === 0 && (
-                    <p className="text-sm text-gray-500">
-                      영문 버전의 핵심 정보를 입력하세요 (선택사항)
-                    </p>
-                  )}
-
                   {summaryItemsEn.map((item, index) => (
                     <div key={index} className="p-4 border rounded-lg space-y-3 bg-gray-50">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">
-                          Item {index + 1}
-                        </span>
+                        <span className="text-sm font-medium">Item {index + 1}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -510,61 +472,52 @@ export default function NewTermsPage() {
                           삭제
                         </Button>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`label-en-${index}`}>Label</Label>
-                        <Input
-                          id={`label-en-${index}`}
-                          placeholder="e.g., Collection Items, Purpose, Retention Period"
-                          value={item.label}
-                          onChange={(e) =>
-                            updateSummaryItemEn(index, 'label', e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor={`value-en-${index}`}>Content</Label>
-                        <Textarea
-                          id={`value-en-${index}`}
-                          placeholder="e.g., Email, Name, Phone Number, ID Number"
-                          rows={2}
-                          value={item.value}
-                          onChange={(e) =>
-                            updateSummaryItemEn(index, 'value', e.target.value)
-                          }
-                        />
-                      </div>
+                      <Input
+                        placeholder="Label (e.g., Collection Items)"
+                        value={item.label}
+                        onChange={(e) => updateSummaryItemEn(index, 'label', e.target.value)}
+                      />
+                      <Textarea
+                        placeholder="Content"
+                        rows={2}
+                        value={item.value}
+                        onChange={(e) => updateSummaryItemEn(index, 'value', e.target.value)}
+                      />
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 액션 버튼 */}
-        <div className="flex justify-end gap-3 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-          >
-            취소
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                생성 중...
-              </>
-            ) : (
-              '약관 생성'
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
+          </div>
+
+          {/* 버튼 */}
+          <div className="flex justify-end gap-3 px-6 py-4 border-t bg-white">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                resetForm();
+                onOpenChange(false);
+              }}
+              disabled={isSubmitting}
+            >
+              취소
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  등록 중...
+                </>
+              ) : (
+                '등록'
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

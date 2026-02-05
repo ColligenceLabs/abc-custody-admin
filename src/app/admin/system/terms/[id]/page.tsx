@@ -9,14 +9,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeftIcon, Edit, Loader2, FileText, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeftIcon, Loader2, FileText, Calendar, Users, CheckCircle, XCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -24,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getTermsById, toggleTermsActive, Terms } from '@/lib/termsApi';
+import { getTermsById, Terms } from '@/lib/termsApi';
 
 const TERM_TYPE_LABELS: Record<string, string> = {
   service_terms: '서비스 이용약관',
@@ -51,7 +45,7 @@ export default function TermsDetailPage() {
   const [terms, setTerms] = useState<Terms | null>(null);
   const [stats, setStats] = useState<{ totalAgreements: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isToggling, setIsToggling] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<'ko' | 'en'>('ko');
 
   // 약관 정보 로드
   const loadTerms = async () => {
@@ -78,48 +72,6 @@ export default function TermsDetailPage() {
     loadTerms();
   }, [id]);
 
-  // 시행일이 지났는지 확인
-  const isEffectiveDatePassed = (effectiveDate: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const effective = new Date(effectiveDate);
-    effective.setHours(0, 0, 0, 0);
-    return effective <= today;
-  };
-
-  // 수정 불가능 사유 반환
-  const getEditDisabledReason = (term: Terms) => {
-    if (!term.isActive) {
-      return '비활성 약관은 수정할 수 없습니다';
-    }
-    if (isEffectiveDatePassed(term.effectiveDate)) {
-      return '시행일이 지나서 수정할 수 없습니다';
-    }
-    return null;
-  };
-
-  // 활성화 토글
-  const handleToggleActive = async () => {
-    try {
-      setIsToggling(true);
-      const response = await toggleTermsActive(id);
-
-      if (response.success) {
-        setTerms(response.data);
-        toast({
-          description: response.data.isActive ? '약관이 활성화되었습니다.' : '약관이 비활성화되었습니다.'
-        });
-      }
-    } catch (error: any) {
-      console.error('활성화 토글 실패:', error);
-      toast({
-        variant: 'destructive',
-        description: '활성화 상태 변경에 실패했습니다.'
-      });
-    } finally {
-      setIsToggling(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -142,12 +94,8 @@ export default function TermsDetailPage() {
     );
   }
 
-  const editDisabledReason = terms ? getEditDisabledReason(terms) : null;
-  const canEdit = !editDisabledReason;
-
   return (
-    <TooltipProvider>
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -162,52 +110,6 @@ export default function TermsDetailPage() {
               <h1 className="text-3xl font-bold text-gray-900">약관 상세 정보</h1>
               <p className="text-gray-600 mt-1">약관의 상세 정보를 확인합니다</p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleToggleActive}
-              disabled={isToggling}
-            >
-              {isToggling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : terms.isActive ? (
-                <>
-                  <XCircle className="h-4 w-4 mr-2" />
-                  비활성화
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  활성화
-                </>
-              )}
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={(e) => {
-                    if (!canEdit) {
-                      e.preventDefault();
-                      return;
-                    }
-                    router.push(`/admin/system/terms/${id}/edit`);
-                  }}
-                  aria-disabled={!canEdit}
-                  className={!canEdit ? 'opacity-50 cursor-not-allowed' : ''}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  수정
-                </Button>
-              </TooltipTrigger>
-              {editDisabledReason && (
-                <TooltipContent>
-                  <p>{editDisabledReason}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
           </div>
         </div>
 
@@ -228,10 +130,14 @@ export default function TermsDetailPage() {
               {terms.isRequired && (
                 <Badge variant="destructive">필수</Badge>
               )}
-              {terms.isActive ? (
-                <Badge className="bg-sapphire-100 text-sapphire-700">활성</Badge>
-              ) : (
-                <Badge variant="outline">비활성</Badge>
+              {terms.status === 'active' && (
+                <Badge className="bg-sky-100 text-sky-700 border border-sky-200">시행 중</Badge>
+              )}
+              {terms.status === 'pending' && (
+                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200">시행 대기</Badge>
+              )}
+              {terms.status === 'inactive' && (
+                <Badge className="bg-gray-100 text-gray-600 border border-gray-300">비활성</Badge>
               )}
             </div>
           </div>
@@ -288,20 +194,93 @@ export default function TermsDetailPage() {
         </CardContent>
       </Card>
 
+      {/* 핵심 정보 요약 */}
+      {terms.showSummary && (
+        (currentLanguage === 'ko' && terms.summaryItems && terms.summaryItems.length > 0) ||
+        (currentLanguage === 'en' && terms.summaryItemsEn && terms.summaryItemsEn.length > 0)
+      ) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>핵심 정보 요약</CardTitle>
+            <CardDescription>약관의 핵심 정보를 요약한 내용입니다</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(currentLanguage === 'ko'
+                ? terms.summaryItems
+                : (terms.summaryItemsEn || terms.summaryItems)
+              )?.map((item, index) => (
+                <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-700 mb-1">
+                      {item.label}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {item.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 약관 내용 */}
       <Card>
         <CardHeader>
-          <CardTitle>약관 내용</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-50 rounded-lg p-6">
-            <pre className="whitespace-pre-wrap text-sm font-mono overflow-x-auto">
-              {terms.content}
-            </pre>
+          <div className="flex items-center justify-between">
+            <CardTitle>약관 내용</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={currentLanguage === 'ko' ? 'default' : 'outline'}
+                onClick={() => setCurrentLanguage('ko')}
+                className={currentLanguage === 'ko' ? 'bg-sky-600 hover:bg-sky-700' : ''}
+              >
+                한글
+              </Button>
+              <Button
+                size="sm"
+                variant={currentLanguage === 'en' ? 'default' : 'outline'}
+                onClick={() => setCurrentLanguage('en')}
+                disabled={!terms.titleEn && !terms.contentEn && !terms.summaryItemsEn}
+                className={currentLanguage === 'en' ? 'bg-sky-600 hover:bg-sky-700' : ''}
+              >
+                English
+              </Button>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 제목 표시 */}
+          <div>
+            <p className="text-sm text-gray-500 mb-2">제목</p>
+            <p className="text-lg font-semibold">
+              {currentLanguage === 'ko' ? terms.title : (terms.titleEn || terms.title)}
+            </p>
+          </div>
+
+          {/* 내용 표시 */}
+          <div>
+            <p className="text-sm text-gray-500 mb-2">내용</p>
+            <div className="bg-gray-50 rounded-lg p-6">
+              <pre className="whitespace-pre-wrap text-sm font-mono overflow-x-auto">
+                {currentLanguage === 'ko' ? terms.content : (terms.contentEn || terms.content)}
+              </pre>
+            </div>
+          </div>
+
+          {/* 영문 버전이 없을 때 안내 */}
+          {currentLanguage === 'en' && !terms.contentEn && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                영문 버전이 등록되지 않았습니다. 한글 내용이 표시됩니다.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
-      </div>
-    </TooltipProvider>
+    </div>
   );
 }

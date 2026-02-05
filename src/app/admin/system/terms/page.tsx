@@ -20,6 +20,9 @@ import {
 import { PlusIcon, Search, FileText, Eye, Edit, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTermsList, Terms } from '@/lib/termsApi';
+import CreateTermsDialog from './components/CreateTermsDialog';
+import EditTermsDialog from './components/EditTermsDialog';
+import ViewTermsDialog from './components/ViewTermsDialog';
 
 export default function TermsManagementPage() {
   const router = useRouter();
@@ -35,6 +38,11 @@ export default function TermsManagementPage() {
     limit: 20,
     totalPages: 0
   });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedTermsId, setSelectedTermsId] = useState<string | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedViewTermsId, setSelectedViewTermsId] = useState<string | null>(null);
 
   // 약관 타입 옵션
   const termTypes = [
@@ -84,15 +92,17 @@ export default function TermsManagementPage() {
   };
 
   const handleCreateNew = () => {
-    router.push('/admin/system/terms/new');
+    setCreateDialogOpen(true);
   };
 
   const handleView = (termId: string) => {
-    router.push(`/admin/system/terms/${termId}`);
+    setSelectedViewTermsId(termId);
+    setViewDialogOpen(true);
   };
 
   const handleEdit = (termId: string) => {
-    router.push(`/admin/system/terms/${termId}/edit`);
+    setSelectedTermsId(termId);
+    setEditDialogOpen(true);
   };
 
   const getTypeLabel = (type: string) => {
@@ -114,12 +124,12 @@ export default function TermsManagementPage() {
     today.setHours(0, 0, 0, 0);
     const effective = new Date(effectiveDate);
     effective.setHours(0, 0, 0, 0);
-    return effective <= today;
+    return effective < today;
   };
 
   // 수정 불가능 사유 반환
   const getEditDisabledReason = (term: Terms) => {
-    if (!term.isActive) {
+    if (term.status === 'inactive') {
       return '비활성 약관은 수정할 수 없습니다';
     }
     if (isEffectiveDatePassed(term.effectiveDate)) {
@@ -198,13 +208,13 @@ export default function TermsManagementPage() {
               const canEdit = !editDisabledReason;
 
               return (
-                <Card key={term.id} className={!term.isActive ? 'bg-gray-50 opacity-60' : ''}>
+                <Card key={term.id} className={term.status !== 'active' ? 'bg-gray-50 opacity-60' : ''}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <FileText className={`h-5 w-5 ${term.isActive ? 'text-sapphire-600' : 'text-gray-400'}`} />
-                          <h3 className={`text-lg font-semibold ${term.isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                          <FileText className={`h-5 w-5 ${term.status === 'active' ? 'text-sapphire-600' : 'text-gray-400'}`} />
+                          <h3 className={`text-lg font-semibold ${term.status === 'active' ? 'text-gray-900' : 'text-gray-500'}`}>
                             {term.title}
                           </h3>
                           {term.isRequired && (
@@ -212,17 +222,23 @@ export default function TermsManagementPage() {
                               필수
                             </Badge>
                           )}
-                          {term.isActive ? (
+                          {term.status === 'active' && (
                             <Badge className="text-xs bg-sky-100 text-sky-700 border border-sky-200">
-                              활성
+                              시행 중
                             </Badge>
-                          ) : (
+                          )}
+                          {term.status === 'pending' && (
+                            <Badge className="text-xs bg-yellow-100 text-yellow-700 border border-yellow-200">
+                              시행 대기
+                            </Badge>
+                          )}
+                          {term.status === 'inactive' && (
                             <Badge className="text-xs bg-gray-100 text-gray-600 border border-gray-300">
                               비활성
                             </Badge>
                           )}
                         </div>
-                        <div className={`flex items-center gap-4 text-sm ${term.isActive ? 'text-gray-600' : 'text-gray-400'}`}>
+                        <div className={`flex items-center gap-4 text-sm ${term.status === 'active' ? 'text-gray-600' : 'text-gray-400'}`}>
                           <span>유형: {getTypeLabel(term.type)}</span>
                           <span>버전: {term.version}</span>
                           <span>시행일: {new Date(term.effectiveDate).toLocaleDateString('ko-KR')}</span>
@@ -292,6 +308,32 @@ export default function TermsManagementPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 약관 등록 Dialog */}
+      <CreateTermsDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={loadTerms}
+      />
+
+      {/* 약관 수정 Dialog */}
+      {selectedTermsId && (
+        <EditTermsDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          termsId={selectedTermsId}
+          onSuccess={loadTerms}
+        />
+      )}
+
+      {/* 약관 보기 Dialog */}
+      {selectedViewTermsId && (
+        <ViewTermsDialog
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
+          termsId={selectedViewTermsId}
+        />
       )}
     </div>
   );
