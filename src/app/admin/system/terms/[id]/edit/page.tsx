@@ -187,16 +187,16 @@ export default function EditTermsPage() {
 
       const response = await updateTerms(id, {
         title: formData.title,
-        titleEn: formData.titleEn.trim() || null,
+        titleEn: formData.titleEn.trim() || undefined,
         content: formData.content,
-        contentEn: formData.contentEn.trim() || null,
+        contentEn: formData.contentEn.trim() || undefined,
         contentFormat: formData.contentFormat,
         applicableMemberTypes: selectedMemberTypes,
         isRequired: formData.isRequired,
         status: formData.status,
         effectiveDate: formData.effectiveDate,
         showSummary: showSummary,
-        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : null,
+        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : undefined,
         summaryItemsEn: showSummary && summaryItemsEn.length > 0 ? summaryItemsEn : null
       });
 

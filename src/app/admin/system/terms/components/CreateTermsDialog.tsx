@@ -155,17 +155,17 @@ export default function CreateTermsDialog({ open, onOpenChange, onSuccess }: Cre
         type: formData.type,
         version: formData.version,
         title: formData.title,
-        titleEn: formData.titleEn.trim() || null,
+        titleEn: formData.titleEn.trim() || undefined,
         content: formData.content,
-        contentEn: formData.contentEn.trim() || null,
+        contentEn: formData.contentEn.trim() || undefined,
         contentFormat: formData.contentFormat,
         applicableMemberTypes: selectedMemberTypes,
         isRequired: formData.isRequired,
         status: formData.status,
         effectiveDate: formData.effectiveDate,
         showSummary: showSummary,
-        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : null,
-        summaryItemsEn: showSummary && summaryItemsEn.length > 0 ? summaryItemsEn : null
+        summaryItems: showSummary && summaryItems.length > 0 ? summaryItems : undefined,
+        summaryItemsEn: showSummary && summaryItemsEn.length > 0 ? summaryItemsEn : undefined
       });
 
       if (response.success) {
