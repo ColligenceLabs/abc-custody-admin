@@ -288,11 +288,59 @@ export default function ViewTermsDialog({ open, onOpenChange, termsId }: ViewTer
                   <CardTitle>원본 내용</CardTitle>
                   <CardDescription>등록된 약관의 원본 텍스트입니다</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <pre className="whitespace-pre-wrap text-xs font-mono overflow-x-auto text-gray-600">
-                      {currentLanguage === 'ko' ? terms.content : (terms.contentEn || terms.content)}
-                    </pre>
+                <CardContent className="space-y-6">
+                  {/* 한글 버전 */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-gray-900">한글 버전</h4>
+
+                    {/* 한글 제목 */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">제목</p>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-sm text-gray-900 font-medium">{terms.title}</p>
+                      </div>
+                    </div>
+
+                    {/* 한글 내용 */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">내용</p>
+                      <div className="bg-gray-50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-xs font-mono text-gray-600">
+                          {terms.content}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 영문 버전 */}
+                  <div className="space-y-4 pt-6 border-t border-gray-200">
+                    <h4 className="text-sm font-semibold text-gray-900">영문 버전</h4>
+
+                    {/* 영문 제목 */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">제목 (English)</p>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        {terms.titleEn ? (
+                          <p className="text-sm text-gray-900 font-medium">{terms.titleEn}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">등록되지 않음</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 영문 내용 */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">내용 (Content)</p>
+                      <div className="bg-gray-50 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                        {terms.contentEn ? (
+                          <pre className="whitespace-pre-wrap text-xs font-mono text-gray-600">
+                            {terms.contentEn}
+                          </pre>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">등록되지 않음</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
