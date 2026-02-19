@@ -7,22 +7,32 @@
 'use client';
 
 import { Metadata } from 'next';
-import { Users, DollarSign, Activity, Clock, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Users, DollarSign, Activity, Clock, ArrowDownToLine, ArrowUpFromLine, MessageSquare } from 'lucide-react';
 import { StatsCard } from './components/StatsCard';
 import { AssetDistributionChart } from './components/AssetDistributionChart';
 import { useDashboardData } from './hooks/useDashboardData';
 import { formatCompactCurrency, formatFullCurrency } from '@/lib/utils';
 import { AssetWalletRatioSection } from '@/app/admin/withdrawal-v2/requests/components/AssetWalletRatioSection';
+import { useQuery } from '@tanstack/react-query';
+import { getCorporateInquiryStats } from '@/services/corporateInquiryApi';
 
 export default function AdminDashboardPage() {
   const {
     stats,
     assetDistributionHot,
     assetDistributionCold,
+    assetDistributionTreasury,
     assetWalletInfo,
     loading,
     error
   } = useDashboardData();
+
+  // 법인 문의 통계
+  const { data: inquiryStats } = useQuery({
+    queryKey: ['corporateInquiryStats'],
+    queryFn: getCorporateInquiryStats,
+    refetchInterval: 5 * 60 * 1000, // 5분마다 자동 갱신
+  });
 
   return (
     <div className="space-y-6">
@@ -36,8 +46,8 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
-      {/* 통계 카드 6개 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* 통계 카드 7개 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
         <StatsCard
           title="전체 회원사"
           value={stats.totalMembers}
@@ -74,6 +84,12 @@ export default function AdminDashboardPage() {
           icon={ArrowUpFromLine}
           color="text-blue-600 dark:text-blue-400"
         />
+        <StatsCard
+          title="법인 문의 대기"
+          value={inquiryStats?.waitingCount || 0}
+          icon={MessageSquare}
+          color="text-purple-600 dark:text-purple-400"
+        />
       </div>
 
       {/* 자산별 Hot/Cold 지갑 밸런스 상태 */}
@@ -89,10 +105,11 @@ export default function AdminDashboardPage() {
         <>
           <AssetWalletRatioSection />
 
-          {/* 2열 레이아웃: 자산 분포 Hot + Cold */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 3열 레이아웃: 자산 분포 Hot + Cold + Treasury */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             <AssetDistributionChart data={assetDistributionHot} title="Hot 지갑 자산 분포" />
             <AssetDistributionChart data={assetDistributionCold} title="Cold 지갑 자산 분포" />
+            <AssetDistributionChart data={assetDistributionTreasury} title="Treasury 지갑 자산 분포" />
           </div>
         </>
       )}

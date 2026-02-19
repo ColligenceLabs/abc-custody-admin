@@ -38,6 +38,37 @@ export interface ReviewNote {
 }
 
 // ===========================
+// KYC 시행 이력 관련 타입
+// ===========================
+
+/**
+ * KYC 시행 일자 항목
+ */
+export interface KycDateEntry {
+  id: string;
+  cddExecutedAt: string;  // YYYYMMDDHH24MISS 형식
+  createdAt: string;       // ISO 8601 형식
+  reviewStatus?: OnboardingStatus; // 검토 상태
+}
+
+/**
+ * CDD 상세 정보 (시행일별 주소/연락처)
+ */
+export interface CddDetail {
+  id: string;
+  cddExecutedAt: string;
+  homeCountryCd?: string;
+  homeZipCode?: string;
+  homeAddress?: string;
+  homeAddressDtl?: string;
+  mobilePhoneNo?: string;
+  emailAddr?: string;
+  reviewStatus?: OnboardingStatus;
+  riskLevel?: RiskLevel | null;
+  currentStep?: number;
+}
+
+// ===========================
 // 개인회원 온보딩
 // ===========================
 
@@ -73,6 +104,9 @@ export interface KYCInfo {
   residentNumber?: string; // 주민등록번호 (개인회원용)
   idImageUrl: string;
   selfieImageUrl?: string; // 셀피 이미지 URL
+  idImageBase64?: string; // Base64 신분증 이미지 (마스킹됨)
+  idImageOriginalBase64?: string; // Base64 원본 신분증 이미지 (마스킹 안됨)
+  selfieImageBase64?: string; // Base64 셀피 이미지
   addressProofType: AddressProofType;
   addressProofUrl: string;
   phoneVerified: boolean;
@@ -184,6 +218,12 @@ export interface IndividualOnboarding {
   registrationSource?: RegistrationSource; // 신청 경로
   registrationNote?: string;        // 신청 관련 메모
 
+  // KOFIU 직업 정보
+  kofiuJobCode?: string;            // KOFIU 직업 분류 코드
+  kofiuJobName?: string;            // KOFIU 직업 분류 명칭
+  jobDetailCode?: string;           // 직업 상세 코드
+  jobDetailName?: string;           // 직업 상세 명칭
+
   // 1단계: KYC (신원확인)
   kyc: KYCInfo;
 
@@ -201,6 +241,10 @@ export interface IndividualOnboarding {
   eddRequired: boolean;             // EDD 필요 여부 (HIGH 리스크인 경우 true)
   eddRequestedAt?: string;          // EDD 요청 시각 (ISO 8601)
   eddSubmittedAt?: string;          // EDD 제출 시각 (ISO 8601)
+
+  // KYC 시행 이력
+  kycDates?: KycDateEntry[];        // CDD 시행 일자 목록
+  cdd?: CddDetail | null;           // 선택된 CDD 상세 정보
 
   // 관리자 작업 영역
   adminReview: AdminReview;
@@ -389,6 +433,13 @@ export interface IndividualEDDSubmission {
   videoInterviewUrl?: string;     // 화상 인터뷰 녹화 영상
   additionalDocumentUrls?: string[]; // 기타 추가 서류
   submittedAt: string;            // ISO 8601 형식
+  // KOFIU 자금 출처 및 거래 목적
+  fundSourceCode?: string;        // 자금 출처 코드
+  fundSourceName?: string;        // 자금 출처 명칭
+  fundSourceDetail?: string;      // 자금 출처 상세 설명
+  transPurposeCode?: string;      // 거래 목적 코드
+  transPurposeName?: string;      // 거래 목적 명칭
+  transPurposeDetail?: string;    // 거래 목적 상세 설명
 }
 
 /**

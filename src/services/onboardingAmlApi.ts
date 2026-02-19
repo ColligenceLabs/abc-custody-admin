@@ -29,6 +29,8 @@ import {
   OrganizationDepositAddressesResponse,
   OrganizationDepositsResponse,
   OrganizationWithdrawalAddressesResponse,
+  KycDateEntry,
+  CddDetail,
 } from '@/types/onboardingAml';
 
 import {
@@ -90,6 +92,21 @@ interface BackendUser {
   corporateNationality?: string;
   corporateCountryCode?: string;
   corporateAddress?: string;
+  // CDD 이력 관련 필드
+  kycDates?: { id: string; cddExecutedAt: string; createdAt: string; reviewStatus?: string }[];
+  cdd?: {
+    id: string;
+    cddExecutedAt: string;
+    homeCountryCd?: string;
+    homeZipCode?: string;
+    homeAddress?: string;
+    homeAddressDtl?: string;
+    mobilePhoneNo?: string;
+    emailAddr?: string;
+    reviewStatus?: string;
+    riskLevel?: string | null;
+    currentStep?: number;
+  } | null;
 }
 
 // ===========================
@@ -107,6 +124,8 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     email: user.email,
     idCardImagePath: user.idCardImagePath,
     selfieImagePath: user.selfieImagePath,
+    kofiuJobCd: (user as any).kofiuJobCd,
+    jobDetailCd: (user as any).jobDetailCd,
   });
 
   return {
@@ -117,9 +136,15 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     userEmail: user.email,
     userPhone: user.phone,
     userGender: user.gender,
-    userNationality: user.countryCode || user.nationality,
+    userNationality: (user as any).nationalityName || (user as any).nationalityCode || user.countryCode || user.nationality,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+
+    // KOFIU 직업 정보
+    kofiuJobCode: (user as any).kofiuJobCd,
+    kofiuJobName: (user as any).kofiuJobName,
+    jobDetailCode: (user as any).jobDetailCd,
+    jobDetailName: (user as any).jobDetailName,
 
     // Mock/기본값: 등록 경로
     registrationSource: 'ONLINE' as const,
@@ -128,9 +153,12 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     // Mock/기본값: KYC 정보
     kyc: {
       idType: 'RESIDENT_CARD' as const,
-      idNumber: user.personalId || '******-*******',
+      idNumber: (user as any).realIdNo || user.personalId || '******-*******',
       idImageUrl: user.idCardImagePath || '', // S3 키 그대로 전달
       selfieImageUrl: user.selfieImagePath || '', // 셀피도 추가
+      idImageBase64: (user as any).idCardMaskedImageBase64,
+      idImageOriginalBase64: (user as any).idCardOriginImageBase64,
+      selfieImageBase64: (user as any).selfieImageBase64,
       addressProofType: 'REGISTRY' as const,
       addressProofUrl: '',
       phoneVerified: true,
@@ -152,9 +180,21 @@ function mapUserToIndividualOnboarding(user: BackendUser): IndividualOnboarding 
     // Mock/기본값: 추가 절차
     additionalProcedures: null,
 
-    // Mock/기본값: EDD
-    edd: null,
+    // EDD (백엔드에서 조회된 경우)
+    edd: (user as any).edd ? {
+      fundSourceCode: (user as any).edd.fundSourceCd,
+      fundSourceName: (user as any).edd.fundSourceName,
+      fundSourceDetail: (user as any).edd.fundSourceDetail,
+      transPurposeCode: (user as any).edd.transPurposeCd,
+      transPurposeName: (user as any).edd.transPurposeName,
+      transPurposeDetail: (user as any).edd.transPurposeDetail,
+      submittedAt: user.createdAt, // 임시로 createdAt 사용
+    } : null,
     eddRequired: false,
+
+    // KYC 시행 이력
+    kycDates: (user as any).kycDates || [],
+    cdd: (user as any).cdd || null,
 
     // Mock/기본값: 관리자 검토
     adminReview: {
@@ -248,6 +288,19 @@ export async function fetchIndividualOnboardingById(
     const response = await axios.get<BackendUser>(`${API_URL}/api/users/${id}`);
     const user = response.data;
 
+    console.log('[fetchIndividualOnboardingById] 백엔드 응답 데이터:', {
+      id: user.id,
+      memberType: user.memberType,
+      kofiuJobCd: (user as any).kofiuJobCd,
+      kofiuJobName: (user as any).kofiuJobName,
+      jobDetailCd: (user as any).jobDetailCd,
+      jobDetailName: (user as any).jobDetailName,
+      hasIdCardMaskedImage: !!(user as any).idCardMaskedImageBase64,
+      hasSelfieImage: !!(user as any).selfieImageBase64,
+      hasEdd: !!(user as any).edd,
+      eddData: (user as any).edd
+    });
+
     // memberType 확인
     if (user.memberType !== 'individual') {
       throw new Error(`User ${id} is not an individual member`);
@@ -255,16 +308,52 @@ export async function fetchIndividualOnboardingById(
 
     // 매핑하여 반환
     const mapped = mapUserToIndividualOnboarding(user);
-    console.log('[fetchIndividualOnboardingById] Mapped result:', {
+    console.log('[fetchIndividualOnboardingById] 매핑 결과:', {
       id: mapped.id,
       userId: mapped.userId,
       userName: mapped.userName,
-      hasUserId: !!mapped.userId,
+      kofiuJobCode: mapped.kofiuJobCode,
+      kofiuJobName: mapped.kofiuJobName,
+      hasKycIdImageBase64: !!mapped.kyc.idImageBase64,
+      hasKycSelfieBase64: !!mapped.kyc.selfieImageBase64,
+      hasEdd: !!mapped.edd,
+      eddFundSource: mapped.edd?.fundSourceCode
     });
     return mapped;
   } catch (error: any) {
     console.error(`개인회원 온보딩 상세 조회 실패 (ID: ${id}):`, error);
     throw new Error(`Individual onboarding application not found: ${id}`);
+  }
+}
+
+/**
+ * 특정 CDD 시행일의 KYC 상세 조회
+ */
+export async function fetchIndividualKycDetail(
+  userId: string,
+  cddId: string
+): Promise<{ cdd: CddDetail | null; edd: IndividualOnboarding['edd'] }> {
+  try {
+    const response = await axios.get<BackendUser>(`${API_URL}/api/users/${userId}`, {
+      params: { cddId }
+    });
+    const user = response.data;
+
+    return {
+      cdd: (user as any).cdd || null,
+      edd: (user as any).edd ? {
+        fundSourceCode: (user as any).edd.fundSourceCd,
+        fundSourceName: (user as any).edd.fundSourceName,
+        fundSourceDetail: (user as any).edd.fundSourceDetail,
+        transPurposeCode: (user as any).edd.transPurposeCd,
+        transPurposeName: (user as any).edd.transPurposeName,
+        transPurposeDetail: (user as any).edd.transPurposeDetail,
+        submittedAt: user.createdAt,
+      } : null,
+    };
+  } catch (error) {
+    console.error(`KYC 상세 조회 실패 (userId: ${userId}, cddId: ${cddId}):`, error);
+    throw error;
   }
 }
 

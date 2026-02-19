@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { AssetType } from '@/types/withdrawalV2';
-import { getAssetWalletRatios, AssetWalletInfo as ApiAssetWalletInfo } from '@/services/walletApi';
+import { getAssetWalletRatios, AssetWalletInfo as ApiAssetWalletInfo, getTreasuryAssetDistribution } from '@/services/walletApi';
 import { getDashboardStats } from '@/services/dashboardApi';
 
 export interface DashboardStats {
@@ -101,6 +101,15 @@ const MOCK_ASSET_DISTRIBUTION_COLD: AssetDistribution[] = [
   { asset: 'USDT', amount: '301,538', value: 392000000, percentage: 20, color: '#26A17B' },
   { asset: 'USDC', amount: '150,769', value: 196000000, percentage: 10, color: '#2775CA' },
   { asset: 'SOL', amount: '653.33', value: 98000000, percentage: 5, color: '#00FFA3' },
+];
+
+// Treasury 지갑 자산 분포 (수수료 수취)
+const MOCK_ASSET_DISTRIBUTION_TREASURY: AssetDistribution[] = [
+  { asset: 'BTC', amount: '0.15', value: 12000000, percentage: 35, color: '#F7931A' },
+  { asset: 'ETH', amount: '1.5', value: 7500000, percentage: 22, color: '#627EEA' },
+  { asset: 'USDT', amount: '12,000', value: 15600000, percentage: 28, color: '#26A17B' },
+  { asset: 'USDC', amount: '6,000', value: 7800000, percentage: 10, color: '#2775CA' },
+  { asset: 'SOL', amount: '10.0', value: 1500000, percentage: 5, color: '#00FFA3' },
 ];
 
 const MOCK_WALLET_STATUS: WalletStatus = {
@@ -205,6 +214,7 @@ export function useDashboardData() {
   const [assetWalletInfo, setAssetWalletInfo] = useState<AssetWalletInfo[]>([]);
   const [assetDistributionHot, setAssetDistributionHot] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_HOT);
   const [assetDistributionCold, setAssetDistributionCold] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_COLD);
+  const [assetDistributionTreasury, setAssetDistributionTreasury] = useState<AssetDistribution[]>(MOCK_ASSET_DISTRIBUTION_TREASURY);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -215,9 +225,10 @@ export function useDashboardData() {
         setError(null);
 
         // API에서 실제 데이터 가져오기 (병렬 처리)
-        const [statsData, ratios] = await Promise.all([
+        const [statsData, ratios, treasuryData] = await Promise.all([
           getDashboardStats(),
-          getAssetWalletRatios()
+          getAssetWalletRatios(),
+          getTreasuryAssetDistribution()
         ]);
 
         // 통계 데이터 설정
@@ -270,6 +281,17 @@ export function useDashboardData() {
 
         setAssetDistributionHot(hotDistribution);
         setAssetDistributionCold(coldDistribution);
+
+        // Treasury 자산 분포 데이터 변환
+        const treasuryDistribution: AssetDistribution[] = treasuryData.map((item) => ({
+          asset: item.asset as 'BTC' | 'ETH' | 'USDT' | 'USDC' | 'SOL',
+          amount: item.amount,
+          value: parseFloat(item.amount) * 100000000, // 임시 KRW 환산
+          percentage: item.percentage,
+          color: getAssetColor(item.asset),
+        }));
+
+        setAssetDistributionTreasury(treasuryDistribution);
       } catch (err) {
         console.error('대시보드 데이터 조회 실패:', err);
         setError('대시보드 데이터 조회에 실패했습니다.');
@@ -288,6 +310,7 @@ export function useDashboardData() {
     stats,
     assetDistributionHot,
     assetDistributionCold,
+    assetDistributionTreasury,
     assetWalletInfo,
     walletStatus: MOCK_WALLET_STATUS,
     recentTransactions: MOCK_RECENT_TRANSACTIONS,

@@ -14,9 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye } from "lucide-react";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
-import { KYCInfo } from "@/types/onboardingAml";
+import { KYCInfo, KycDateEntry, CddDetail, OnboardingStatus, OnboardingStep, RiskLevel } from "@/types/onboardingAml";
 import { getIdCardTypeLabel } from "@/utils/kycUtils";
 import { useToast } from "@/hooks/use-toast";
+import { RiskLevelBadge } from "../../../components/RiskLevelBadge";
+import { OnboardingStatusBadge } from "../../../components/OnboardingStatusBadge";
+import { CompactProcessIndicator } from "../../../components/CompactProcessIndicator";
 
 /**
  * 주민등록증 신분증 번호 마스킹 처리
@@ -59,6 +62,20 @@ interface KYCSectionProps {
   userGender?: string;
   userNationality?: string;
   userPhone: string;
+  kofiuJobCode?: string;      // KOFIU 직업 분류 코드
+  kofiuJobName?: string;      // KOFIU 직업 분류 명칭
+  jobDetailCode?: string;     // 직업 상세 코드
+  jobDetailName?: string;     // 직업 상세 명칭
+  // KYC 시행 이력 관련
+  kycDates?: KycDateEntry[];
+  selectedCddId?: string;
+  onCddSelect?: (cddId: string) => void;
+  cdd?: CddDetail | null;
+  // 상태/위험도/진행단계 (CDD 건별)
+  reviewStatus?: OnboardingStatus;
+  riskLevel?: RiskLevel | null;
+  currentStep?: OnboardingStep;
+  amlCompleted?: boolean;
 }
 
 /**
@@ -110,7 +127,19 @@ function getCountryLabel(countryCode?: string): string {
   return countryCode ? (labels[countryCode] || countryCode) : '-';
 }
 
-export function KYCSection({ kyc, userId, userName, userEmail, userGender, userNationality, userPhone }: KYCSectionProps) {
+/**
+ * CDD 시행 일시를 표시용 문자열로 변환
+ * YYYYMMDDHH24MISS -> "YYYY. MM. DD."
+ */
+function formatCddDate(cddExecutedAt: string): string {
+  if (!cddExecutedAt || cddExecutedAt.length < 8) return cddExecutedAt;
+  const year = cddExecutedAt.substring(0, 4);
+  const month = cddExecutedAt.substring(4, 6);
+  const day = cddExecutedAt.substring(6, 8);
+  return `${year}. ${month}. ${day}.`;
+}
+
+export function KYCSection({ kyc, userId, userName, userEmail, userGender, userNationality, userPhone, kofiuJobCode, kofiuJobName, jobDetailCode, jobDetailName, kycDates, selectedCddId, onCddSelect, cdd, reviewStatus, riskLevel, currentStep, amlCompleted }: KYCSectionProps) {
   const { toast } = useToast();
 
   // 신분증 번호 표시 (주민등록증인 경우 마스킹)
@@ -120,6 +149,7 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
 
   // Pre-signed URL 상태
   const [idCardImageUrl, setIdCardImageUrl] = useState<string | null>(null);
+  const [idCardOriginalImageUrl, setIdCardOriginalImageUrl] = useState<string | null>(null);
   const [selfieImageUrl, setSelfieImageUrl] = useState<string | null>(null);
 
   // 이미지 에러 상태 (XSS 방어: innerHTML 대신 React state 사용)
@@ -130,50 +160,73 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
   const [isIdCardModalOpen, setIsIdCardModalOpen] = useState(false);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
-  // Pre-signed URL 가져오기
+  // Pre-signed URL 또는 Base64 이미지 처리
   useEffect(() => {
-    const fetchImageUrls = async () => {
+    const loadImages = async () => {
+      // 1. S3 경로가 있으면 Pre-signed URL 사용
       const isS3Key = kyc.idImageUrl?.startsWith('kyc/');
 
-      if (!userId || !isS3Key) {
-        setIdCardImageUrl(kyc.idImageUrl || null);
-        setSelfieImageUrl(kyc.selfieImageUrl || null);
-        return;
-      }
+      if (isS3Key && userId) {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+        // 신분증 이미지 URL (쿠키로 자동 인증)
+        try {
+          const response = await fetch(`${API_URL}/api/users/${userId}/kyc-image`, {
+            credentials: 'include',
+          });
 
-      // 신분증 이미지 URL (쿠키로 자동 인증)
-      try {
-        const response = await fetch(`${API_URL}/api/users/${userId}/kyc-image`, {
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIdCardImageUrl(data.imageUrl);
+          if (response.ok) {
+            const data = await response.json();
+            setIdCardImageUrl(data.imageUrl);
+          }
+        } catch (error) {
+          console.error('신분증 이미지 URL 가져오기 실패:', error);
         }
-      } catch (error) {
-        console.error('신분증 이미지 URL 가져오기 실패:', error);
-      }
 
-      // 셀피 이미지 URL (쿠키로 자동 인증)
-      try {
-        const response = await fetch(`${API_URL}/api/users/${userId}/kyc-selfie-image`, {
-          credentials: 'include',
-        });
+        // 셀피 이미지 URL (쿠키로 자동 인증)
+        try {
+          const response = await fetch(`${API_URL}/api/users/${userId}/kyc-selfie-image`, {
+            credentials: 'include',
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          setSelfieImageUrl(data.imageUrl);
+          if (response.ok) {
+            const data = await response.json();
+            setSelfieImageUrl(data.imageUrl);
+          }
+        } catch (error) {
+          console.error('셀피 이미지 URL 가져오기 실패:', error);
         }
-      } catch (error) {
-        console.error('셀피 이미지 URL 가져오기 실패:', error);
+      }
+      // 2. Base64 데이터가 있으면 직접 사용
+      else {
+        // 마스킹된 이미지 (기본 표시)
+        if (kyc.idImageBase64) {
+          const dataUrl = kyc.idImageBase64.startsWith('data:')
+            ? kyc.idImageBase64
+            : `data:image/jpeg;base64,${kyc.idImageBase64}`;
+          setIdCardImageUrl(dataUrl);
+        }
+
+        // 원본 이미지 (스위치로 전환 가능)
+        if ((kyc as any).idImageOriginalBase64) {
+          const dataUrl = (kyc as any).idImageOriginalBase64.startsWith('data:')
+            ? (kyc as any).idImageOriginalBase64
+            : `data:image/jpeg;base64,${(kyc as any).idImageOriginalBase64}`;
+          setIdCardOriginalImageUrl(dataUrl);
+        }
+
+        // 셀피
+        if (kyc.selfieImageBase64) {
+          const dataUrl = kyc.selfieImageBase64.startsWith('data:')
+            ? kyc.selfieImageBase64
+            : `data:image/jpeg;base64,${kyc.selfieImageBase64}`;
+          setSelfieImageUrl(dataUrl);
+        }
       }
     };
 
-    fetchImageUrls();
-  }, [userId, kyc.idImageUrl]);
+    loadImages();
+  }, [userId, kyc.idImageUrl, kyc.idImageBase64, kyc.selfieImageBase64]);
 
   // 이미지 모달 열기
   const handleOpenImage = (type: 'idcard' | 'selfie') => {
@@ -197,10 +250,60 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
   return (
     <Card>
       <CardHeader>
-        <CardTitle>KYC 정보</CardTitle>
-        <CardDescription>신청자가 제출한 본인확인 정보</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>KYC 정보</CardTitle>
+            <CardDescription>신청자가 제출한 본인확인 정보</CardDescription>
+          </div>
+          {kycDates && kycDates.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">시행 일자</span>
+              <select
+                value={selectedCddId || kycDates[0]?.id || ''}
+                onChange={(e) => onCddSelect?.(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {kycDates.map((entry, index) => (
+                  <option key={entry.id} value={entry.id}>
+                    {formatCddDate(entry.cddExecutedAt)}
+                    {kycDates.length === 1 ? '' : index === 0 ? ' (최신)' : index === kycDates.length - 1 ? ' (최초 KYC)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 상태 / 위험도 / 진행단계 */}
+        <div className="grid gap-4 md:grid-cols-3 p-4 bg-muted/30 rounded-lg">
+          <div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">상태</div>
+            {reviewStatus ? (
+              <OnboardingStatusBadge status={reviewStatus} />
+            ) : (
+              <span className="text-sm text-muted-foreground">-</span>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">위험도</div>
+            {riskLevel ? (
+              <RiskLevelBadge level={riskLevel} source="SYSTEM" />
+            ) : (
+              <span className="text-sm text-muted-foreground">평가 대기</span>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground mb-2">진행 단계</div>
+            <CompactProcessIndicator
+              currentStep={currentStep || 1}
+              totalSteps={5}
+              type="individual"
+              amlCompleted={!!amlCompleted}
+            />
+          </div>
+        </div>
+
         {/* 기본 정보 */}
         <div className="space-y-3">
           <h4 className="font-medium text-sm">기본 정보</h4>
@@ -317,8 +420,60 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
           </div>
         </div>
 
-        {/* 회원가입 시 등록한 주소 */}
-        {(kyc.zipCode || kyc.address || kyc.detailAddress) && (
+        {/* 직업 정보 */}
+        {(kofiuJobCode || jobDetailCode) && (
+          <div className="space-y-3 pt-4 border-t">
+            <h4 className="font-medium text-sm">직업 정보</h4>
+            <div className="grid gap-3 md:grid-cols-2">
+              {kofiuJobCode && (
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">직업 분류</div>
+                  <div className="font-medium">
+                    {kofiuJobName}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({kofiuJobCode})
+                    </span>
+                  </div>
+                </div>
+              )}
+              {jobDetailCode && (
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">직업 상세</div>
+                  <div className="font-medium">
+                    {jobDetailName}
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({jobDetailCode})
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CDD 시행일 기준 주소/연락처 (CDD 데이터가 있는 경우) */}
+        {cdd && (
+          <div className="space-y-3 pt-4 border-t">
+            <h4 className="font-medium text-sm">거주지 정보</h4>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">우편번호</div>
+                <div className="font-medium">{cdd.homeZipCode || '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">기본 주소</div>
+                <div className="font-medium">{cdd.homeAddress || '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">상세 주소</div>
+                <div className="font-medium">{cdd.homeAddressDtl || '-'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 회원가입 시 등록한 주소 (CDD 없을 때만 표시) */}
+        {!cdd && (kyc.zipCode || kyc.address || kyc.detailAddress) && (
           <div className="space-y-3 pt-4 border-t">
             <h4 className="font-medium text-sm">등록 주소</h4>
             <div className="grid gap-3">
@@ -379,6 +534,7 @@ export function KYCSection({ kyc, userId, userName, userEmail, userGender, userN
           isOpen={isIdCardModalOpen}
           onClose={() => setIsIdCardModalOpen(false)}
           imageUrl={idCardImageUrl}
+          originalImageUrl={idCardOriginalImageUrl || undefined}
           title="신분증 이미지"
         />
       )}

@@ -30,6 +30,7 @@ import {
   CheckSquare,
   AlertTriangle,
   Coins,
+  MessageSquare,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +93,13 @@ const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
         href: '/admin/members/onboarding-aml/monitoring',
         icon: Activity,
         requiredPermissions: [{ resource: AdminResource.COMPLIANCE, action: AdminAction.READ }],
+      },
+      {
+        id: 'members-corporate-inquiries',
+        label: '법인 문의',
+        href: '/admin/members/corporate-inquiries',
+        icon: MessageSquare,
+        requiredPermissions: [{ resource: AdminResource.MEMBERS, action: AdminAction.READ }],
       },
     ],
   },

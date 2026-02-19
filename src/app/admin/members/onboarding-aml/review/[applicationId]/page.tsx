@@ -15,16 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import { IndividualOnboarding } from "@/types/onboardingAml";
+import { IndividualOnboarding, OnboardingStep } from "@/types/onboardingAml";
 import {
   fetchIndividualOnboardingById,
+  fetchIndividualKycDetail,
   approveIndividualOnboarding,
   rejectIndividualOnboarding,
   holdIndividualOnboarding,
 } from "@/services/onboardingAmlApi";
-import { RiskLevelBadge } from "../../components/RiskLevelBadge";
-import { OnboardingStatusBadge } from "../../components/OnboardingStatusBadge";
-import { CompactProcessIndicator } from "../../components/CompactProcessIndicator";
+import type { CddDetail } from "@/types/onboardingAml";
 import { ApprovalDialog } from "../../components/ApprovalDialog";
 import { RejectionDialog } from "../../components/RejectionDialog";
 import { OnHoldDialog } from "../../components/OnHoldDialog";
@@ -45,6 +44,8 @@ export default function OnboardingReviewPage() {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [onHoldDialogOpen, setOnHoldDialogOpen] = useState(false);
+  const [selectedCddId, setSelectedCddId] = useState<string | undefined>(undefined);
+  const [selectedCdd, setSelectedCdd] = useState<CddDetail | null>(null);
 
   useEffect(() => {
     loadApplication();
@@ -55,6 +56,11 @@ export default function OnboardingReviewPage() {
       setLoading(true);
       const data = await fetchIndividualOnboardingById(applicationId);
       setApplication(data);
+      // 초기 CDD 설정 (최신 CDD)
+      if (data.cdd) {
+        setSelectedCdd(data.cdd);
+        setSelectedCddId(data.cdd.id);
+      }
     } catch (error) {
       console.error('Failed to load application:', error);
       toast({
@@ -63,6 +69,25 @@ export default function OnboardingReviewPage() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleCddSelect(cddId: string) {
+    if (!application) return;
+    setSelectedCddId(cddId);
+    try {
+      const detail = await fetchIndividualKycDetail(application.userId, cddId);
+      setSelectedCdd(detail.cdd);
+      // EDD도 해당 시행일 기준으로 업데이트
+      if (detail.edd !== undefined) {
+        setApplication(prev => prev ? { ...prev, edd: detail.edd } : prev);
+      }
+    } catch (error) {
+      console.error('CDD 상세 조회 실패:', error);
+      toast({
+        variant: "destructive",
+        description: "KYC 이력 상세 조회에 실패했습니다.",
+      });
     }
   }
 
@@ -183,34 +208,7 @@ export default function OnboardingReviewPage() {
         </Button>
       </div>
 
-      {/* Status Overview */}
-      <Card className="p-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">상태</div>
-            <OnboardingStatusBadge status={application.adminReview.status} />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">위험도</div>
-            {application.riskAssessment ? (
-              <RiskLevelBadge level={application.riskAssessment.riskLevel} source="SYSTEM" />
-            ) : (
-              <span className="text-sm text-muted-foreground">평가 대기</span>
-            )}
-          </div>
-          <div>
-            <div className="text-sm font-medium text-muted-foreground mb-2">진행 단계</div>
-            <CompactProcessIndicator
-              currentStep={application.adminReview.currentStep}
-              totalSteps={5}
-              type="individual"
-              amlCompleted={!!application.aml}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* KYC Section */}
+      {/* KYC Section (상태/위험도/진행단계 포함) */}
       <KYCSection
         kyc={application.kyc}
         userId={application.userId}
@@ -219,6 +217,18 @@ export default function OnboardingReviewPage() {
         userPhone={application.userPhone || '-'}
         userGender={application.userGender}
         userNationality={application.userNationality}
+        kofiuJobCode={application.kofiuJobCode}
+        kofiuJobName={application.kofiuJobName}
+        jobDetailCode={application.jobDetailCode}
+        jobDetailName={application.jobDetailName}
+        kycDates={application.kycDates}
+        selectedCddId={selectedCddId}
+        onCddSelect={handleCddSelect}
+        cdd={selectedCdd}
+        reviewStatus={selectedCdd?.reviewStatus || application.adminReview.status}
+        riskLevel={selectedCdd?.riskLevel || application.riskAssessment?.riskLevel}
+        currentStep={(selectedCdd?.currentStep || application.adminReview.currentStep) as OnboardingStep}
+        amlCompleted={!!application.aml}
       />
 
       {/* AML Section (외부 결과 읽기 전용) */}

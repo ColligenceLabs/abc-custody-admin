@@ -71,41 +71,41 @@ const renderActiveShape = (props: any) => {
       />
       <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
       <text
-        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        x={ex + (cos >= 0 ? 1 : -1) * 10}
         y={ey}
         textAnchor={textAnchor}
         fill="#111827"
-        style={{ fontSize: '14px', fontWeight: '600' }}
+        style={{ fontSize: '12px', fontWeight: '600' }}
       >
         {payload.asset}
       </text>
       <text
-        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        x={ex + (cos >= 0 ? 1 : -1) * 10}
         y={ey}
-        dy={18}
+        dy={16}
         textAnchor={textAnchor}
         fill="#6B7280"
-        style={{ fontSize: '12px' }}
+        style={{ fontSize: '11px' }}
       >
         {payload.amount} {payload.asset}
       </text>
       <text
-        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        x={ex + (cos >= 0 ? 1 : -1) * 10}
         y={ey}
-        dy={33}
+        dy={30}
         textAnchor={textAnchor}
         fill="#6B7280"
-        style={{ fontSize: '12px' }}
+        style={{ fontSize: '11px' }}
       >
         {formatCompactCurrency(value)}
       </text>
       <text
-        x={ex + (cos >= 0 ? 1 : -1) * 12}
+        x={ex + (cos >= 0 ? 1 : -1) * 10}
         y={ey}
-        dy={48}
+        dy={44}
         textAnchor={textAnchor}
         fill="#6B7280"
-        style={{ fontSize: '12px' }}
+        style={{ fontSize: '11px' }}
       >
         {`${(percent * 100).toFixed(1)}%`}
       </text>
@@ -123,7 +123,7 @@ export function AssetDistributionChart({ data, title = '자산 분포' }: AssetD
     : '0';
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
@@ -137,11 +137,11 @@ export function AssetDistributionChart({ data, title = '자산 분포' }: AssetD
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col lg:flex-row items-center gap-8">
-          {/* 도넛 차트 - 왼쪽 */}
-          <div className="flex-shrink-0">
-            <div className="relative w-96 h-80">
+      <CardContent className="overflow-visible px-2">
+        <div className="flex flex-col items-center gap-4">
+          {/* 도넛 차트 - 가운데 */}
+          <div className="flex-shrink-0 w-full">
+            <div className="relative w-full" style={{ height: '350px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -150,8 +150,8 @@ export function AssetDistributionChart({ data, title = '자산 분포' }: AssetD
                     data={data}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
+                    innerRadius={70}
+                    outerRadius={90}
                     dataKey="value"
                     onMouseEnter={(_, index) => setSelectedAssetIndex(index)}
                     className="cursor-pointer"
@@ -168,10 +168,10 @@ export function AssetDistributionChart({ data, title = '자산 분포' }: AssetD
                 <div className="text-center">
                   {selectedAsset && (
                     <>
-                      <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {selectedAsset.asset}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <div className="text-base text-gray-600 dark:text-gray-400 mt-1">
                         {selectedPercentage}%
                       </div>
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
@@ -184,32 +184,32 @@ export function AssetDistributionChart({ data, title = '자산 분포' }: AssetD
             </div>
           </div>
 
-          {/* 범례 - 오른쪽 */}
-          <div className="flex-1 w-full">
-            <div className="space-y-2">
+          {/* 범례 - 아래 */}
+          <div className="w-full">
+            <div className="space-y-1.5">
               {data.map((entry, index) => (
                 <div
                   key={entry.asset}
                   onClick={() => setSelectedAssetIndex(index)}
                   onMouseEnter={() => setSelectedAssetIndex(index)}
-                  className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${
+                  className={`flex items-center justify-between p-2 rounded-lg transition-colors cursor-pointer ${
                     selectedAssetIndex === index
                       ? 'bg-gray-100 dark:bg-gray-800'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: entry.color }}
                     />
-                    <CryptoIcon symbol={entry.asset} size={24} />
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <CryptoIcon symbol={entry.asset} size={18} className="flex-shrink-0" />
+                    <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
                       {entry.asset}
                     </span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100">
                       {entry.amount} {entry.asset}
                     </p>
                     <p className="text-xs text-muted-foreground">

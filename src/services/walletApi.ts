@@ -33,3 +33,29 @@ export const getAssetWalletRatios = async (): Promise<AssetWalletInfo[]> => {
   const response = await apiClient.get<AssetWalletRatiosResponse>('/wallets/asset-ratios');
   return response.data.data;
 };
+
+/**
+ * Treasury 자산 분포 정보
+ */
+export interface TreasuryAssetDistribution {
+  asset: string;
+  amount: string;
+  percentage: number;
+}
+
+/**
+ * Treasury 자산 분포 API 응답
+ */
+export interface TreasuryDistributionResponse {
+  success: boolean;
+  data: TreasuryAssetDistribution[];
+}
+
+/**
+ * Treasury 자산 분포 조회
+ * @returns Promise<TreasuryAssetDistribution[]>
+ */
+export const getTreasuryAssetDistribution = async (): Promise<TreasuryAssetDistribution[]> => {
+  const response = await apiClient.get<TreasuryDistributionResponse>('/wallets/treasury-distribution');
+  return response.data.data;
+};
